@@ -6,10 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "format": "prettier --write \"app/**/*.{js,jsx,ts,tsx,json,css,scss,md}\""
   },
   "dependencies": {
+    "lucide-react": "^0.577.0",
     "next": "16.1.6",
+    "prettier": "^3.8.1",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
