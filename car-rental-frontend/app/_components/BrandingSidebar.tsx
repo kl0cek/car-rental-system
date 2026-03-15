@@ -1,4 +1,5 @@
 import { Car } from 'lucide-react';
+import React from 'react';
 
 const stats = [
   { value: '500+', label: 'Vehicles' },
@@ -28,15 +29,15 @@ export function BrandingSidebar() {
           </p>
         </div>
 
-        <div className="flex items-center gap-8">
+        <div className="flex flex-row items-center gap-8">
           {stats.map((stat, i) => (
-            <>
-              {i > 0 && <div className="w-px h-12 bg-primary-foreground/20" />}
+            <React.Fragment key={stat.label}>
+              {i > 0 && <div key={`divider-${i}`} className="w-px h-12 bg-primary-foreground/20" />}
               <div key={stat.label}>
                 <p className="text-3xl font-bold">{stat.value}</p>
                 <p className="text-primary-foreground/70 text-sm">{stat.label}</p>
               </div>
-            </>
+            </React.Fragment>
           ))}
         </div>
       </div>
