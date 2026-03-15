@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, ArrowRight } from 'lucide-react';
-import { SocialButtons } from './SocialButtons';
+import { SocialButtons } from './ui/SocialButtons';
+import Link from 'next/link';
 
 export function LoginForm() {
   const router = useRouter();
@@ -105,9 +106,12 @@ export function LoginForm() {
 
       <p className="text-center text-sm text-muted-foreground">
         {"Don't have an account? "}
-        <button className="text-primary font-medium hover:text-primary/80 transition-colors">
+        <Link
+          href="/register"
+          className="text-primary font-medium hover:text-primary/80 transition-colors"
+        >
           Create account
-        </button>
+        </Link>
       </p>
     </div>
   );
