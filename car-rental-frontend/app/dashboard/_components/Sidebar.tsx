@@ -2,28 +2,9 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import {
-  Car,
-  LayoutDashboard,
-  CalendarDays,
-  Users,
-  Settings,
-  LogOut,
-  HelpCircle,
-} from "lucide-react"
+import { Car, LogOut } from "lucide-react"
 import { cn } from "@/app/_lib/utils"
-
-const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Bookings", href: "/dashboard/bookings", icon: CalendarDays },
-  { name: "Fleet", href: "/dashboard/fleet", icon: Car },
-  { name: "Customers", href: "/dashboard/customers", icon: Users },
-  { name: "Settings", href: "/dashboard/settings", icon: Settings },
-]
-
-const secondaryNavigation = [
-  { name: "Help Center", href: "#", icon: HelpCircle },
-]
+import { navigation, secondaryNavigation } from "@/app/dashboard/_data/constants"
 
 export default function DashboardSidebar() {
   const pathname = usePathname()
@@ -31,6 +12,7 @@ export default function DashboardSidebar() {
   return (
     <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
       <div className="flex flex-col grow bg-card border-r border-border">
+
         <div className="flex items-center gap-3 px-6 py-5 border-b border-border">
           <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center">
             <Car className="w-5 h-5 text-primary-foreground" />
@@ -39,24 +21,21 @@ export default function DashboardSidebar() {
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {navigation.map((item) => {
-            const isActive = pathname === item.href
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                )}
-              >
-                <item.icon className="w-5 h-5" />
-                {item.name}
-              </Link>
-            )
-          })}
+          {navigation.map((item) => (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                pathname === item.href
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              )}
+            >
+              <item.icon className="w-5 h-5" />
+              {item.name}
+            </Link>
+          ))}
         </nav>
 
         <div className="px-3 py-4 border-t border-border space-y-1">
@@ -90,6 +69,7 @@ export default function DashboardSidebar() {
             </div>
           </div>
         </div>
+
       </div>
     </aside>
   )

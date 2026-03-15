@@ -1,43 +1,15 @@
 import { Clock, ChevronRight } from "lucide-react"
+import type { Return } from "@/app/dashboard/_types/booking"
+import { mockReturns } from "@/app/dashboard/_data/mockReturns"
 
-const returns = [
-  {
-    id: 1,
-    customer: "Sarah Johnson",
-    car: "BMW 3 Series",
-    returnTime: "Today, 2:00 PM",
-    location: "Downtown Office",
-    urgent: true,
-  },
-  {
-    id: 2,
-    customer: "Michael Chen",
-    car: "Mercedes C-Class",
-    returnTime: "Today, 5:30 PM",
-    location: "Airport Terminal",
-    urgent: false,
-  },
-  {
-    id: 3,
-    customer: "Emily Davis",
-    car: "Audi A4",
-    returnTime: "Tomorrow, 10:00 AM",
-    location: "Main Branch",
-    urgent: false,
-  },
-  {
-    id: 4,
-    customer: "Robert Kim",
-    car: "Tesla Model 3",
-    returnTime: "Tomorrow, 3:00 PM",
-    location: "East Side Office",
-    urgent: false,
-  },
-]
+interface UpcomingReturnsProps {
+  returns?: Return[]
+}
 
-export default function UpcomingReturns() {
+export default function UpcomingReturns({ returns = mockReturns }: UpcomingReturnsProps) {
   return (
     <div className="bg-card rounded-xl border border-border h-full">
+
       <div className="flex items-center justify-between p-5 border-b border-border">
         <div>
           <h2 className="font-semibold text-foreground">Upcoming Returns</h2>
@@ -47,6 +19,7 @@ export default function UpcomingReturns() {
           <Clock className="w-4 h-4 text-foreground" />
         </div>
       </div>
+
       <div className="divide-y divide-border">
         {returns.map((item) => (
           <button
@@ -71,11 +44,13 @@ export default function UpcomingReturns() {
           </button>
         ))}
       </div>
+
       <div className="p-4 border-t border-border">
         <button className="w-full text-sm text-primary font-medium hover:text-primary/80 transition-colors">
           View all returns
         </button>
       </div>
+
     </div>
   )
 }
