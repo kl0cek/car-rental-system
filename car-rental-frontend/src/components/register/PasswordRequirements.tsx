@@ -1,7 +1,7 @@
 'use client';
 
 import { Check } from 'lucide-react';
-import type { PasswordRequirement } from '../_types/register';
+import type { PasswordRequirement } from '@/types/register/register';
 
 interface PasswordRequirementsProps {
   requirements: PasswordRequirement[];

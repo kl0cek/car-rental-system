@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { BrandingSidebar } from '@/app/_components/BrandingSidebar';
-import { RegisterForm } from './_components/RegisterForm';
+import { BrandingSidebar } from '@/components/home/BrandingSidebar';
+import { RegisterForm } from '@/components/register/RegisterForm';
 
 export const metadata: Metadata = {
   title: 'Create account | DriveEase',

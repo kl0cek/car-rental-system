@@ -2,15 +2,14 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { BrandingSidebar } from '@/app/_components/BrandingSidebar';
-import { useRegisterForm } from '../_hooks/useRegisterForm';
+import { BrandingSidebar } from '@/components/home/BrandingSidebar';
+import { useRegisterForm } from '@/hooks/register/useRegisterForm';
 import { PasswordRequirements } from './PasswordRequirements';
-import { SocialButtons } from '@/app/_components/ui/SocialButtons';
-import { TextField } from '@/app/_components/ui/TextField';
-import { PasswordField } from '@/app/_components/ui/PasswordField';
-import { TermsCheckbox } from './TermsCheckbox';
+import { SocialButtons } from '@/components/home/SocialButtons';
+import { TextField } from '@/components/home/TextField';
+import { PasswordField } from '@/components/home/PasswordField';
+import { TermsCheckbox } from '@/components/register/TermsCheckbox';
 import { SubmitButton } from './SubmitButton';
-import { Divider } from '@/app/_components/ui/Divider';
 
 export function RegisterForm() {
   const {

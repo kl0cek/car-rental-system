@@ -1,6 +1,6 @@
 import { Car } from 'lucide-react';
-import { BrandingSidebar } from './_components/BrandingSidebar';
-import { LoginForm } from './_components/LoginForm';
+import { BrandingSidebar } from '@/components/home/BrandingSidebar';
+import { LoginForm } from '@/components/home/LoginForm';
 
 export default function LoginPage() {
   return (

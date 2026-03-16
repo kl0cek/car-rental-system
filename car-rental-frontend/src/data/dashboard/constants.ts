@@ -6,7 +6,7 @@ import {
   Settings,
   HelpCircle,
 } from "lucide-react"
-import type { BookingStatus, NavItem } from "@/app/dashboard/_types/booking"
+import type { BookingStatus, NavItem } from "@/types/dashboard/booking"
 
 export const navigation: NavItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
