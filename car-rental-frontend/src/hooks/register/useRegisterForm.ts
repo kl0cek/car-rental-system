@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { RegisterFormData, PasswordRequirement } from '../_types/register';
+import type { RegisterFormData, PasswordRequirement } from '../../../types/register/register';
 
 const INITIAL_FORM_DATA: RegisterFormData = {
   fullName: '',

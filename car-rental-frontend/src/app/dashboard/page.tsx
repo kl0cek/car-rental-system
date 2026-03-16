@@ -1,6 +1,6 @@
 import { Car, CalendarCheck, Users, TrendingUp, Clock, MapPin, ArrowUpRight, ArrowDownRight } from "lucide-react"
-import BookingsList from "@/app/dashboard/_components/BookingList"
-import UpcomingReturns from "@/app/dashboard/_components/UpcomingReturns"
+import BookingsList from "@/src/components/dashboard/BookingList"
+import UpcomingReturns from "@/src/components/dashboard/UpcomingReturns"
 
 const stats = [
   {

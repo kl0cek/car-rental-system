@@ -4,8 +4,8 @@ import { useState } from "react"
 import { Search, Bell, Menu, X, Car, LogOut } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { cn } from "@/app/_lib/utils"
-import { navigation } from "@/app/dashboard/_data/constants"
+import { cn } from "@/src/lib/utils"
+import { navigation } from "@/src/data/dashboard/constants"
 
 export default function DashboardHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)

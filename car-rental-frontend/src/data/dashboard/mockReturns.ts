@@ -4,7 +4,7 @@ import {
   Users,
   TrendingUp,
 } from "lucide-react"
-import type { Return, Stat } from "@/app/dashboard/_types/booking"
+import type { Return, Stat } from "@/src/types/dashboard/booking"
 
 export const mockReturns: Return[] = [
   {

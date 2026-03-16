@@ -1,6 +1,6 @@
 import { Clock, ChevronRight } from "lucide-react"
-import type { Return } from "@/app/dashboard/_types/booking"
-import { mockReturns } from "@/app/dashboard/_data/mockReturns"
+import type { Return } from "@/src/types/dashboard/booking"
+import { mockReturns } from "@/src/data/dashboard/mockReturns"
 
 interface UpcomingReturnsProps {
   returns?: Return[]

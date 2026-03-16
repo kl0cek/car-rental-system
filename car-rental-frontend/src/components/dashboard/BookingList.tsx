@@ -1,9 +1,9 @@
 "use client"
 
 import { MoreHorizontal, Eye } from "lucide-react"
-import type { Booking } from "@/app/dashboard/_types/booking"
-import { bookingStatusStyles } from "@/app/dashboard/_data/constants"
-import { mockBookings } from "@/app/dashboard/_data/mockBooking"
+import type { Booking } from "@/src/types/dashboard/booking"
+import { bookingStatusStyles } from "@/src/data/dashboard/constants"
+import { mockBookings } from "@/src/data/dashboard/mockBooking"
 
 interface BookingsListProps {
   bookings?: Booking[]

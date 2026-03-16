@@ -1,5 +1,5 @@
 import { Car } from 'lucide-react';
-import { BrandingSidebar } from './_components/BrandingSidebar';
+import { BrandingSidebar } from '../components/home/BrandingSidebar';
 import { LoginForm } from './_components/LoginForm';
 
 export default function LoginPage() {
