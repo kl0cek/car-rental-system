@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, ArrowRight } from 'lucide-react';
-import { SocialButtons } from './ui/SocialButtons';
+import { SocialButtons } from './SocialButtons';
 import Link from 'next/link';
 
 export function LoginForm() {

@@ -3,8 +3,8 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Car, LogOut } from "lucide-react"
-import { cn } from "@/src/lib/utils"
-import { navigation, secondaryNavigation } from "@/src/data/dashboard/constants"
+import { cn } from "@/lib/utils"
+import { navigation, secondaryNavigation } from "@/data/dashboard/constants"
 
 export default function DashboardSidebar() {
   const pathname = usePathname()
