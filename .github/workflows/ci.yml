@@ -11,8 +11,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'car-rental-frontend/**'
+            backend:
+              - 'car-rental-backend/**'
+
   frontend-lint:
     name: "Frontend: Lint"
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -29,6 +48,8 @@ jobs:
 
   frontend-type-check:
     name: "Frontend: Type Check"
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -45,6 +66,8 @@ jobs:
 
   frontend-test:
     name: "Frontend: Unit Tests"
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -61,6 +84,8 @@ jobs:
 
   backend-lint:
     name: "Backend: Lint (Ruff)"
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -78,6 +103,8 @@ jobs:
 
   backend-type-check:
     name: "Backend: Type Check (mypy)"
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -94,6 +121,8 @@ jobs:
 
   backend-test:
     name: "Backend: Unit Tests (pytest)"
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
