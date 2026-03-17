@@ -1,0 +1,14 @@
+[project]
+name = "driveease-api"
+version = "0.1.0"
+description = "DriveEase car rental system API"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.115.0",
+    "pydantic>=2.11.0",
+    "pydantic-settings>=2.9.0",
+    "python-dotenv>=1.1.0",
+]
+
+[tool.fastapi]
+entrypoint = "app.main:app"
