@@ -1,3 +1,5 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
 # dependencies
 */node_modules
 /.pnp
@@ -9,7 +11,7 @@
 !.yarn/versions
 
 # testing
-*/coverage
+/coverage
 
 # next.js
 */.next/
@@ -21,7 +23,6 @@
 # misc
 .DS_Store
 *.pem
-Thumbs.db
 
 # debug
 npm-debug.log*
@@ -48,20 +49,7 @@ venv/
 .venv/
 *.egg-info/
 dist/
-.mypy_cache/
-.ruff_cache/
-.pytest_cache/
-.coverage
-htmlcov/
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# Docker
-docker-compose.override.yml
+build/
 
 # Claude
 CLAUDE.md
