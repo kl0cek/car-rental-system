@@ -1,10 +1,16 @@
+from __future__ import annotations
+
 import enum
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.rental import Rental
 
 
 class EngineType(enum.StrEnum):

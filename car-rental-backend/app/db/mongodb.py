@@ -1,12 +1,14 @@
+from typing import Any
+
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
 from app.config import settings
 
-mongo_client: AsyncIOMotorClient | None = None
-mongo_db: AsyncIOMotorDatabase | None = None
+mongo_client: AsyncIOMotorClient[Any] | None = None
+mongo_db: AsyncIOMotorDatabase[Any] | None = None
 
 
-def get_mongo_db() -> AsyncIOMotorDatabase:
+def get_mongo_db() -> AsyncIOMotorDatabase[Any]:
     if mongo_db is None:
         raise RuntimeError("MongoDB is not initialized. Call connect_mongo() first.")
     return mongo_db
