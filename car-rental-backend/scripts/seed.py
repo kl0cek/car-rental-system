@@ -20,6 +20,7 @@ from datetime import UTC, datetime, timedelta
 # Shared IDs (so we can reference them across databases)
 # ---------------------------------------------------------------------------
 USER_IDS = [uuid.uuid4() for _ in range(6)]
+CATEGORY_IDS = [uuid.uuid4() for _ in range(5)]
 VEHICLE_IDS = [uuid.uuid4() for _ in range(8)]
 RENTAL_IDS = [uuid.uuid4() for _ in range(10)]
 
@@ -34,6 +35,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
 
     from app.db.base import Base
     from app.db.engine import async_engine, async_session_factory
+    from app.models.category import Category, CategoryName
     from app.models.rental import Rental, RentalStatus
     from app.models.user import User, UserRole
     from app.models.vehicle import EngineType, Vehicle, VehicleStatus
@@ -104,6 +106,40 @@ async def seed_postgres(*, drop: bool = False) -> None:
         ),
     ]
 
+    # --- Categories ---
+    categories = [
+        Category(
+            id=CATEGORY_IDS[0],
+            name=CategoryName.ECONOMY,
+            description="Tanie, oszczędne samochody na co dzień",
+            price_multiplier=1.00,
+        ),
+        Category(
+            id=CATEGORY_IDS[1],
+            name=CategoryName.COMFORT,
+            description="Wygodne samochody klasy średniej",
+            price_multiplier=1.20,
+        ),
+        Category(
+            id=CATEGORY_IDS[2],
+            name=CategoryName.PREMIUM,
+            description="Samochody klasy premium i luksusowe",
+            price_multiplier=1.60,
+        ),
+        Category(
+            id=CATEGORY_IDS[3],
+            name=CategoryName.SUV,
+            description="SUV-y i crossovery",
+            price_multiplier=1.40,
+        ),
+        Category(
+            id=CATEGORY_IDS[4],
+            name=CategoryName.VAN,
+            description="Vany i samochody wieloosobowe",
+            price_multiplier=1.30,
+        ),
+    ]
+
     # --- Vehicles ---
     vehicles = [
         Vehicle(
@@ -112,12 +148,16 @@ async def seed_postgres(*, drop: bool = False) -> None:
             model="Corolla",
             year=2023,
             license_plate="WA 12345",
+            vin="JTDKN3DU5A0000001",
             engine_type=EngineType.PETROL,
-            daily_rate=150.00,
+            horsepower=140,
             seats=5,
+            trunk_capacity=361,
+            daily_base_price=150.00,
             color="Biały",
             mileage=25000,
             status=VehicleStatus.AVAILABLE,
+            category_id=CATEGORY_IDS[1],
         ),
         Vehicle(
             id=VEHICLE_IDS[1],
@@ -125,12 +165,16 @@ async def seed_postgres(*, drop: bool = False) -> None:
             model="Golf",
             year=2022,
             license_plate="KR 67890",
+            vin="WVWZZZ1KZAW000002",
             engine_type=EngineType.DIESEL,
-            daily_rate=170.00,
+            horsepower=150,
             seats=5,
+            trunk_capacity=381,
+            daily_base_price=170.00,
             color="Szary",
             mileage=45000,
             status=VehicleStatus.RENTED,
+            category_id=CATEGORY_IDS[1],
         ),
         Vehicle(
             id=VEHICLE_IDS[2],
@@ -138,12 +182,16 @@ async def seed_postgres(*, drop: bool = False) -> None:
             model="Model 3",
             year=2024,
             license_plate="GD 11111",
+            vin="5YJ3E1EA1PF000003",
             engine_type=EngineType.ELECTRIC,
-            daily_rate=350.00,
+            horsepower=283,
             seats=5,
+            trunk_capacity=425,
+            daily_base_price=350.00,
             color="Czarny",
             mileage=8000,
             status=VehicleStatus.AVAILABLE,
+            category_id=CATEGORY_IDS[2],
         ),
         Vehicle(
             id=VEHICLE_IDS[3],
@@ -151,12 +199,16 @@ async def seed_postgres(*, drop: bool = False) -> None:
             model="RAV4 Hybrid",
             year=2023,
             license_plate="PO 22222",
+            vin="JTMRWRFV5MD000004",
             engine_type=EngineType.HYBRID,
-            daily_rate=280.00,
+            horsepower=222,
             seats=5,
+            trunk_capacity=580,
+            daily_base_price=280.00,
             color="Zielony",
             mileage=18000,
             status=VehicleStatus.AVAILABLE,
+            category_id=CATEGORY_IDS[3],
         ),
         Vehicle(
             id=VEHICLE_IDS[4],
@@ -164,12 +216,16 @@ async def seed_postgres(*, drop: bool = False) -> None:
             model="Octavia",
             year=2021,
             license_plate="DWR 33333",
+            vin="TMBAG7NE1M0000005",
             engine_type=EngineType.DIESEL,
-            daily_rate=140.00,
+            horsepower=150,
             seats=5,
+            trunk_capacity=600,
+            daily_base_price=140.00,
             color="Niebieski",
             mileage=72000,
             status=VehicleStatus.MAINTENANCE,
+            category_id=CATEGORY_IDS[1],
         ),
         Vehicle(
             id=VEHICLE_IDS[5],
@@ -177,12 +233,16 @@ async def seed_postgres(*, drop: bool = False) -> None:
             model="320i",
             year=2024,
             license_plate="KA 44444",
+            vin="WBA5R1C50KA000006",
             engine_type=EngineType.PETROL,
-            daily_rate=320.00,
+            horsepower=184,
             seats=5,
+            trunk_capacity=480,
+            daily_base_price=320.00,
             color="Czarny",
             mileage=5000,
             status=VehicleStatus.AVAILABLE,
+            category_id=CATEGORY_IDS[2],
         ),
         Vehicle(
             id=VEHICLE_IDS[6],
@@ -190,12 +250,16 @@ async def seed_postgres(*, drop: bool = False) -> None:
             model="Kona Electric",
             year=2023,
             license_plate="LU 55555",
+            vin="KMHK381GFLU000007",
             engine_type=EngineType.ELECTRIC,
-            daily_rate=250.00,
+            horsepower=204,
             seats=5,
+            trunk_capacity=332,
+            daily_base_price=250.00,
             color="Biały",
             mileage=12000,
             status=VehicleStatus.AVAILABLE,
+            category_id=CATEGORY_IDS[1],
         ),
         Vehicle(
             id=VEHICLE_IDS[7],
@@ -203,12 +267,16 @@ async def seed_postgres(*, drop: bool = False) -> None:
             model="Focus",
             year=2020,
             license_plate="SZ 66666",
+            vin="WF0XXXGCDXKY00008",
             engine_type=EngineType.PETROL,
-            daily_rate=120.00,
+            horsepower=125,
             seats=5,
+            trunk_capacity=375,
+            daily_base_price=120.00,
             color="Czerwony",
             mileage=95000,
             status=VehicleStatus.OUT_OF_SERVICE,
+            category_id=CATEGORY_IDS[0],
         ),
     ]
 
@@ -317,12 +385,17 @@ async def seed_postgres(*, drop: bool = False) -> None:
             return
 
         session.add_all(users)
+        session.add_all(categories)
+        await session.flush()
         session.add_all(vehicles)
         await session.flush()
         session.add_all(rentals)
         await session.commit()
 
-    print(f"[PG] Seeded: {len(users)} users, {len(vehicles)} vehicles, {len(rentals)} rentals")
+    print(
+        f"[PG] Seeded: {len(users)} users, {len(categories)} categories, "
+        f"{len(vehicles)} vehicles, {len(rentals)} rentals"
+    )
 
     await async_engine.dispose()
 
