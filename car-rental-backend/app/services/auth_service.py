@@ -1,9 +1,8 @@
-import hashlib
 import secrets
+import uuid
 from asyncio import get_running_loop
 from datetime import timedelta
 
-from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -19,6 +18,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
+from app.core.token_blacklist import blacklist_token, is_token_blacklisted
 from app.db.redis import get_redis
 from app.models.user import User
 from app.repositories import user_repository
@@ -29,16 +29,6 @@ from app.schemas.auth import (
     RegisterRequest,
     TokenResponse,
 )
-
-
-async def _blacklist_token(redis: Redis, raw_token: str, ttl: int) -> None:
-    token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
-    await redis.set(f"blacklist:{token_hash}", "1", ex=ttl)
-
-
-async def _is_token_blacklisted(redis: Redis, raw_token: str) -> bool:
-    token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
-    return bool(await redis.exists(f"blacklist:{token_hash}"))
 
 
 async def register_user(body: RegisterRequest, db: AsyncSession) -> tuple[User, str]:
@@ -81,13 +71,13 @@ async def login_user(body: LoginRequest, db: AsyncSession) -> TokenResponse:
     if not is_valid:
         raise InvalidCredentialsError
 
-    access_token = create_access_token(subject=str(user.id))
-    refresh_token = create_refresh_token(subject=str(user.id))
+    access_token = create_access_token(subject=str(user.id), role=user.role)
+    refresh_token = create_refresh_token(subject=str(user.id), role=user.role)
 
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 
-async def refresh_tokens(body: RefreshRequest) -> TokenResponse:
+async def refresh_tokens(body: RefreshRequest, db: AsyncSession) -> TokenResponse:
     payload = decode_token(body.refresh_token)
 
     if payload.get("type") != "refresh":
@@ -99,14 +89,18 @@ async def refresh_tokens(body: RefreshRequest) -> TokenResponse:
 
     redis = get_redis()
 
-    if await _is_token_blacklisted(redis, body.refresh_token):
+    if await is_token_blacklisted(redis, body.refresh_token):
         raise InvalidTokenError
 
     refresh_ttl = int(timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS).total_seconds())
-    await _blacklist_token(redis, body.refresh_token, refresh_ttl)
+    await blacklist_token(redis, body.refresh_token, refresh_ttl)
 
-    access_token = create_access_token(subject=sub)
-    new_refresh_token = create_refresh_token(subject=sub)
+    user = await user_repository.get_by_id(db, uuid.UUID(sub))
+    if user is None or not user.is_active:
+        raise InvalidTokenError
+
+    access_token = create_access_token(subject=sub, role=user.role)
+    new_refresh_token = create_refresh_token(subject=sub, role=user.role)
 
     return TokenResponse(access_token=access_token, refresh_token=new_refresh_token)
 
@@ -115,7 +109,7 @@ async def logout_user(body: LogoutRequest) -> None:
     redis = get_redis()
 
     refresh_ttl = int(timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS).total_seconds())
-    await _blacklist_token(redis, body.refresh_token, refresh_ttl)
+    await blacklist_token(redis, body.refresh_token, refresh_ttl)
 
     access_ttl = int(timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES).total_seconds())
-    await _blacklist_token(redis, body.access_token, access_ttl)
+    await blacklist_token(redis, body.access_token, access_ttl)

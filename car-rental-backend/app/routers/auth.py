@@ -64,9 +64,9 @@ async def login(body: LoginRequest, db: DbSession) -> TokenResponse:
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh(body: RefreshRequest) -> TokenResponse:
+async def refresh(body: RefreshRequest, db: DbSession) -> TokenResponse:
     try:
-        return await refresh_tokens(body)
+        return await refresh_tokens(body, db)
     except InvalidTokenError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
