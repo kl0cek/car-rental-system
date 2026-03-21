@@ -1,18 +1,17 @@
-"use client"
+'use client';
 
-import { MoreHorizontal, Eye } from "lucide-react"
-import type { Booking } from "@/types/dashboard/booking"
-import { bookingStatusStyles } from "@/data/dashboard/constants"
-import { mockBookings } from "@/data/dashboard/mockBooking"
+import { MoreHorizontal, Eye } from 'lucide-react';
+import type { Booking } from '@/types/dashboard/booking';
+import { bookingStatusStyles } from '@/data/dashboard/constants';
+import { mockBookings } from '@/data/dashboard/mockBooking';
 
 interface BookingsListProps {
-  bookings?: Booking[]
+  bookings?: Booking[];
 }
 
 export default function BookingsList({ bookings = mockBookings }: BookingsListProps) {
   return (
     <div className="bg-card rounded-xl border border-border">
-
       <div className="flex items-center justify-between p-5 border-b border-border">
         <div>
           <h2 className="font-semibold text-foreground">Recent Bookings</h2>
@@ -27,11 +26,11 @@ export default function BookingsList({ bookings = mockBookings }: BookingsListPr
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
-              {["Customer", "Vehicle", "Duration", "Status", "Total", "Actions"].map((col) => (
+              {['Customer', 'Vehicle', 'Duration', 'Status', 'Total', 'Actions'].map((col) => (
                 <th
                   key={col}
                   className={`text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-3 ${
-                    col === "Actions" ? "text-right" : "text-left"
+                    col === 'Actions' ? 'text-right' : 'text-left'
                   }`}
                 >
                   {col}
@@ -109,7 +108,6 @@ export default function BookingsList({ bookings = mockBookings }: BookingsListPr
           </div>
         ))}
       </div>
-
     </div>
-  )
+  );
 }

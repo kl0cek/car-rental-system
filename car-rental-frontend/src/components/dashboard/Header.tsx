@@ -1,21 +1,20 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { Search, Bell, Menu, X, Car, LogOut } from "lucide-react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { navigation } from "@/data/dashboard/constants"
+import { useState } from 'react';
+import { Search, Bell, Menu, X, Car, LogOut } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import { navigation } from '@/data/dashboard/constants';
 
 export default function DashboardHeader() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const pathname = usePathname()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   return (
     <>
       <header className="sticky top-0 z-40 bg-card/80 backdrop-blur-sm border-b border-border">
         <div className="flex items-center justify-between h-16 px-6">
-
           <button
             type="button"
             aria-label="Open menu"
@@ -51,7 +50,6 @@ export default function DashboardHeader() {
               </div>
             </div>
           </div>
-
         </div>
       </header>
 
@@ -62,7 +60,6 @@ export default function DashboardHeader() {
             onClick={() => setMobileMenuOpen(false)}
           />
           <div className="fixed inset-y-0 left-0 w-72 bg-card shadow-xl">
-
             <div className="flex items-center justify-between px-6 py-5 border-b border-border">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center">
@@ -87,10 +84,10 @@ export default function DashboardHeader() {
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                     pathname === item.href
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                   )}
                 >
                   <item.icon className="w-5 h-5" />
@@ -108,10 +105,9 @@ export default function DashboardHeader() {
                 Sign out
               </Link>
             </div>
-
           </div>
         </div>
       )}
     </>
-  )
+  );
 }

@@ -1,15 +1,14 @@
-import { Clock, ChevronRight } from "lucide-react"
-import type { Return } from "@/types/dashboard/booking"
-import { mockReturns } from "@/data/dashboard/mockReturns"
+import { Clock, ChevronRight } from 'lucide-react';
+import type { Return } from '@/types/dashboard/booking';
+import { mockReturns } from '@/data/dashboard/mockReturns';
 
 interface UpcomingReturnsProps {
-  returns?: Return[]
+  returns?: Return[];
 }
 
 export default function UpcomingReturns({ returns = mockReturns }: UpcomingReturnsProps) {
   return (
     <div className="bg-card rounded-xl border border-border h-full">
-
       <div className="flex items-center justify-between p-5 border-b border-border">
         <div>
           <h2 className="font-semibold text-foreground">Upcoming Returns</h2>
@@ -28,7 +27,7 @@ export default function UpcomingReturns({ returns = mockReturns }: UpcomingRetur
           >
             <div
               className={`w-2 h-2 rounded-full shrink-0 ${
-                item.urgent ? "bg-destructive" : "bg-accent"
+                item.urgent ? 'bg-destructive' : 'bg-accent'
               }`}
             />
             <div className="flex-1 min-w-0">
@@ -50,7 +49,6 @@ export default function UpcomingReturns({ returns = mockReturns }: UpcomingRetur
           View all returns
         </button>
       </div>
-
     </div>
-  )
+  );
 }

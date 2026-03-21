@@ -1,16 +1,11 @@
 'use client';
 
-import { Divider } from "./Divider";
+import { Divider } from './Divider';
 
 export function SocialButtons() {
   return (
     <>
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-border" />
-        </div>
-        <Divider />
-      </div>
+      <Divider />
 
       <div className="grid grid-cols-2 gap-3">
         <button

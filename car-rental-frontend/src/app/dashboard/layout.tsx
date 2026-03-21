@@ -1,11 +1,7 @@
-import DashboardSidebar from "@/components/dashboard/Sidebar"
-import DashboardHeader from "@/components/dashboard/Header"
+import DashboardSidebar from '@/components/dashboard/Sidebar';
+import DashboardHeader from '@/components/dashboard/Header';
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
       <DashboardSidebar />
@@ -14,5 +10,5 @@ export default function DashboardLayout({
         <main className="p-6">{children}</main>
       </div>
     </div>
-  )
+  );
 }
