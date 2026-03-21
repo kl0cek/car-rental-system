@@ -1,6 +1,6 @@
-from fastapi import APIRouter, BackgroundTasks, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, status
 
-from app.core.email import send_verification_email
+from app.core.email import send_password_reset_email, send_verification_email
 from app.core.exceptions import (
     EmailAlreadyRegisteredError,
     InvalidCredentialsError,
@@ -8,14 +8,25 @@ from app.core.exceptions import (
 )
 from app.db.session import DbSession
 from app.schemas.auth import (
+    ForgotPasswordRequest,
     LoginRequest,
     LogoutRequest,
+    MessageResponse,
     RefreshRequest,
     RegisterRequest,
     RegisterResponse,
+    ResetPasswordRequest,
     TokenResponse,
 )
-from app.services.auth_service import login_user, logout_user, refresh_tokens, register_user
+from app.services.auth_service import (
+    forgot_password,
+    login_user,
+    logout_user,
+    refresh_tokens,
+    register_user,
+    reset_password,
+    verify_email,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -78,3 +89,47 @@ async def refresh(body: RefreshRequest, db: DbSession) -> TokenResponse:
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(body: LogoutRequest) -> None:
     await logout_user(body)
+
+
+@router.get("/verify-email", response_model=MessageResponse)
+async def verify_email_endpoint(
+    db: DbSession,
+    token: str = Query(...),
+) -> MessageResponse:
+    try:
+        await verify_email(token, db)
+    except InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired verification token",
+        )
+    return MessageResponse(message="Email verified successfully")
+
+
+@router.post("/forgot-password", response_model=MessageResponse)
+async def forgot_password_endpoint(
+    body: ForgotPasswordRequest,
+    db: DbSession,
+    background_tasks: BackgroundTasks,
+) -> MessageResponse:
+    token = await forgot_password(body, db)
+    if token is not None:
+        background_tasks.add_task(send_password_reset_email, body.email, token)
+    return MessageResponse(
+        message="If an account with that email exists, a password reset link has been sent."
+    )
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+async def reset_password_endpoint(
+    body: ResetPasswordRequest,
+    db: DbSession,
+) -> MessageResponse:
+    try:
+        await reset_password(body, db)
+    except InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token",
+        )
+    return MessageResponse(message="Password has been reset successfully")
