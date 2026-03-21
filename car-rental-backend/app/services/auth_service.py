@@ -1,10 +1,10 @@
 import secrets
 from asyncio import get_running_loop
 
-from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.core.exceptions import EmailAlreadyRegisteredError
 from app.core.security import hash_password
 from app.db.redis import get_redis
 from app.models.user import User
@@ -17,10 +17,7 @@ async def register_user(
 ) -> tuple[User, str]:
     existing = await user_repository.get_by_email(db, body.email)
     if existing is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Email already registered",
-        )
+        raise EmailAlreadyRegisteredError(body.email)
 
     loop = get_running_loop()
     hashed = await loop.run_in_executor(None, hash_password, body.password)

@@ -1,6 +1,7 @@
-from fastapi import APIRouter, BackgroundTasks, status
+from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 
 from app.core.email import send_verification_email
+from app.core.exceptions import EmailAlreadyRegisteredError
 from app.db.session import DbSession
 from app.schemas.auth import RegisterRequest, RegisterResponse
 from app.services.auth_service import register_user
@@ -18,7 +19,13 @@ async def register(
     db: DbSession,
     background_tasks: BackgroundTasks,
 ) -> RegisterResponse:
-    user, token = await register_user(body, db)
+    try:
+        user, token = await register_user(body, db)
+    except EmailAlreadyRegisteredError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email already registered",
+        )
     background_tasks.add_task(send_verification_email, user.email, token)
 
     return RegisterResponse(

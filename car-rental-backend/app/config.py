@@ -36,7 +36,11 @@ class Settings(BaseSettings):
     # Frontend
     FRONTEND_URL: str = "http://localhost:3000"
 
-    model_config = {"env_file": (".env", "../.env"), "case_sensitive": True}
+    model_config = {
+        "env_file": (".env", "../.env"),
+        "case_sensitive": True,
+        "extra": "ignore",
+    }
 
 
 settings = Settings()
