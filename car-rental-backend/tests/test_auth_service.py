@@ -90,8 +90,9 @@ class TestLoginUser:
         user = _make_user(role=UserRole.EMPLOYEE)
         body = LoginRequest(email="john@example.com", password="correct")
 
-        with patch("app.services.auth_service.user_repository") as mock_repo, patch(
-            "app.services.auth_service.verify_password", return_value=True
+        with (
+            patch("app.services.auth_service.user_repository") as mock_repo,
+            patch("app.services.auth_service.verify_password", return_value=True),
         ):
             mock_repo.get_by_email = AsyncMock(return_value=user)
 
@@ -119,8 +120,9 @@ class TestLoginUser:
         user = _make_user()
         body = LoginRequest(email="john@example.com", password="wrong")
 
-        with patch("app.services.auth_service.user_repository") as mock_repo, patch(
-            "app.services.auth_service.verify_password", return_value=False
+        with (
+            patch("app.services.auth_service.user_repository") as mock_repo,
+            patch("app.services.auth_service.verify_password", return_value=False),
         ):
             mock_repo.get_by_email = AsyncMock(return_value=user)
 

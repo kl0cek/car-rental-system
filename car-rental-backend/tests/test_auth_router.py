@@ -107,9 +107,7 @@ class TestLoginEndpoint:
         with patch(
             "app.routers.auth.login_user",
             new_callable=AsyncMock,
-            return_value=TokenResponse(
-                access_token="acc", refresh_token="ref"
-            ),
+            return_value=TokenResponse(access_token="acc", refresh_token="ref"),
         ):
             resp = await client.post(
                 "/auth/login",
@@ -143,9 +141,7 @@ class TestRefreshEndpoint:
         with patch(
             "app.routers.auth.refresh_tokens",
             new_callable=AsyncMock,
-            return_value=TokenResponse(
-                access_token="new-acc", refresh_token="new-ref"
-            ),
+            return_value=TokenResponse(access_token="new-acc", refresh_token="new-ref"),
         ):
             resp = await client.post(
                 "/auth/refresh",

@@ -33,14 +33,18 @@ def _create_token(
 
 def create_access_token(subject: str, role: UserRole) -> str:
     return _create_token(
-        subject, "access", timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+        subject,
+        "access",
+        timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
         {"role": role.value},
     )
 
 
 def create_refresh_token(subject: str, role: UserRole) -> str:
     return _create_token(
-        subject, "refresh", timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+        subject,
+        "refresh",
+        timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
         {"role": role.value},
     )
 

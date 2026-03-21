@@ -86,9 +86,7 @@ class TestGetCurrentUser:
         ):
             mock_repo.get_by_id = AsyncMock(return_value=user)
 
-            async with AsyncClient(
-                transport=ASGITransport(app=app), base_url="http://test"
-            ) as ac:
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
                 resp = await ac.get("/me", headers={"Authorization": f"Bearer {token}"})
 
         assert resp.status_code == 200
@@ -99,9 +97,7 @@ class TestGetCurrentUser:
         app = _build_app()
         app.dependency_overrides[get_db] = lambda: mock_db
 
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as ac:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
             resp = await ac.get("/me")
 
         assert resp.status_code == 403
@@ -115,9 +111,7 @@ class TestGetCurrentUser:
         app.dependency_overrides[get_db] = lambda: mock_db
 
         with patch("app.core.deps.get_redis", return_value=mock_redis):
-            async with AsyncClient(
-                transport=ASGITransport(app=app), base_url="http://test"
-            ) as ac:
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
                 resp = await ac.get("/me", headers={"Authorization": f"Bearer {token}"})
 
         assert resp.status_code == 401
@@ -129,12 +123,8 @@ class TestGetCurrentUser:
         app.dependency_overrides[get_db] = lambda: mock_db
 
         with patch("app.core.deps.get_redis", return_value=mock_redis):
-            async with AsyncClient(
-                transport=ASGITransport(app=app), base_url="http://test"
-            ) as ac:
-                resp = await ac.get(
-                    "/me", headers={"Authorization": "Bearer invalid.token.here"}
-                )
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+                resp = await ac.get("/me", headers={"Authorization": "Bearer invalid.token.here"})
 
         assert resp.status_code == 401
 
@@ -146,9 +136,7 @@ class TestGetCurrentUser:
         app.dependency_overrides[get_db] = lambda: mock_db
 
         with patch("app.core.deps.get_redis", return_value=mock_redis):
-            async with AsyncClient(
-                transport=ASGITransport(app=app), base_url="http://test"
-            ) as ac:
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
                 resp = await ac.get("/me", headers={"Authorization": f"Bearer {token}"})
 
         assert resp.status_code == 401
@@ -168,9 +156,7 @@ class TestGetCurrentUser:
         ):
             mock_repo.get_by_id = AsyncMock(return_value=user)
 
-            async with AsyncClient(
-                transport=ASGITransport(app=app), base_url="http://test"
-            ) as ac:
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
                 resp = await ac.get("/me", headers={"Authorization": f"Bearer {token}"})
 
         assert resp.status_code == 401
@@ -189,9 +175,7 @@ class TestGetCurrentUser:
         ):
             mock_repo.get_by_id = AsyncMock(return_value=None)
 
-            async with AsyncClient(
-                transport=ASGITransport(app=app), base_url="http://test"
-            ) as ac:
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
                 resp = await ac.get("/me", headers={"Authorization": f"Bearer {token}"})
 
         assert resp.status_code == 401
@@ -212,12 +196,8 @@ class TestRequireRoles:
         ):
             mock_repo.get_by_id = AsyncMock(return_value=user)
 
-            async with AsyncClient(
-                transport=ASGITransport(app=app), base_url="http://test"
-            ) as ac:
-                resp = await ac.get(
-                    "/admin-only", headers={"Authorization": f"Bearer {token}"}
-                )
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+                resp = await ac.get("/admin-only", headers={"Authorization": f"Bearer {token}"})
 
         assert resp.status_code == 200
 
@@ -235,12 +215,8 @@ class TestRequireRoles:
         ):
             mock_repo.get_by_id = AsyncMock(return_value=user)
 
-            async with AsyncClient(
-                transport=ASGITransport(app=app), base_url="http://test"
-            ) as ac:
-                resp = await ac.get(
-                    "/admin-only", headers={"Authorization": f"Bearer {token}"}
-                )
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+                resp = await ac.get("/admin-only", headers={"Authorization": f"Bearer {token}"})
 
         assert resp.status_code == 403
         assert "permissions" in resp.json()["detail"]
@@ -259,9 +235,7 @@ class TestRequireRoles:
         ):
             mock_repo.get_by_id = AsyncMock(return_value=user)
 
-            async with AsyncClient(
-                transport=ASGITransport(app=app), base_url="http://test"
-            ) as ac:
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
                 resp = await ac.get("/staff", headers={"Authorization": f"Bearer {token}"})
 
         assert resp.status_code == 200
@@ -280,9 +254,7 @@ class TestRequireRoles:
         ):
             mock_repo.get_by_id = AsyncMock(return_value=user)
 
-            async with AsyncClient(
-                transport=ASGITransport(app=app), base_url="http://test"
-            ) as ac:
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
                 resp = await ac.get("/staff", headers={"Authorization": f"Bearer {token}"})
 
         assert resp.status_code == 200
@@ -301,12 +273,8 @@ class TestRequireRoles:
         ):
             mock_repo.get_by_id = AsyncMock(return_value=user)
 
-            async with AsyncClient(
-                transport=ASGITransport(app=app), base_url="http://test"
-            ) as ac:
-                resp = await ac.get(
-                    "/technician", headers={"Authorization": f"Bearer {token}"}
-                )
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+                resp = await ac.get("/technician", headers={"Authorization": f"Bearer {token}"})
 
         assert resp.status_code == 403
 
@@ -324,11 +292,7 @@ class TestRequireRoles:
         ):
             mock_repo.get_by_id = AsyncMock(return_value=user)
 
-            async with AsyncClient(
-                transport=ASGITransport(app=app), base_url="http://test"
-            ) as ac:
-                resp = await ac.get(
-                    "/technician", headers={"Authorization": f"Bearer {token}"}
-                )
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+                resp = await ac.get("/technician", headers={"Authorization": f"Bearer {token}"})
 
         assert resp.status_code == 200
