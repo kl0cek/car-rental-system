@@ -21,6 +21,21 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str
 
+    # Auth
+    SECRET_KEY: str
+    VERIFICATION_TOKEN_EXPIRE_HOURS: int = 24
+
+    # SMTP
+    SMTP_HOST: str = "localhost"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = "noreply@driveease.com"
+    SMTP_TLS: bool = True
+
+    # Frontend
+    FRONTEND_URL: str = "http://localhost:3000"
+
     model_config = {"env_file": (".env", "../.env"), "case_sensitive": True}
 
 
