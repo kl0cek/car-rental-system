@@ -3,6 +3,7 @@ import secrets
 from asyncio import get_running_loop
 from datetime import timedelta
 
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -21,7 +22,23 @@ from app.core.security import (
 from app.db.redis import get_redis
 from app.models.user import User
 from app.repositories import user_repository
-from app.schemas.auth import LoginRequest, RefreshRequest, RegisterRequest, TokenResponse
+from app.schemas.auth import (
+    LoginRequest,
+    LogoutRequest,
+    RefreshRequest,
+    RegisterRequest,
+    TokenResponse,
+)
+
+
+async def _blacklist_token(redis: Redis, raw_token: str, ttl: int) -> None:
+    token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+    await redis.set(f"blacklist:{token_hash}", "1", ex=ttl)
+
+
+async def _is_token_blacklisted(redis: Redis, raw_token: str) -> bool:
+    token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+    return bool(await redis.exists(f"blacklist:{token_hash}"))
 
 
 async def register_user(body: RegisterRequest, db: AsyncSession) -> tuple[User, str]:
@@ -82,15 +99,23 @@ async def refresh_tokens(body: RefreshRequest) -> TokenResponse:
 
     redis = get_redis()
 
-    token_hash = hashlib.sha256(body.refresh_token.encode()).hexdigest()
-    blacklist_key = f"blacklist:{token_hash}"
-    if await redis.exists(blacklist_key):
+    if await _is_token_blacklisted(redis, body.refresh_token):
         raise InvalidTokenError
 
-    ttl = int(timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS).total_seconds())
-    await redis.set(blacklist_key, "1", ex=ttl)
+    refresh_ttl = int(timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS).total_seconds())
+    await _blacklist_token(redis, body.refresh_token, refresh_ttl)
 
     access_token = create_access_token(subject=sub)
     new_refresh_token = create_refresh_token(subject=sub)
 
     return TokenResponse(access_token=access_token, refresh_token=new_refresh_token)
+
+
+async def logout_user(body: LogoutRequest) -> None:
+    redis = get_redis()
+
+    refresh_ttl = int(timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS).total_seconds())
+    await _blacklist_token(redis, body.refresh_token, refresh_ttl)
+
+    access_ttl = int(timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES).total_seconds())
+    await _blacklist_token(redis, body.access_token, access_ttl)

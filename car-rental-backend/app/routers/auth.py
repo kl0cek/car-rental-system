@@ -9,12 +9,13 @@ from app.core.exceptions import (
 from app.db.session import DbSession
 from app.schemas.auth import (
     LoginRequest,
+    LogoutRequest,
     RefreshRequest,
     RegisterRequest,
     RegisterResponse,
     TokenResponse,
 )
-from app.services.auth_service import login_user, refresh_tokens, register_user
+from app.services.auth_service import login_user, logout_user, refresh_tokens, register_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -72,3 +73,8 @@ async def refresh(body: RefreshRequest) -> TokenResponse:
             detail="Invalid or expired refresh token",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(body: LogoutRequest) -> None:
+    await logout_user(body)
