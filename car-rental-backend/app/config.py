@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str
 
-    model_config = {"env_file": ".env", "case_sensitive": True}
+    model_config = {"env_file": (".env", "../.env"), "case_sensitive": True}
 
 
 settings = Settings()

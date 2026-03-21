@@ -7,19 +7,25 @@ from sqlalchemy import text
 
 from app.config import settings
 from app.db.engine import async_engine
+from app.db.mongodb import close_mongo, connect_mongo
+from app.db.redis import close_redis, connect_redis
 from app.db.session import DbSession
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    await connect_mongo()
+    await connect_redis()
     yield
+    await close_redis()
+    await close_mongo()
     await async_engine.dispose()
 
 
 app = FastAPI(
     title=settings.APP_NAME,
+    root_path="/api",
     docs_url="/docs",
-    redoc_url="/redoc",
     lifespan=lifespan,
 )
 
