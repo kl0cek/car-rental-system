@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { SocialButtons } from './SocialButtons';
+import { TextField } from './TextField';
+import { PasswordField } from './PasswordField';
 import Link from 'next/link';
 
 export function LoginForm() {
@@ -15,7 +17,6 @@ export function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // TODO: zastąp prawdziwym wywołaniem API / next-auth
     await new Promise((resolve) => setTimeout(resolve, 1000));
     router.push('/dashboard');
   };
@@ -28,20 +29,15 @@ export function LoginForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="space-y-2">
-          <label htmlFor="email" className="text-sm font-medium text-foreground">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            placeholder="name@company.com"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            className="w-full h-11 px-4 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
-            required
-          />
-        </div>
+        <TextField
+          id="email"
+          label="Email"
+          type="email"
+          placeholder="name@company.com"
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          autoComplete="email"
+        />
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -55,24 +51,16 @@ export function LoginForm() {
               Forgot password?
             </button>
           </div>
-          <div className="relative">
-            <input
-              id="password"
-              type={showPassword ? 'text' : 'password'}
-              placeholder="Enter your password"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full h-11 px-4 pr-11 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-            </button>
-          </div>
+          <PasswordField
+            id="password"
+            label=""
+            placeholder="Enter your password"
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            show={showPassword}
+            onToggle={() => setShowPassword((v) => !v)}
+            autoComplete="current-password"
+          />
         </div>
 
         <div className="flex items-center gap-2">
