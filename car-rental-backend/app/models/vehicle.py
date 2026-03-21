@@ -43,4 +43,4 @@ class Vehicle(Base):
     status: Mapped[VehicleStatus] = mapped_column(String(20), default=VehicleStatus.AVAILABLE)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    rentals: Mapped[list["Rental"]] = relationship(back_populates="vehicle")  # noqa: F821
+    rentals: Mapped[list[Rental]] = relationship(back_populates="vehicle")

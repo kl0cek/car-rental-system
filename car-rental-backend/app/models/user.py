@@ -30,4 +30,4 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
-    rentals: Mapped[list["Rental"]] = relationship(back_populates="user")  # noqa: F821
+    rentals: Mapped[list[Rental]] = relationship(back_populates="user")

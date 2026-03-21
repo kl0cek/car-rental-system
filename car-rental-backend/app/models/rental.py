@@ -34,5 +34,5 @@ class Rental(Base):
     status: Mapped[RentalStatus] = mapped_column(String(20), default=RentalStatus.PENDING)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    user: Mapped["User"] = relationship(back_populates="rentals")  # noqa: F821
-    vehicle: Mapped["Vehicle"] = relationship(back_populates="rentals")  # noqa: F821
+    user: Mapped[User] = relationship(back_populates="rentals")
+    vehicle: Mapped[Vehicle] = relationship(back_populates="rentals")
