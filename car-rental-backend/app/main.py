@@ -10,6 +10,7 @@ from app.db.engine import async_engine
 from app.db.mongodb import close_mongo, connect_mongo
 from app.db.redis import close_redis, connect_redis
 from app.db.session import DbSession
+from app.routers import auth
 
 
 @asynccontextmanager
@@ -36,6 +37,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
 )
+
+
+app.include_router(auth.router)
 
 
 @app.get("/")
