@@ -1,10 +1,10 @@
 from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 
 from app.core.email import send_verification_email
-from app.core.exceptions import EmailAlreadyRegisteredError
+from app.core.exceptions import EmailAlreadyRegisteredError, InvalidCredentialsError
 from app.db.session import DbSession
-from app.schemas.auth import RegisterRequest, RegisterResponse
-from app.services.auth_service import register_user
+from app.schemas.auth import LoginRequest, RegisterRequest, RegisterResponse, TokenResponse
+from app.services.auth_service import login_user, register_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -38,3 +38,15 @@ async def register(
         created_at=user.created_at,
         message="Registration successful. Please check your email to verify your account.",
     )
+
+
+@router.post("/login", response_model=TokenResponse)
+async def login(body: LoginRequest, db: DbSession) -> TokenResponse:
+    try:
+        return await login_user(body, db)
+    except InvalidCredentialsError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )

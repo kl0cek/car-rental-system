@@ -14,6 +14,17 @@ class RegisterRequest(BaseModel):
     phone: str | None = Field(default=None, max_length=20)
 
 
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+
+
 class RegisterResponse(BaseModel):
     id: uuid.UUID
     email: str
