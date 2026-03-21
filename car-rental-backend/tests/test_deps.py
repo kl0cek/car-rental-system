@@ -2,10 +2,10 @@ import uuid
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI
 from httpx import ASGITransport, AsyncClient
 
-from app.core.deps import CurrentUser, get_current_user, require_roles
+from app.core.deps import CurrentUser, require_roles
 from app.core.security import create_access_token, create_refresh_token
 from app.db.session import get_db
 from app.models.user import User, UserRole
