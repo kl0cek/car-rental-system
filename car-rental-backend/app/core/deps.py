@@ -8,6 +8,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.core.exceptions import InvalidTokenError
 from app.core.security import decode_token
 from app.core.token_blacklist import is_token_blacklisted
+from app.core.user_cache import cache_user_model, get_cached_user_model
 from app.db.redis import get_redis
 from app.db.session import DbSession
 from app.models.user import User, UserRole
@@ -63,8 +64,18 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    user = await user_repository.get_by_id(db, user_id)
-    if user is None or not user.is_active:
+    user = await get_cached_user_model(redis, user_id)
+    if user is None:
+        user = await user_repository.get_by_id(db, user_id)
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found or inactive",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        await cache_user_model(redis, user)
+
+    if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found or inactive",

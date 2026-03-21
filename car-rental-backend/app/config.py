@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str
 
+    # Cache
+    USER_CACHE_TTL_SECONDS: int = 300
+
     # Auth
     SECRET_KEY: str = "change-me-in-production"
     JWT_ALGORITHM: str = "HS256"
