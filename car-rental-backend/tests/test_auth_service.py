@@ -10,8 +10,23 @@ from app.core.exceptions import (
 )
 from app.core.security import create_refresh_token, decode_token
 from app.models.user import User, UserRole
-from app.schemas.auth import LoginRequest, LogoutRequest, RefreshRequest, RegisterRequest
-from app.services.auth_service import login_user, logout_user, refresh_tokens, register_user
+from app.schemas.auth import (
+    ForgotPasswordRequest,
+    LoginRequest,
+    LogoutRequest,
+    RefreshRequest,
+    RegisterRequest,
+    ResetPasswordRequest,
+)
+from app.services.auth_service import (
+    forgot_password,
+    login_user,
+    logout_user,
+    refresh_tokens,
+    register_user,
+    reset_password,
+    verify_email,
+)
 
 
 def _make_user(
@@ -208,3 +223,150 @@ class TestLogoutUser:
             await logout_user(body)
 
         assert mock_redis.set.await_count == 2
+
+
+class TestVerifyEmail:
+    @pytest.mark.asyncio
+    async def test_verify_email_success(self, mock_db, mock_redis):
+        user = _make_user()
+        mock_redis.getdel.return_value = str(user.id)
+
+        with (
+            patch("app.services.auth_service.get_redis", return_value=mock_redis),
+            patch("app.services.auth_service.user_repository") as mock_repo,
+        ):
+            mock_repo.get_by_id = AsyncMock(return_value=user)
+            mock_repo.update = AsyncMock(return_value=user)
+
+            await verify_email("valid-token", mock_db)
+
+        assert user.is_verified is True
+        mock_redis.getdel.assert_awaited_once_with("verify:valid-token")
+
+    @pytest.mark.asyncio
+    async def test_verify_email_already_verified_skips_update(self, mock_db, mock_redis):
+        user = _make_user()
+        user.is_verified = True
+        mock_redis.getdel.return_value = str(user.id)
+
+        with (
+            patch("app.services.auth_service.get_redis", return_value=mock_redis),
+            patch("app.services.auth_service.user_repository") as mock_repo,
+        ):
+            mock_repo.get_by_id = AsyncMock(return_value=user)
+            mock_repo.update = AsyncMock()
+
+            await verify_email("valid-token", mock_db)
+
+        mock_repo.update.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_verify_email_invalid_token_raises(self, mock_db, mock_redis):
+        mock_redis.getdel.return_value = None
+
+        with patch("app.services.auth_service.get_redis", return_value=mock_redis):
+            with pytest.raises(InvalidTokenError):
+                await verify_email("bad-token", mock_db)
+
+    @pytest.mark.asyncio
+    async def test_verify_email_user_not_found_raises(self, mock_db, mock_redis):
+        mock_redis.getdel.return_value = str(uuid.uuid4())
+
+        with (
+            patch("app.services.auth_service.get_redis", return_value=mock_redis),
+            patch("app.services.auth_service.user_repository") as mock_repo,
+        ):
+            mock_repo.get_by_id = AsyncMock(return_value=None)
+
+            with pytest.raises(InvalidTokenError):
+                await verify_email("orphan-token", mock_db)
+
+
+class TestForgotPassword:
+    @pytest.mark.asyncio
+    async def test_forgot_password_existing_user_returns_token(self, mock_db, mock_redis):
+        user = _make_user()
+
+        with (
+            patch("app.services.auth_service.get_redis", return_value=mock_redis),
+            patch("app.services.auth_service.user_repository") as mock_repo,
+        ):
+            mock_repo.get_by_email = AsyncMock(return_value=user)
+            body = ForgotPasswordRequest(email="john@example.com")
+
+            token = await forgot_password(body, mock_db)
+
+        assert token is not None
+        assert len(token) > 0
+        assert mock_redis.set.await_count == 2  # reset token + cooldown key
+
+    @pytest.mark.asyncio
+    async def test_forgot_password_nonexistent_user_returns_none(self, mock_db):
+        with patch("app.services.auth_service.user_repository") as mock_repo:
+            mock_repo.get_by_email = AsyncMock(return_value=None)
+            body = ForgotPasswordRequest(email="nobody@example.com")
+
+            token = await forgot_password(body, mock_db)
+
+        assert token is None
+
+    @pytest.mark.asyncio
+    async def test_forgot_password_cooldown_returns_none(self, mock_db, mock_redis):
+        user = _make_user()
+        mock_redis.exists.return_value = 1  # cooldown key exists
+
+        with (
+            patch("app.services.auth_service.get_redis", return_value=mock_redis),
+            patch("app.services.auth_service.user_repository") as mock_repo,
+        ):
+            mock_repo.get_by_email = AsyncMock(return_value=user)
+            body = ForgotPasswordRequest(email="john@example.com")
+
+            token = await forgot_password(body, mock_db)
+
+        assert token is None
+        mock_redis.set.assert_not_awaited()
+
+
+class TestResetPassword:
+    @pytest.mark.asyncio
+    async def test_reset_password_success(self, mock_db, mock_redis):
+        user = _make_user()
+        mock_redis.getdel.return_value = str(user.id)
+
+        with (
+            patch("app.services.auth_service.get_redis", return_value=mock_redis),
+            patch("app.services.auth_service.user_repository") as mock_repo,
+        ):
+            mock_repo.get_by_id = AsyncMock(return_value=user)
+            mock_repo.update = AsyncMock(return_value=user)
+            body = ResetPasswordRequest(token="reset-tok", new_password="newsecure123")
+
+            await reset_password(body, mock_db)
+
+        assert user.hashed_password != "$2b$12$fakehash"
+        mock_redis.getdel.assert_awaited_once_with("reset:reset-tok")
+
+    @pytest.mark.asyncio
+    async def test_reset_password_invalid_token_raises(self, mock_db, mock_redis):
+        mock_redis.getdel.return_value = None
+
+        with patch("app.services.auth_service.get_redis", return_value=mock_redis):
+            body = ResetPasswordRequest(token="bad-tok", new_password="newsecure123")
+
+            with pytest.raises(InvalidTokenError):
+                await reset_password(body, mock_db)
+
+    @pytest.mark.asyncio
+    async def test_reset_password_user_not_found_raises(self, mock_db, mock_redis):
+        mock_redis.getdel.return_value = str(uuid.uuid4())
+
+        with (
+            patch("app.services.auth_service.get_redis", return_value=mock_redis),
+            patch("app.services.auth_service.user_repository") as mock_repo,
+        ):
+            mock_repo.get_by_id = AsyncMock(return_value=None)
+            body = ResetPasswordRequest(token="orphan-tok", new_password="newsecure123")
+
+            with pytest.raises(InvalidTokenError):
+                await reset_password(body, mock_db)

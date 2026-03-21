@@ -5,8 +5,12 @@ class EmailAlreadyRegisteredError(Exception):
 
 
 class InvalidCredentialsError(Exception):
-    pass
+    def __init__(self, reason: str = "Invalid email or password") -> None:
+        self.reason = reason
+        super().__init__(reason)
 
 
 class InvalidTokenError(Exception):
-    pass
+    def __init__(self, reason: str = "Invalid or expired token") -> None:
+        self.reason = reason
+        super().__init__(reason)

@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     VERIFICATION_TOKEN_EXPIRE_HOURS: int = 24
+    RESET_PASSWORD_TOKEN_EXPIRE_HOURS: int = 1
 
     # SMTP
     SMTP_HOST: str = "localhost"
