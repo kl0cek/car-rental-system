@@ -1,20 +1,27 @@
+import hashlib
 import secrets
 from asyncio import get_running_loop
+from datetime import timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.core.exceptions import EmailAlreadyRegisteredError, InvalidCredentialsError
+from app.core.exceptions import (
+    EmailAlreadyRegisteredError,
+    InvalidCredentialsError,
+    InvalidTokenError,
+)
 from app.core.security import (
     create_access_token,
     create_refresh_token,
+    decode_token,
     hash_password,
     verify_password,
 )
 from app.db.redis import get_redis
 from app.models.user import User
 from app.repositories import user_repository
-from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
+from app.schemas.auth import LoginRequest, RefreshRequest, RegisterRequest, TokenResponse
 
 
 async def register_user(body: RegisterRequest, db: AsyncSession) -> tuple[User, str]:
@@ -61,3 +68,29 @@ async def login_user(body: LoginRequest, db: AsyncSession) -> TokenResponse:
     refresh_token = create_refresh_token(subject=str(user.id))
 
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+
+
+async def refresh_tokens(body: RefreshRequest) -> TokenResponse:
+    payload = decode_token(body.refresh_token)
+
+    if payload.get("type") != "refresh":
+        raise InvalidTokenError
+
+    sub = payload.get("sub")
+    if not isinstance(sub, str):
+        raise InvalidTokenError
+
+    redis = get_redis()
+
+    token_hash = hashlib.sha256(body.refresh_token.encode()).hexdigest()
+    blacklist_key = f"blacklist:{token_hash}"
+    if await redis.exists(blacklist_key):
+        raise InvalidTokenError
+
+    ttl = int(timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS).total_seconds())
+    await redis.set(blacklist_key, "1", ex=ttl)
+
+    access_token = create_access_token(subject=sub)
+    new_refresh_token = create_refresh_token(subject=sub)
+
+    return TokenResponse(access_token=access_token, refresh_token=new_refresh_token)
