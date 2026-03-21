@@ -12,9 +12,7 @@ from app.repositories import user_repository
 from app.schemas.auth import RegisterRequest
 
 
-async def register_user(
-    body: RegisterRequest, db: AsyncSession
-) -> tuple[User, str]:
+async def register_user(body: RegisterRequest, db: AsyncSession) -> tuple[User, str]:
     existing = await user_repository.get_by_email(db, body.email)
     if existing is not None:
         raise EmailAlreadyRegisteredError(body.email)

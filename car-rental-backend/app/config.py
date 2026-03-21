@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     REDIS_URL: str
 
     # Auth
-    SECRET_KEY: str
+    SECRET_KEY: str = "change-me-in-production"
     VERIFICATION_TOKEN_EXPIRE_HOURS: int = 24
 
     # SMTP
