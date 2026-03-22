@@ -26,6 +26,6 @@ class Category(Base):
 
     name: Mapped[CategoryName] = mapped_column(String(20), unique=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    price_multiplier: Mapped[Decimal] = mapped_column(Numeric(4, 2), default=Decimal("1.00"))
+    price_multiplier: Mapped[Decimal] = mapped_column(Numeric(5, 3), default=Decimal("1.000"))
 
     vehicles: Mapped[list[Vehicle]] = relationship(back_populates="category")

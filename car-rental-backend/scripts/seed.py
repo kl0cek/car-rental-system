@@ -15,6 +15,7 @@ import asyncio
 import json
 import uuid
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 
 # ---------------------------------------------------------------------------
 # Shared IDs (so we can reference them across databases)
@@ -112,35 +113,35 @@ async def seed_postgres(*, drop: bool = False) -> None:
             id=CATEGORY_IDS[0],
             name=CategoryName.ECONOMY,
             description="Tanie, oszczędne samochody na co dzień",
-            price_multiplier=1.00,
+            price_multiplier=Decimal("1.000"),
         ),
         Category(
             id=CATEGORY_IDS[1],
             name=CategoryName.COMFORT,
             description="Wygodne samochody klasy średniej",
-            price_multiplier=1.20,
+            price_multiplier=Decimal("1.200"),
         ),
         Category(
             id=CATEGORY_IDS[2],
             name=CategoryName.PREMIUM,
             description="Samochody klasy premium i luksusowe",
-            price_multiplier=1.60,
+            price_multiplier=Decimal("1.600"),
         ),
         Category(
             id=CATEGORY_IDS[3],
             name=CategoryName.SUV,
             description="SUV-y i crossovery",
-            price_multiplier=1.40,
+            price_multiplier=Decimal("1.400"),
         ),
         Category(
             id=CATEGORY_IDS[4],
             name=CategoryName.VAN,
             description="Vany i samochody wieloosobowe",
-            price_multiplier=1.30,
+            price_multiplier=Decimal("1.300"),
         ),
     ]
 
-    # --- Vehicles ---
+    # --- Vehicles (VINs are fabricated for seeding; not check-digit valid) ---
     vehicles = [
         Vehicle(
             id=VEHICLE_IDS[0],
@@ -153,7 +154,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
             horsepower=140,
             seats=5,
             trunk_capacity=361,
-            daily_base_price=150.00,
+            daily_base_price=Decimal("150.00"),
             color="Biały",
             mileage=25000,
             status=VehicleStatus.AVAILABLE,
@@ -170,7 +171,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
             horsepower=150,
             seats=5,
             trunk_capacity=381,
-            daily_base_price=170.00,
+            daily_base_price=Decimal("170.00"),
             color="Szary",
             mileage=45000,
             status=VehicleStatus.RENTED,
@@ -187,7 +188,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
             horsepower=283,
             seats=5,
             trunk_capacity=425,
-            daily_base_price=350.00,
+            daily_base_price=Decimal("350.00"),
             color="Czarny",
             mileage=8000,
             status=VehicleStatus.AVAILABLE,
@@ -204,7 +205,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
             horsepower=222,
             seats=5,
             trunk_capacity=580,
-            daily_base_price=280.00,
+            daily_base_price=Decimal("280.00"),
             color="Zielony",
             mileage=18000,
             status=VehicleStatus.AVAILABLE,
@@ -221,7 +222,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
             horsepower=150,
             seats=5,
             trunk_capacity=600,
-            daily_base_price=140.00,
+            daily_base_price=Decimal("140.00"),
             color="Niebieski",
             mileage=72000,
             status=VehicleStatus.MAINTENANCE,
@@ -238,7 +239,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
             horsepower=184,
             seats=5,
             trunk_capacity=480,
-            daily_base_price=320.00,
+            daily_base_price=Decimal("320.00"),
             color="Czarny",
             mileage=5000,
             status=VehicleStatus.AVAILABLE,
@@ -255,7 +256,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
             horsepower=204,
             seats=5,
             trunk_capacity=332,
-            daily_base_price=250.00,
+            daily_base_price=Decimal("250.00"),
             color="Biały",
             mileage=12000,
             status=VehicleStatus.AVAILABLE,
@@ -272,7 +273,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
             horsepower=125,
             seats=5,
             trunk_capacity=375,
-            daily_base_price=120.00,
+            daily_base_price=Decimal("120.00"),
             color="Czerwony",
             mileage=95000,
             status=VehicleStatus.OUT_OF_SERVICE,
@@ -385,6 +386,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
             return
 
         session.add_all(users)
+        await session.flush()
         session.add_all(categories)
         await session.flush()
         session.add_all(vehicles)

@@ -5,7 +5,7 @@ import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, ForeignKey, Integer, Numeric, String, Text, Uuid
+from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Integer, Numeric, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -31,6 +31,11 @@ class VehicleStatus(enum.StrEnum):
 
 class Vehicle(Base):
     __tablename__ = "vehicles"
+    __table_args__ = (
+        CheckConstraint("horsepower > 0", name="ck_vehicle_horsepower_positive"),
+        CheckConstraint("seats > 0", name="ck_vehicle_seats_positive"),
+        CheckConstraint("trunk_capacity >= 0", name="ck_vehicle_trunk_capacity_non_negative"),
+    )
 
     brand: Mapped[str] = mapped_column(String(100), index=True)
     model: Mapped[str] = mapped_column(String(100))
