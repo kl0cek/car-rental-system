@@ -10,7 +10,7 @@ from app.db.engine import async_engine
 from app.db.mongodb import close_mongo, connect_mongo
 from app.db.redis import close_redis, connect_redis
 from app.db.session import DbSession
-from app.routers import auth
+from app.routers import auth, vehicles
 
 
 @asynccontextmanager
@@ -40,6 +40,7 @@ app.add_middleware(
 
 
 app.include_router(auth.router)
+app.include_router(vehicles.router)
 
 
 @app.get("/")
