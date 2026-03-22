@@ -16,6 +16,9 @@ entrypoint = "app.main:app"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = [
+    "integration: tests that require a real PostgreSQL container (Docker)",
+]
 
 [tool.ruff]
 target-version = "py312"

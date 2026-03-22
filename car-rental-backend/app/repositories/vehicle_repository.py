@@ -111,7 +111,12 @@ async def get_list(
     sort_col = SORTABLE_COLUMNS.get(sort_by, Vehicle.created_at)
     order = sort_col.asc() if sort_order == "asc" else sort_col.desc()
 
-    stmt = base.options(contains_eager(Vehicle.category)).order_by(order).offset(offset).limit(limit)
+    stmt = (
+        base.options(contains_eager(Vehicle.category))
+        .order_by(order)
+        .offset(offset)
+        .limit(limit)
+    )
     result = await db.execute(stmt)
     vehicles = list(result.scalars().unique())
 

@@ -38,15 +38,23 @@ def mock_redis():
 
 class TestSerializeUser:
     def test_excludes_hashed_password(self):
+        # Given
         user = _make_user()
+
+        # When
         data = _serialize_user(user)
 
+        # Then
         assert "hashed_password" not in data
 
     def test_includes_required_fields(self):
+        # Given
         user = _make_user()
+
+        # When
         data = _serialize_user(user)
 
+        # Then
         assert data["email"] == "test@example.com"
         assert data["role"] == "customer"
         assert data["id"] == str(user.id)
@@ -56,21 +64,27 @@ class TestSerializeUser:
 class TestGetCachedUserModel:
     @pytest.mark.asyncio
     async def test_returns_none_on_cache_miss(self, mock_redis):
+        # Given
         mock_redis.get.return_value = None
         user_id = uuid.uuid4()
 
+        # When
         result = await get_cached_user_model(mock_redis, user_id)
 
+        # Then
         assert result is None
         mock_redis.get.assert_awaited_once_with(f"user:{user_id}")
 
     @pytest.mark.asyncio
     async def test_returns_user_on_cache_hit(self, mock_redis):
+        # Given
         user = _make_user()
         mock_redis.get.return_value = json.dumps(_serialize_user(user))
 
+        # When
         result = await get_cached_user_model(mock_redis, user.id)
 
+        # Then
         assert result is not None
         assert result.email == "test@example.com"
         assert result.role == UserRole.CUSTOMER
@@ -79,31 +93,40 @@ class TestGetCachedUserModel:
 
     @pytest.mark.asyncio
     async def test_returns_none_on_corrupt_json(self, mock_redis):
+        # Given
         mock_redis.get.return_value = "not-valid-json{{"
         user_id = uuid.uuid4()
 
+        # When
         result = await get_cached_user_model(mock_redis, user_id)
 
+        # Then
         assert result is None
         mock_redis.delete.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_returns_none_on_missing_fields(self, mock_redis):
+        # Given
         mock_redis.get.return_value = json.dumps({"email": "x@y.com"})
         user_id = uuid.uuid4()
 
+        # When
         result = await get_cached_user_model(mock_redis, user_id)
 
+        # Then
         assert result is None
 
 
 class TestCacheUserModel:
     @pytest.mark.asyncio
     async def test_stores_serialized_user_with_ttl(self, mock_redis):
+        # Given
         user = _make_user()
 
+        # When
         await cache_user_model(mock_redis, user)
 
+        # Then
         mock_redis.set.assert_awaited_once()
         call_args = mock_redis.set.await_args
         assert call_args.args[0] == f"user:{user.id}"
@@ -116,8 +139,11 @@ class TestCacheUserModel:
 class TestInvalidateUserCache:
     @pytest.mark.asyncio
     async def test_deletes_cache_key(self, mock_redis):
+        # Given
         user_id = uuid.uuid4()
 
+        # When
         await invalidate_user_cache(mock_redis, user_id)
 
+        # Then
         mock_redis.delete.assert_awaited_once_with(f"user:{user_id}")

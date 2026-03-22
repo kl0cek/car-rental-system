@@ -35,9 +35,9 @@ async def client(mock_db):
 class TestRegisterEndpoint:
     @pytest.mark.asyncio
     async def test_register_success(self, client):
+        # Given
         user_id = uuid.uuid4()
         now = datetime.now()
-
         mock_user = MagicMock(spec=User)
         mock_user.id = user_id
         mock_user.email = "new@example.com"
@@ -47,6 +47,7 @@ class TestRegisterEndpoint:
         mock_user.is_verified = False
         mock_user.created_at = now
 
+        # When
         with patch(
             "app.routers.auth.register_user",
             new_callable=AsyncMock,
@@ -62,6 +63,7 @@ class TestRegisterEndpoint:
                 },
             )
 
+        # Then
         assert resp.status_code == 201
         data = resp.json()
         assert data["email"] == "new@example.com"
@@ -70,6 +72,7 @@ class TestRegisterEndpoint:
 
     @pytest.mark.asyncio
     async def test_register_duplicate_email(self, client):
+        # When
         with patch(
             "app.routers.auth.register_user",
             new_callable=AsyncMock,
@@ -85,10 +88,12 @@ class TestRegisterEndpoint:
                 },
             )
 
+        # Then
         assert resp.status_code == 409
 
     @pytest.mark.asyncio
     async def test_register_short_password_validation(self, client):
+        # When/Then
         resp = await client.post(
             "/auth/register",
             json={
@@ -104,6 +109,7 @@ class TestRegisterEndpoint:
 class TestLoginEndpoint:
     @pytest.mark.asyncio
     async def test_login_success(self, client):
+        # When
         with patch(
             "app.routers.auth.login_user",
             new_callable=AsyncMock,
@@ -114,6 +120,7 @@ class TestLoginEndpoint:
                 json={"email": "test@example.com", "password": "correct"},
             )
 
+        # Then
         assert resp.status_code == 200
         data = resp.json()
         assert data["access_token"] == "acc"
@@ -122,6 +129,7 @@ class TestLoginEndpoint:
 
     @pytest.mark.asyncio
     async def test_login_invalid_credentials(self, client):
+        # When
         with patch(
             "app.routers.auth.login_user",
             new_callable=AsyncMock,
@@ -132,12 +140,14 @@ class TestLoginEndpoint:
                 json={"email": "test@example.com", "password": "wrong"},
             )
 
+        # Then
         assert resp.status_code == 401
 
 
 class TestRefreshEndpoint:
     @pytest.mark.asyncio
     async def test_refresh_success(self, client):
+        # When
         with patch(
             "app.routers.auth.refresh_tokens",
             new_callable=AsyncMock,
@@ -148,12 +158,14 @@ class TestRefreshEndpoint:
                 json={"refresh_token": "old-refresh"},
             )
 
+        # Then
         assert resp.status_code == 200
         data = resp.json()
         assert data["access_token"] == "new-acc"
 
     @pytest.mark.asyncio
     async def test_refresh_invalid_token(self, client):
+        # When
         with patch(
             "app.routers.auth.refresh_tokens",
             new_callable=AsyncMock,
@@ -164,12 +176,14 @@ class TestRefreshEndpoint:
                 json={"refresh_token": "bad-token"},
             )
 
+        # Then
         assert resp.status_code == 401
 
 
 class TestLogoutEndpoint:
     @pytest.mark.asyncio
     async def test_logout_success(self, client):
+        # When
         with patch(
             "app.routers.auth.logout_user",
             new_callable=AsyncMock,
@@ -179,23 +193,27 @@ class TestLogoutEndpoint:
                 json={"access_token": "acc", "refresh_token": "ref"},
             )
 
+        # Then
         assert resp.status_code == 204
 
 
 class TestVerifyEmailEndpoint:
     @pytest.mark.asyncio
     async def test_verify_email_success(self, client):
+        # When
         with patch(
             "app.routers.auth.verify_email",
             new_callable=AsyncMock,
         ):
             resp = await client.get("/auth/verify-email?token=valid-tok")
 
+        # Then
         assert resp.status_code == 200
         assert resp.json()["message"] == "Email verified successfully"
 
     @pytest.mark.asyncio
     async def test_verify_email_invalid_token(self, client):
+        # When
         with patch(
             "app.routers.auth.verify_email",
             new_callable=AsyncMock,
@@ -203,18 +221,20 @@ class TestVerifyEmailEndpoint:
         ):
             resp = await client.get("/auth/verify-email?token=bad-tok")
 
+        # Then
         assert resp.status_code == 400
 
     @pytest.mark.asyncio
     async def test_verify_email_missing_token(self, client):
+        # When/Then
         resp = await client.get("/auth/verify-email")
-
         assert resp.status_code == 422
 
 
 class TestForgotPasswordEndpoint:
     @pytest.mark.asyncio
     async def test_forgot_password_existing_user(self, client):
+        # When
         with patch(
             "app.routers.auth.forgot_password",
             new_callable=AsyncMock,
@@ -225,11 +245,13 @@ class TestForgotPasswordEndpoint:
                 json={"email": "user@example.com"},
             )
 
+        # Then
         assert resp.status_code == 200
         assert "reset link" in resp.json()["message"]
 
     @pytest.mark.asyncio
     async def test_forgot_password_nonexistent_user_same_response(self, client):
+        # When
         with patch(
             "app.routers.auth.forgot_password",
             new_callable=AsyncMock,
@@ -240,6 +262,7 @@ class TestForgotPasswordEndpoint:
                 json={"email": "nobody@example.com"},
             )
 
+        # Then
         assert resp.status_code == 200
         assert "reset link" in resp.json()["message"]
 
@@ -247,6 +270,7 @@ class TestForgotPasswordEndpoint:
 class TestResetPasswordEndpoint:
     @pytest.mark.asyncio
     async def test_reset_password_success(self, client):
+        # When
         with patch(
             "app.routers.auth.reset_password",
             new_callable=AsyncMock,
@@ -256,11 +280,13 @@ class TestResetPasswordEndpoint:
                 json={"token": "reset-tok", "new_password": "newsecure123"},
             )
 
+        # Then
         assert resp.status_code == 200
         assert "reset successfully" in resp.json()["message"]
 
     @pytest.mark.asyncio
     async def test_reset_password_invalid_token(self, client):
+        # When
         with patch(
             "app.routers.auth.reset_password",
             new_callable=AsyncMock,
@@ -271,13 +297,14 @@ class TestResetPasswordEndpoint:
                 json={"token": "bad-tok", "new_password": "newsecure123"},
             )
 
+        # Then
         assert resp.status_code == 400
 
     @pytest.mark.asyncio
     async def test_reset_password_short_password_validation(self, client):
+        # When/Then
         resp = await client.post(
             "/auth/reset-password",
             json={"token": "tok", "new_password": "short"},
         )
-
         assert resp.status_code == 422

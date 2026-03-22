@@ -34,7 +34,7 @@ async def list_vehicles(
     min_year: int | None = Query(default=None, ge=1900),
     max_year: int | None = Query(default=None, le=2100),
     min_seats: int | None = Query(default=None, ge=1),
-    status: VehicleStatus | None = Query(default=None),
+    vehicle_status: VehicleStatus | None = Query(default=None, alias="status"),
     available_from: date | None = Query(default=None),
     available_to: date | None = Query(default=None),
 ) -> PaginatedVehicleResponse:
@@ -61,7 +61,7 @@ async def list_vehicles(
         min_year=min_year,
         max_year=max_year,
         min_seats=min_seats,
-        status=status,
+        status=vehicle_status,
         available_from=available_from,
         available_to=available_to,
     )

@@ -79,7 +79,7 @@ def upgrade() -> None:
     op.execute("UPDATE vehicles SET daily_base_price = 0 WHERE daily_base_price IS NULL")
 
     op.execute(
-        "UPDATE vehicles SET vin = 'UNKNOWN' || LPAD(CAST(ROW_NUMBER() OVER () AS TEXT), 10, '0') "
+        "UPDATE vehicles SET vin = 'UNKNOWN' || LPAD(CAST(id AS TEXT), 10, '0') "
         "WHERE vin IS NULL"
     )
     op.execute("UPDATE vehicles SET horsepower = 100 WHERE horsepower IS NULL")
