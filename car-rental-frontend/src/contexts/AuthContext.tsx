@@ -34,11 +34,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch {
       setUser(null);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    refreshUser().finally(() => setIsLoading(false));
+    refreshUser();
   }, [refreshUser]);
 
   const login = useCallback(async (email: string, password: string) => {
