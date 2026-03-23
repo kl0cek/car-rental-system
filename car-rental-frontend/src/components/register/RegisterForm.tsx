@@ -9,7 +9,8 @@ import { SocialButtons } from '@/components/home/SocialButtons';
 import { TextField } from '@/components/home/TextField';
 import { PasswordField } from '@/components/home/PasswordField';
 import { TermsCheckbox } from '@/components/register/TermsCheckbox';
-import { SubmitButton } from './SubmitButton';
+import { AuthSubmitButton } from '@/components/auth/AuthSubmitButton';
+import { ErrorAlert } from '@/components/auth/ErrorAlert';
 
 export function RegisterForm() {
   const {
@@ -41,11 +42,7 @@ export function RegisterForm() {
         </div>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-5">
-          {error && (
-            <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm" role="alert">
-              {error}
-            </div>
-          )}
+          <ErrorAlert message={error} />
 
           <div className="grid grid-cols-2 gap-4">
             <TextField
@@ -112,7 +109,11 @@ export function RegisterForm() {
 
           <TermsCheckbox />
 
-          <SubmitButton isLoading={isLoading} disabled={isSubmitDisabled} />
+          <AuthSubmitButton
+            label="Create account"
+            isLoading={isLoading}
+            disabled={isSubmitDisabled}
+          />
         </form>
 
         <SocialButtons />

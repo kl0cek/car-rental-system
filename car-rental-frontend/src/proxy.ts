@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const PUBLIC_PATHS = ['/', '/register'];
+const PUBLIC_PATHS = ['/', '/register', '/forgot-password', '/reset-password', '/verify-email'];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -23,7 +23,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
 };

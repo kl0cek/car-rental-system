@@ -5,18 +5,15 @@ import { Search, Bell, Menu, X, Car, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { navigation } from '@/data/dashboard/constants';
+import { getFilteredNavigation } from '@/data/dashboard/constants';
 import { useAuth } from '@/contexts/AuthContext';
-
-const STAFF_ROLES = ['employee', 'technician', 'admin'] as const;
 
 export default function DashboardHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const { user, logout } = useAuth();
 
-  const isStaff = user ? STAFF_ROLES.includes(user.role as (typeof STAFF_ROLES)[number]) : false;
-  const filteredNavigation = navigation.filter((item) => !item.staffOnly || isStaff);
+  const filteredNavigation = getFilteredNavigation(user?.role);
 
   return (
     <>

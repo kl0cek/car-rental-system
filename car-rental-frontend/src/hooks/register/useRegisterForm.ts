@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { RegisterFormData, PasswordRequirement } from '@/types/register/register';
+import type { RegisterFormData } from '@/types/register/register';
 import { useAuth } from '@/contexts/AuthContext';
+import { getPasswordRequirements, isPasswordValid } from '@/lib/password';
 
 const INITIAL_FORM_DATA: RegisterFormData = {
   firstName: '',
@@ -12,14 +13,6 @@ const INITIAL_FORM_DATA: RegisterFormData = {
   password: '',
   confirmPassword: '',
 };
-
-function getPasswordRequirements(password: string): PasswordRequirement[] {
-  return [
-    { label: 'At least 8 characters', met: password.length >= 8 },
-    { label: 'Contains a number', met: /\d/.test(password) },
-    { label: 'Contains uppercase letter', met: /[A-Z]/.test(password) },
-  ];
-}
 
 export function useRegisterForm() {
   const router = useRouter();
@@ -30,8 +23,7 @@ export function useRegisterForm() {
 
   const passwordRequirements = getPasswordRequirements(formData.password);
   const passwordsMatch = formData.password === formData.confirmPassword;
-  const allRequirementsMet = passwordRequirements.every((r) => r.met);
-  const isSubmitDisabled = isLoading || !passwordsMatch || !allRequirementsMet;
+  const isSubmitDisabled = isLoading || !passwordsMatch || !isPasswordValid(formData.password);
 
   function updateField(field: keyof RegisterFormData) {
     return (e: React.ChangeEvent<HTMLInputElement>) =>

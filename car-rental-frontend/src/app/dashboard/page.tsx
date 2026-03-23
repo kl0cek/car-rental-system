@@ -7,12 +7,11 @@ import { QuickActions } from '@/components/dashboard/QuickActions';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { dashboardMockData } from '@/data/dashboard/dashboardData';
 import { useAuth } from '@/contexts/AuthContext';
-
-const STAFF_ROLES = ['employee', 'technician', 'admin'] as const;
+import { isStaffRole } from '@/data/dashboard/constants';
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const isStaff = user ? STAFF_ROLES.includes(user.role as (typeof STAFF_ROLES)[number]) : false;
+  const isStaff = isStaffRole(user?.role);
 
   // Customers see only Active Bookings and Available Cars
   const statsData = isStaff

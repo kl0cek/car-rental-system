@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowRight } from 'lucide-react';
+import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import { AuthSubmitButton } from '@/components/auth/AuthSubmitButton';
+import { ErrorAlert } from '@/components/auth/ErrorAlert';
 import { SocialButtons } from './SocialButtons';
 import { TextField } from './TextField';
 import { PasswordField } from './PasswordField';
-import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
 
 export function LoginForm() {
   const router = useRouter();
@@ -34,7 +35,7 @@ export function LoginForm() {
   };
 
   return (
-    <div className="w-full max-w-md space-y-8">
+    <>
       <div className="space-y-2 text-center lg:text-left">
         <h2 className="text-2xl font-semibold tracking-tight text-foreground">Welcome back</h2>
         <p className="text-muted-foreground">Enter your credentials to access your account</p>
@@ -43,16 +44,12 @@ export function LoginForm() {
       <form onSubmit={handleSubmit} className="space-y-5">
         {justRegistered && (
           <div className="p-3 rounded-lg bg-green-500/10 text-green-700 text-sm" role="status">
-            Account created successfully! Please check your email to verify your account, then sign
-            in.
+            Account created successfully! Please check your email to verify your account, then
+            sign in.
           </div>
         )}
 
-        {error && (
-          <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm" role="alert">
-            {error}
-          </div>
-        )}
+        <ErrorAlert message={error} />
 
         <TextField
           id="email"
@@ -69,12 +66,12 @@ export function LoginForm() {
             <label htmlFor="password" className="text-sm font-medium text-foreground">
               Password
             </label>
-            <button
-              type="button"
+            <Link
+              href="/forgot-password"
               className="text-sm text-primary hover:text-primary/80 transition-colors"
             >
               Forgot password?
-            </button>
+            </Link>
           </div>
           <PasswordField
             id="password"
@@ -99,20 +96,7 @@ export function LoginForm() {
           </label>
         </div>
 
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="w-full h-11 bg-primary text-primary-foreground rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-        >
-          {isLoading ? (
-            <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-          ) : (
-            <>
-              Sign in
-              <ArrowRight className="w-4 h-4" />
-            </>
-          )}
-        </button>
+        <AuthSubmitButton label="Sign in" isLoading={isLoading} />
       </form>
 
       <SocialButtons />
@@ -126,6 +110,6 @@ export function LoginForm() {
           Create account
         </Link>
       </p>
-    </div>
+    </>
   );
 }

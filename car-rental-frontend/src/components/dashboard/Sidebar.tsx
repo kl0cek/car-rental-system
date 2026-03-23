@@ -4,17 +4,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Car, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { navigation, secondaryNavigation } from '@/data/dashboard/constants';
+import { secondaryNavigation, getFilteredNavigation } from '@/data/dashboard/constants';
 import { useAuth } from '@/contexts/AuthContext';
-
-const STAFF_ROLES = ['employee', 'technician', 'admin'] as const;
 
 export default function DashboardSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
 
-  const isStaff = user ? STAFF_ROLES.includes(user.role as (typeof STAFF_ROLES)[number]) : false;
-  const filteredNavigation = navigation.filter((item) => !item.staffOnly || isStaff);
+  const filteredNavigation = getFilteredNavigation(user?.role);
 
   return (
     <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
