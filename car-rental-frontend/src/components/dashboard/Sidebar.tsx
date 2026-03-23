@@ -72,7 +72,8 @@ export default function DashboardSidebar() {
             <div className="flex items-center gap-3 px-3 py-2">
               <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center">
                 <span className="text-sm font-medium text-secondary-foreground">
-                  {user.firstName[0]}{user.lastName[0]}
+                  {user.firstName[0]}
+                  {user.lastName[0]}
                 </span>
               </div>
               <div className="flex-1 min-w-0">

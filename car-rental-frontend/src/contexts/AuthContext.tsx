@@ -7,7 +7,12 @@ interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (data: { firstName: string; lastName: string; email: string; password: string }) => Promise<void>;
+  register: (data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+  }) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -52,23 +57,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(data.user);
   }, []);
 
-  const register = useCallback(async (data: { firstName: string; lastName: string; email: string; password: string }) => {
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: data.email,
-        password: data.password,
-        first_name: data.firstName,
-        last_name: data.lastName,
-      }),
-    });
+  const register = useCallback(
+    async (data: { firstName: string; lastName: string; email: string; password: string }) => {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+          first_name: data.firstName,
+          last_name: data.lastName,
+        }),
+      });
 
-    if (!res.ok) {
-      const body = await res.json();
-      throw new Error(body.error ?? 'Registration failed');
-    }
-  }, []);
+      if (!res.ok) {
+        const body = await res.json();
+        throw new Error(body.error ?? 'Registration failed');
+      }
+    },
+    []
+  );
 
   const logout = useCallback(async () => {
     await fetch('/api/auth/logout', { method: 'POST' });

@@ -43,7 +43,8 @@ export function LoginForm() {
       <form onSubmit={handleSubmit} className="space-y-5">
         {justRegistered && (
           <div className="p-3 rounded-lg bg-green-500/10 text-green-700 text-sm" role="status">
-            Account created successfully! Please check your email to verify your account, then sign in.
+            Account created successfully! Please check your email to verify your account, then sign
+            in.
           </div>
         )}
 

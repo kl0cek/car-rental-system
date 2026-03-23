@@ -3,16 +3,13 @@ const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:8000/api';
 export class ApiError extends Error {
   constructor(
     public status: number,
-    public detail: string,
+    public detail: string
   ) {
     super(detail);
   }
 }
 
-export async function backendFetch<T>(
-  path: string,
-  options: RequestInit = {},
-): Promise<T> {
+export async function backendFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BACKEND_URL}${path}`, {
     ...options,
     headers: {

@@ -11,7 +11,9 @@ export async function POST(request: Request) {
       body: JSON.stringify(body),
     });
 
-    return NextResponse.json({ message: 'Registration successful. Please check your email to verify your account.' });
+    return NextResponse.json({
+      message: 'Registration successful. Please check your email to verify your account.',
+    });
   } catch (error) {
     if (error instanceof ApiError) {
       return NextResponse.json({ error: error.detail }, { status: error.status });
