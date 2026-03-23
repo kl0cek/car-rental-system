@@ -19,7 +19,7 @@ export function StatsGrid({ data }: StatsGridProps) {
             </div>
             <div
               className={`flex items-center gap-1 text-xs font-medium ${
-                stat.trend === 'up' ? 'text-accent' : 'text-destructive'
+                stat.trend === 'up' ? 'text-green-400' : 'text-destructive'
               }`}
             >
               {stat.change}

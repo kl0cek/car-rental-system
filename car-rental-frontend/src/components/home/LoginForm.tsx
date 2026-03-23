@@ -1,24 +1,36 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
 import { SocialButtons } from './SocialButtons';
 import { TextField } from './TextField';
 import { PasswordField } from './PasswordField';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const justRegistered = searchParams.get('registered') === 'true';
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({ email: '', password: '' });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    router.push('/dashboard');
+    setError(null);
+    try {
+      await login(formData.email, formData.password);
+      router.push('/dashboard');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -29,6 +41,18 @@ export function LoginForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
+        {justRegistered && (
+          <div className="p-3 rounded-lg bg-green-500/10 text-green-700 text-sm" role="status">
+            Account created successfully! Please check your email to verify your account, then sign in.
+          </div>
+        )}
+
+        {error && (
+          <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm" role="alert">
+            {error}
+          </div>
+        )}
+
         <TextField
           id="email"
           label="Email"

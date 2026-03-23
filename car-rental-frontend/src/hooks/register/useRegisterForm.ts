@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { RegisterFormData, PasswordRequirement } from '@/types/register/register';
+import { useAuth } from '@/contexts/AuthContext';
 
 const INITIAL_FORM_DATA: RegisterFormData = {
-  fullName: '',
+  firstName: '',
+  lastName: '',
   email: '',
   password: '',
   confirmPassword: '',
@@ -21,8 +23,10 @@ function getPasswordRequirements(password: string): PasswordRequirement[] {
 
 export function useRegisterForm() {
   const router = useRouter();
+  const { register } = useAuth();
   const [formData, setFormData] = useState<RegisterFormData>(INITIAL_FORM_DATA);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const passwordRequirements = getPasswordRequirements(formData.password);
   const passwordsMatch = formData.password === formData.confirmPassword;
@@ -39,12 +43,17 @@ export function useRegisterForm() {
     if (isSubmitDisabled) return;
 
     setIsLoading(true);
+    setError(null);
     try {
-      // TODO: Replace with real API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      router.push('/dashboard');
-    } catch (error) {
-      console.error('Registration failed:', error);
+      await register({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+      });
+      router.push('/?registered=true');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
       setIsLoading(false);
     }
@@ -54,6 +63,7 @@ export function useRegisterForm() {
     formData,
     isLoading,
     isSubmitDisabled,
+    error,
     passwordRequirements,
     passwordsMatch,
     updateField,

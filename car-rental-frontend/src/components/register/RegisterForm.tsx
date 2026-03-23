@@ -16,6 +16,7 @@ export function RegisterForm() {
     formData,
     isLoading,
     isSubmitDisabled,
+    error,
     passwordRequirements,
     passwordsMatch,
     updateField,
@@ -40,15 +41,32 @@ export function RegisterForm() {
         </div>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-5">
-          <TextField
-            id="fullName"
-            label="Full Name"
-            type="text"
-            placeholder="John Doe"
-            value={formData.fullName}
-            onChange={updateField('fullName')}
-            autoComplete="name"
-          />
+          {error && (
+            <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm" role="alert">
+              {error}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <TextField
+              id="firstName"
+              label="First Name"
+              type="text"
+              placeholder="John"
+              value={formData.firstName}
+              onChange={updateField('firstName')}
+              autoComplete="given-name"
+            />
+            <TextField
+              id="lastName"
+              label="Last Name"
+              type="text"
+              placeholder="Doe"
+              value={formData.lastName}
+              onChange={updateField('lastName')}
+              autoComplete="family-name"
+            />
+          </div>
 
           <TextField
             id="email"

@@ -7,6 +7,7 @@ from app.core.exceptions import (
     InvalidTokenError,
 )
 from app.db.session import DbSession
+from app.core.deps import CurrentUser
 from app.schemas.auth import (
     ForgotPasswordRequest,
     LoginRequest,
@@ -17,6 +18,7 @@ from app.schemas.auth import (
     RegisterResponse,
     ResetPasswordRequest,
     TokenResponse,
+    UserResponse,
 )
 from app.services.auth_service import (
     forgot_password,
@@ -84,6 +86,11 @@ async def refresh(body: RefreshRequest, db: DbSession) -> TokenResponse:
             detail="Invalid or expired refresh token",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+
+@router.get("/me", response_model=UserResponse)
+async def me(current_user: CurrentUser) -> UserResponse:
+    return UserResponse.model_validate(current_user)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)

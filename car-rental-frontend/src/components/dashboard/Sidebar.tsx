@@ -5,9 +5,16 @@ import { usePathname } from 'next/navigation';
 import { Car, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { navigation, secondaryNavigation } from '@/data/dashboard/constants';
+import { useAuth } from '@/contexts/AuthContext';
+
+const STAFF_ROLES = ['employee', 'technician', 'admin'] as const;
 
 export default function DashboardSidebar() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
+
+  const isStaff = user ? STAFF_ROLES.includes(user.role as (typeof STAFF_ROLES)[number]) : false;
+  const filteredNavigation = navigation.filter((item) => !item.staffOnly || isStaff);
 
   return (
     <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
@@ -20,7 +27,7 @@ export default function DashboardSidebar() {
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {navigation.map((item) => (
+          {filteredNavigation.map((item) => (
             <Link
               key={item.name}
               href={item.href}
@@ -48,26 +55,35 @@ export default function DashboardSidebar() {
               {item.name}
             </Link>
           ))}
-          <Link
-            href="/"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
+          <button
+            onClick={async () => {
+              await logout();
+              window.location.href = '/';
+            }}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
           >
             <LogOut className="w-5 h-5" />
             Sign out
-          </Link>
+          </button>
         </div>
 
-        <div className="px-3 py-4 border-t border-border">
-          <div className="flex items-center gap-3 px-3 py-2">
-            <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center">
-              <span className="text-sm font-medium text-secondary-foreground">JD</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">John Doe</p>
-              <p className="text-xs text-muted-foreground truncate">john@driveease.com</p>
+        {user && (
+          <div className="px-3 py-4 border-t border-border">
+            <div className="flex items-center gap-3 px-3 py-2">
+              <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center">
+                <span className="text-sm font-medium text-secondary-foreground">
+                  {user.firstName[0]}{user.lastName[0]}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">
+                  {user.firstName} {user.lastName}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </aside>
   );

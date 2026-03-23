@@ -47,6 +47,18 @@ class MessageResponse(BaseModel):
     message: str
 
 
+class UserResponse(BaseModel):
+    id: uuid.UUID
+    email: str
+    first_name: str
+    last_name: str
+    role: UserRole
+    is_verified: bool
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 class RegisterResponse(BaseModel):
     id: uuid.UUID
     email: str
