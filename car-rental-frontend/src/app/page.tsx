@@ -1,6 +1,7 @@
 import { Car } from 'lucide-react';
 import { BrandingSidebar } from '@/components/home/BrandingSidebar';
 import { LoginForm } from '@/components/home/LoginForm';
+import { Suspense } from 'react';
 
 export default function LoginPage() {
   return (
@@ -14,8 +15,9 @@ export default function LoginPage() {
           </div>
           <span className="text-xl font-semibold tracking-tight text-foreground">DriveEase</span>
         </div>
-
-        <LoginForm />
+        <Suspense fallback={<div className="text-foreground">Loading...</div>}>
+          <LoginForm />
+        </Suspense>
       </div>
     </main>
   );

@@ -25,7 +25,6 @@ from app.repositories import user_repository
 from app.schemas.auth import (
     ForgotPasswordRequest,
     LoginRequest,
-    LogoutRequest,
     RefreshRequest,
     RegisterRequest,
     ResetPasswordRequest,
@@ -107,14 +106,14 @@ async def refresh_tokens(body: RefreshRequest, db: AsyncSession) -> TokenRespons
     return TokenResponse(access_token=access_token, refresh_token=new_refresh_token)
 
 
-async def logout_user(body: LogoutRequest) -> None:
+async def logout_user_tokens(access_token: str, refresh_token: str) -> None:
     redis = get_redis()
 
     refresh_ttl = int(timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS).total_seconds())
-    await blacklist_token(redis, body.refresh_token, refresh_ttl)
+    await blacklist_token(redis, refresh_token, refresh_ttl)
 
     access_ttl = int(timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES).total_seconds())
-    await blacklist_token(redis, body.access_token, access_ttl)
+    await blacklist_token(redis, access_token, access_ttl)
 
 
 async def verify_email(token: str, db: AsyncSession) -> None:

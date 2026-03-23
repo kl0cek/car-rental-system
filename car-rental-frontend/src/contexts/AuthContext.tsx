@@ -1,7 +1,8 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import type { User } from '@/types/auth';
+import type { User, UserApiResponse } from '@/types/auth';
+import { mapUserFromApi } from '@/types/auth';
 
 interface AuthContextValue {
   user: User | null;
@@ -25,10 +26,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = useCallback(async () => {
     try {
-      const res = await fetch('/api/auth/me');
+      const res = await fetch('/api/auth/me', { credentials: 'include' });
       if (res.ok) {
-        const data = await res.json();
-        setUser(data.user);
+        const data: UserApiResponse = await res.json();
+        setUser(mapUserFromApi(data));
       } else {
         setUser(null);
       }
@@ -47,16 +48,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ email, password }),
     });
 
     if (!res.ok) {
       const data = await res.json();
-      throw new Error(data.error ?? 'Login failed');
+      throw new Error(data.detail ?? 'Login failed');
     }
 
-    const data = await res.json();
-    setUser(data.user);
+    const data: UserApiResponse = await res.json();
+    setUser(mapUserFromApi(data));
   }, []);
 
   const register = useCallback(
@@ -64,6 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           email: data.email,
           password: data.password,
@@ -74,14 +77,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!res.ok) {
         const body = await res.json();
-        throw new Error(body.error ?? 'Registration failed');
+        throw new Error(body.detail ?? 'Registration failed');
       }
     },
     []
   );
 
   const logout = useCallback(async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
     setUser(null);
   }, []);
 

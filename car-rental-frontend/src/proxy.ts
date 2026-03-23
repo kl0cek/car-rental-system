@@ -8,10 +8,6 @@ export function proxy(request: NextRequest) {
   const accessToken = request.cookies.get('access_token')?.value;
 
   const isPublicPath = PUBLIC_PATHS.includes(pathname);
-  const isApiPath = pathname.startsWith('/api/');
-
-  // Don't touch API routes
-  if (isApiPath) return NextResponse.next();
 
   // Logged-in user trying to access login/register -> redirect to dashboard
   if (isPublicPath && accessToken) {
@@ -27,5 +23,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 };

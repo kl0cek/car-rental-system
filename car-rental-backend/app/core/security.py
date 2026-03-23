@@ -36,7 +36,7 @@ def create_access_token(subject: str, role: UserRole) -> str:
         subject,
         "access",
         timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
-        {"role": role.value},
+        {"role": role.value if isinstance(role, UserRole) else role},
     )
 
 
@@ -45,7 +45,7 @@ def create_refresh_token(subject: str, role: UserRole) -> str:
         subject,
         "refresh",
         timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
-        {"role": role.value},
+        {"role": role.value if isinstance(role, UserRole) else role},
     )
 
 
