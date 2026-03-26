@@ -50,7 +50,7 @@ export default function BookingsList({ bookings = mockBookings }: BookingsListPr
                   <p className="text-sm text-muted-foreground">{booking.licensePlate}</p>
                 </td>
                 <td className="px-5 py-4">
-                  <p className="text-sm text-foreground">{booking.startDate}</p>
+                  <p className="sm foreground">{booking.startDate}</p>
                   <p className="text-sm text-muted-foreground">to {booking.endDate}</p>
                 </td>
                 <td className="px-5 py-4">

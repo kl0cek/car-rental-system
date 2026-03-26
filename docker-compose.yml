@@ -39,6 +39,10 @@ services:
       - MONGODB_URL=mongodb://mongo:27017/${POSTGRES_DB}
       - REDIS_URL=redis://redis:6379/0
       - CORS_ORIGINS=["http://localhost","http://localhost:3000"]
+      - SMTP_HOST=mailpit
+      - SMTP_PORT=1025
+      - SMTP_TLS=false
+      - FRONTEND_URL=http://localhost
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
       interval: 10s
@@ -107,6 +111,13 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "8025:8025"
+      - "1025:1025"
     restart: unless-stopped
 
 volumes:
