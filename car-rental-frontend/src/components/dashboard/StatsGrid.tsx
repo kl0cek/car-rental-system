@@ -17,6 +17,7 @@ export function StatsGrid({ data }: StatsGridProps) {
             <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
               <stat.icon className="w-5 h-5 text-foreground" />
             </div>
+            {stat.change && (
             <div
               className={`flex items-center gap-1 text-xs font-medium ${
                 stat.trend === 'up' ? 'text-green-400' : 'text-destructive'
@@ -29,6 +30,7 @@ export function StatsGrid({ data }: StatsGridProps) {
                 <ArrowDownRight className="w-3 h-3" />
               )}
             </div>
+            )}
           </div>
           <div className="mt-4">
             <p className="text-2xl font-semibold text-foreground">{stat.value}</p>
