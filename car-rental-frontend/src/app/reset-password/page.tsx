@@ -106,7 +106,11 @@ function ResetPasswordForm() {
           )}
         </div>
 
-        <AuthSubmitButton label="Reset password" isLoading={isLoading} disabled={isSubmitDisabled} />
+        <AuthSubmitButton
+          label="Reset password"
+          isLoading={isLoading}
+          disabled={isSubmitDisabled}
+        />
       </form>
     </>
   );

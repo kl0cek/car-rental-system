@@ -18,18 +18,18 @@ export function StatsGrid({ data }: StatsGridProps) {
               <stat.icon className="w-5 h-5 text-foreground" />
             </div>
             {stat.change && (
-            <div
-              className={`flex items-center gap-1 text-xs font-medium ${
-                stat.trend === 'up' ? 'text-green-400' : 'text-destructive'
-              }`}
-            >
-              {stat.change}
-              {stat.trend === 'up' ? (
-                <ArrowUpRight className="w-3 h-3" />
-              ) : (
-                <ArrowDownRight className="w-3 h-3" />
-              )}
-            </div>
+              <div
+                className={`flex items-center gap-1 text-xs font-medium ${
+                  stat.trend === 'up' ? 'text-green-400' : 'text-destructive'
+                }`}
+              >
+                {stat.change}
+                {stat.trend === 'up' ? (
+                  <ArrowUpRight className="w-3 h-3" />
+                ) : (
+                  <ArrowDownRight className="w-3 h-3" />
+                )}
+              </div>
             )}
           </div>
           <div className="mt-4">
