@@ -79,11 +79,7 @@ export default function BookingsList({ bookings = mockBookings }: BookingsListPr
                   <TableCell className="px-5 py-4 font-medium">{booking.total}</TableCell>
                   <TableCell className="px-5 py-4 text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={`View booking ${booking.id}`}
-                      >
+                      <Button variant="ghost" size="icon" aria-label={`View booking ${booking.id}`}>
                         <Eye className="w-4 h-4" />
                       </Button>
                       <Button

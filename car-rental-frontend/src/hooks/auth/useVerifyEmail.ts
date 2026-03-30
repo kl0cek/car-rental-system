@@ -6,7 +6,9 @@ type Status = 'loading' | 'success' | 'error';
 
 export function useVerifyEmail(token: string | null) {
   const [status, setStatus] = useState<Status>(() => (token ? 'loading' : 'error'));
-  const [error, setError] = useState<string | null>(() => (token ? null : 'Missing verification token'));
+  const [error, setError] = useState<string | null>(() =>
+    token ? null : 'Missing verification token'
+  );
 
   useEffect(() => {
     if (!token) return;

@@ -18,13 +18,7 @@ export function PasswordField({ id, label, show, onToggle, ...props }: PasswordF
     <div className="space-y-2">
       {label && <Label htmlFor={id}>{label}</Label>}
       <div className="relative">
-        <Input
-          id={id}
-          type={show ? 'text' : 'password'}
-          className="pr-11"
-          required
-          {...props}
-        />
+        <Input id={id} type={show ? 'text' : 'password'} className="pr-11" required {...props} />
         <button
           type="button"
           onClick={onToggle}
