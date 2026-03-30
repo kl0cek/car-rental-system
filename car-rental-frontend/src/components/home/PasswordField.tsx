@@ -1,5 +1,6 @@
 import { Eye, EyeOff } from 'lucide-react';
-import { inputClassName } from '@/lib/styles';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface PasswordFieldProps {
   id: string;
@@ -15,14 +16,12 @@ interface PasswordFieldProps {
 export function PasswordField({ id, label, show, onToggle, ...props }: PasswordFieldProps) {
   return (
     <div className="space-y-2">
-      <label htmlFor={id} className="text-sm font-medium text-foreground">
-        {label}
-      </label>
+      {label && <Label htmlFor={id}>{label}</Label>}
       <div className="relative">
-        <input
+        <Input
           id={id}
           type={show ? 'text' : 'password'}
-          className={`${inputClassName} pr-11`}
+          className="pr-11"
           required
           {...props}
         />

@@ -85,17 +85,6 @@ export function LoginForm() {
           />
         </div>
 
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            id="remember"
-            className="w-4 h-4 rounded border-input text-primary focus:ring-ring"
-          />
-          <label htmlFor="remember" className="text-sm text-muted-foreground">
-            Remember me for 30 days
-          </label>
-        </div>
-
         <AuthSubmitButton label="Sign in" isLoading={isLoading} />
       </form>
 

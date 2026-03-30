@@ -1,3 +1,6 @@
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+
 interface ErrorAlertProps {
   message: string | null;
 }
@@ -6,8 +9,9 @@ export function ErrorAlert({ message }: ErrorAlertProps) {
   if (!message) return null;
 
   return (
-    <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm" role="alert">
-      {message}
-    </div>
+    <Alert variant="destructive">
+      <AlertCircle />
+      <AlertDescription>{message}</AlertDescription>
+    </Alert>
   );
 }
