@@ -2,7 +2,9 @@ import uuid
 from datetime import date
 from decimal import Decimal
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query
+from fastapi import status as http_status
+from pydantic import ValidationError
 
 from app.db.session import DbSession
 from app.models.category import CategoryName
@@ -38,33 +40,28 @@ async def list_vehicles(
     available_from: date | None = Query(default=None),
     available_to: date | None = Query(default=None),
 ) -> PaginatedVehicleResponse:
-    if available_from and available_to and available_from > available_to:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="available_from must be before available_to",
+    try:
+        params = VehicleListParams(
+            offset=offset,
+            limit=limit,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            category=category,
+            engine_type=engine_type,
+            min_price=min_price,
+            max_price=max_price,
+            min_year=min_year,
+            max_year=max_year,
+            min_seats=min_seats,
+            status=status,
+            available_from=available_from,
+            available_to=available_to,
         )
-    if min_price is not None and max_price is not None and min_price > max_price:
+    except ValidationError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="min_price must be less than or equal to max_price",
+            status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=[{"loc": list(e["loc"]), "msg": e["msg"], "type": e["type"]} for e in exc.errors()],
         )
-
-    params = VehicleListParams(
-        offset=offset,
-        limit=limit,
-        sort_by=sort_by,
-        sort_order=sort_order,
-        category=category,
-        engine_type=engine_type,
-        min_price=min_price,
-        max_price=max_price,
-        min_year=min_year,
-        max_year=max_year,
-        min_seats=min_seats,
-        status=status,
-        available_from=available_from,
-        available_to=available_to,
-    )
     return await vehicle_service.list_vehicles(params, db)
 
 
@@ -73,7 +70,7 @@ async def get_vehicle(vehicle_id: uuid.UUID, db: DbSession) -> VehicleDetailResp
     result = await vehicle_service.get_vehicle_detail(vehicle_id, db)
     if result is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail="Vehicle not found",
         )
     return result
@@ -88,7 +85,7 @@ async def check_availability(
 ) -> AvailabilityResponse:
     if start_date > end_date:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="start_date must be before end_date",
         )
 
@@ -96,7 +93,7 @@ async def check_availability(
     result = await vehicle_service.check_availability(vehicle_id, body, db)
     if result is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail="Vehicle not found",
         )
     return result

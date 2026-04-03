@@ -1,4 +1,7 @@
+from typing import Any
+
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Request, Response, status
+from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.core.email import send_password_reset_email, send_verification_email
@@ -31,10 +34,10 @@ from app.services.auth_service import (
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-COOKIE_OPTS: dict = {
+COOKIE_OPTS: dict[str, Any] = {
     "httponly": True,
     "samesite": "lax",
-    "secure": False,  # True in production
+    "secure": not settings.DEBUG,
     "path": "/",
 }
 
@@ -93,7 +96,7 @@ async def register(
 @router.post("/login", response_model=UserResponse)
 async def login(body: LoginRequest, db: DbSession, response: Response) -> UserResponse:
     try:
-        tokens = await login_user(body, db)
+        tokens, user = await login_user(body, db)
     except InvalidCredentialsError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -102,14 +105,6 @@ async def login(body: LoginRequest, db: DbSession, response: Response) -> UserRe
         )
 
     _set_auth_cookies(response, tokens.access_token, tokens.refresh_token)
-
-    # Fetch user to return profile data
-    from app.repositories import user_repository
-    from app.core.security import decode_token
-
-    payload = decode_token(tokens.access_token)
-    import uuid
-    user = await user_repository.get_by_id(db, uuid.UUID(str(payload["sub"])))
     return UserResponse.model_validate(user)
 
 
@@ -123,23 +118,17 @@ async def refresh(request: Request, db: DbSession, response: Response) -> UserRe
         )
 
     try:
-        tokens = await refresh_tokens(RefreshRequest(refresh_token=refresh_token), db)
+        tokens, user = await refresh_tokens(RefreshRequest(refresh_token=refresh_token), db)
     except InvalidTokenError:
-        _clear_auth_cookies(response)
-        raise HTTPException(
+        error_response = JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired refresh token",
+            content={"detail": "Invalid or expired refresh token"},
             headers={"WWW-Authenticate": "Bearer"},
         )
+        _clear_auth_cookies(error_response)
+        return error_response
 
     _set_auth_cookies(response, tokens.access_token, tokens.refresh_token)
-
-    from app.repositories import user_repository
-    from app.core.security import decode_token
-    import uuid
-
-    payload = decode_token(tokens.access_token)
-    user = await user_repository.get_by_id(db, uuid.UUID(str(payload["sub"])))
     return UserResponse.model_validate(user)
 
 
@@ -153,9 +142,7 @@ async def logout(request: Request, response: Response) -> None:
     access_token = request.cookies.get("access_token")
     refresh_token = request.cookies.get("refresh_token")
 
-    if access_token and refresh_token:
-        await logout_user_tokens(access_token, refresh_token)
-
+    await logout_user_tokens(access_token, refresh_token)
     _clear_auth_cookies(response)
 
 

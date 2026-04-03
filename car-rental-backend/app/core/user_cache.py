@@ -22,7 +22,7 @@ def _serialize_user(user: User) -> dict[str, object]:
         "email": user.email,
         "first_name": user.first_name,
         "last_name": user.last_name,
-        "role": user.role.value if isinstance(user.role, UserRole) else user.role,
+        "role": user.role.value,
         "is_active": user.is_active,
         "is_verified": user.is_verified,
         "phone": user.phone,

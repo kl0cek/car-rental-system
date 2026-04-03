@@ -43,6 +43,7 @@ services:
       - SMTP_PORT=1025
       - SMTP_TLS=false
       - FRONTEND_URL=http://localhost
+      - SECRET_KEY=${SECRET_KEY}
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
       interval: 10s

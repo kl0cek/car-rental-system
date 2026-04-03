@@ -61,8 +61,6 @@ async def get_vehicle_detail(
         brand=vehicle.brand,
         model=vehicle.model,
         year=vehicle.year,
-        license_plate=vehicle.license_plate,
-        vin=vehicle.vin,
         engine_type=vehicle.engine_type,
         horsepower=vehicle.horsepower,
         seats=vehicle.seats,
