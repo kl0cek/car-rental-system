@@ -1,4 +1,5 @@
-import { inputClassName } from '@/lib/styles';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface TextFieldProps {
   id: string;
@@ -13,10 +14,8 @@ interface TextFieldProps {
 export function TextField({ id, label, ...props }: TextFieldProps) {
   return (
     <div className="space-y-2">
-      <label htmlFor={id} className="text-sm font-medium text-foreground">
-        {label}
-      </label>
-      <input id={id} className={inputClassName} required {...props} />
+      <Label htmlFor={id}>{label}</Label>
+      <Input id={id} required {...props} />
     </div>
   );
 }

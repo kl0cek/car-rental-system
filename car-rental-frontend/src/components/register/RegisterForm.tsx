@@ -9,13 +9,15 @@ import { SocialButtons } from '@/components/home/SocialButtons';
 import { TextField } from '@/components/home/TextField';
 import { PasswordField } from '@/components/home/PasswordField';
 import { TermsCheckbox } from '@/components/register/TermsCheckbox';
-import { SubmitButton } from './SubmitButton';
+import { AuthSubmitButton } from '@/components/auth/AuthSubmitButton';
+import { ErrorAlert } from '@/components/auth/ErrorAlert';
 
 export function RegisterForm() {
   const {
     formData,
     isLoading,
     isSubmitDisabled,
+    error,
     passwordRequirements,
     passwordsMatch,
     updateField,
@@ -40,15 +42,28 @@ export function RegisterForm() {
         </div>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-5">
-          <TextField
-            id="fullName"
-            label="Full Name"
-            type="text"
-            placeholder="John Doe"
-            value={formData.fullName}
-            onChange={updateField('fullName')}
-            autoComplete="name"
-          />
+          <ErrorAlert message={error} />
+
+          <div className="grid grid-cols-2 gap-4">
+            <TextField
+              id="firstName"
+              label="First Name"
+              type="text"
+              placeholder="John"
+              value={formData.firstName}
+              onChange={updateField('firstName')}
+              autoComplete="given-name"
+            />
+            <TextField
+              id="lastName"
+              label="Last Name"
+              type="text"
+              placeholder="Doe"
+              value={formData.lastName}
+              onChange={updateField('lastName')}
+              autoComplete="family-name"
+            />
+          </div>
 
           <TextField
             id="email"
@@ -94,7 +109,11 @@ export function RegisterForm() {
 
           <TermsCheckbox />
 
-          <SubmitButton isLoading={isLoading} disabled={isSubmitDisabled} />
+          <AuthSubmitButton
+            label="Create account"
+            isLoading={isLoading}
+            disabled={isSubmitDisabled}
+          />
         </form>
 
         <SocialButtons />

@@ -40,6 +40,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
     from app.models.rental import Rental, RentalStatus
     from app.models.user import User, UserRole
     from app.models.vehicle import EngineType, Vehicle, VehicleStatus
+    from app.core.security import hash_password
 
     if drop:
         async with async_engine.begin() as conn:
@@ -51,59 +52,68 @@ async def seed_postgres(*, drop: bool = False) -> None:
     print("[PG] Tables created")
 
     # --- Users ---
+    # All seed users have the password "Password1" for testing
+    seed_password = hash_password("Password1")
+
     users = [
         User(
             id=USER_IDS[0],
             email="jan.kowalski@example.com",
-            hashed_password="$fakehash$jan123",
+            hashed_password=seed_password,
             first_name="Jan",
             last_name="Kowalski",
             role=UserRole.CUSTOMER,
             phone="+48600100200",
+            is_verified=True,
         ),
         User(
             id=USER_IDS[1],
             email="anna.nowak@example.com",
-            hashed_password="$fakehash$anna123",
+            hashed_password=seed_password,
             first_name="Anna",
             last_name="Nowak",
             role=UserRole.CUSTOMER,
             phone="+48601200300",
+            is_verified=True,
         ),
         User(
             id=USER_IDS[2],
             email="piotr.wisniewski@example.com",
-            hashed_password="$fakehash$piotr123",
+            hashed_password=seed_password,
             first_name="Piotr",
             last_name="Wiśniewski",
             role=UserRole.CUSTOMER,
+            is_verified=True,
         ),
         User(
             id=USER_IDS[3],
             email="employee@driveease.com",
-            hashed_password="$fakehash$emp123",
+            hashed_password=seed_password,
             first_name="Marta",
             last_name="Zielińska",
             role=UserRole.EMPLOYEE,
             phone="+48602300400",
+            is_verified=True,
         ),
         User(
             id=USER_IDS[4],
             email="technician@driveease.com",
-            hashed_password="$fakehash$tech123",
+            hashed_password=seed_password,
             first_name="Tomasz",
             last_name="Lewandowski",
             role=UserRole.TECHNICIAN,
             phone="+48603400500",
+            is_verified=True,
         ),
         User(
             id=USER_IDS[5],
             email="admin@driveease.com",
-            hashed_password="$fakehash$admin123",
+            hashed_password=seed_password,
             first_name="Katarzyna",
             last_name="Wójcik",
-            role=UserRole.EMPLOYEE,
+            role=UserRole.ADMIN,
             phone="+48604500600",
+            is_verified=True,
         ),
     ]
 

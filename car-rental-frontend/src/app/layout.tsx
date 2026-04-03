@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
-//import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { Geist } from 'next/font/google';
+import { cn } from '@/lib/utils';
 
-//const _geist = Geist({ subsets: ['latin'] });
-//const _geistMono = Geist_Mono({ subsets: ['latin'] });
+const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
   title: 'DriveEase - Car Rental System',
@@ -19,8 +20,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="font-sans antialiased">{children}</body>
+    <html lang="en" className={cn('font-sans', geist.variable)}>
+      <body className="font-sans antialiased">
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }

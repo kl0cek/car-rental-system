@@ -89,7 +89,6 @@ def _user_to_cache_json(user: User) -> str:
 
 
 class TestGetCurrentUser:
-    @pytest.mark.asyncio
     async def test_returns_user_for_valid_token(self, mock_db, mock_redis):
         user = _make_user()
         token = create_access_token(str(user.id), UserRole.CUSTOMER)
@@ -109,7 +108,6 @@ class TestGetCurrentUser:
         assert resp.status_code == 200
         assert resp.json()["id"] == str(user.id)
 
-    @pytest.mark.asyncio
     async def test_rejects_missing_token(self, mock_db):
         app = _build_app()
         app.dependency_overrides[get_db] = lambda: mock_db
@@ -117,9 +115,8 @@ class TestGetCurrentUser:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
             resp = await ac.get("/me")
 
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
-    @pytest.mark.asyncio
     async def test_rejects_blacklisted_token(self, mock_db, mock_redis):
         mock_redis.exists.return_value = 1
         token = create_access_token(str(uuid.uuid4()), UserRole.CUSTOMER)
@@ -134,7 +131,6 @@ class TestGetCurrentUser:
         assert resp.status_code == 401
         assert "revoked" in resp.json()["detail"]
 
-    @pytest.mark.asyncio
     async def test_rejects_invalid_token(self, mock_db, mock_redis):
         app = _build_app()
         app.dependency_overrides[get_db] = lambda: mock_db
@@ -145,7 +141,6 @@ class TestGetCurrentUser:
 
         assert resp.status_code == 401
 
-    @pytest.mark.asyncio
     async def test_rejects_refresh_token_as_access(self, mock_db, mock_redis):
         token = create_refresh_token(str(uuid.uuid4()), UserRole.CUSTOMER)
 
@@ -159,7 +154,6 @@ class TestGetCurrentUser:
         assert resp.status_code == 401
         assert "token type" in resp.json()["detail"]
 
-    @pytest.mark.asyncio
     async def test_rejects_inactive_user(self, mock_db, mock_redis):
         user = _make_user(is_active=False)
         token = create_access_token(str(user.id), UserRole.CUSTOMER)
@@ -179,7 +173,6 @@ class TestGetCurrentUser:
         assert resp.status_code == 401
         assert "inactive" in resp.json()["detail"]
 
-    @pytest.mark.asyncio
     async def test_rejects_nonexistent_user(self, mock_db, mock_redis):
         token = create_access_token(str(uuid.uuid4()), UserRole.CUSTOMER)
 
@@ -199,7 +192,6 @@ class TestGetCurrentUser:
 
 
 class TestRequireRoles:
-    @pytest.mark.asyncio
     async def test_admin_can_access_admin_endpoint(self, mock_db, mock_redis):
         user = _make_user(role=UserRole.ADMIN)
         token = create_access_token(str(user.id), UserRole.ADMIN)
@@ -218,7 +210,6 @@ class TestRequireRoles:
 
         assert resp.status_code == 200
 
-    @pytest.mark.asyncio
     async def test_customer_cannot_access_admin_endpoint(self, mock_db, mock_redis):
         user = _make_user(role=UserRole.CUSTOMER)
         token = create_access_token(str(user.id), UserRole.CUSTOMER)
@@ -238,7 +229,6 @@ class TestRequireRoles:
         assert resp.status_code == 403
         assert "permissions" in resp.json()["detail"]
 
-    @pytest.mark.asyncio
     async def test_employee_can_access_staff_endpoint(self, mock_db, mock_redis):
         user = _make_user(role=UserRole.EMPLOYEE)
         token = create_access_token(str(user.id), UserRole.EMPLOYEE)
@@ -257,7 +247,6 @@ class TestRequireRoles:
 
         assert resp.status_code == 200
 
-    @pytest.mark.asyncio
     async def test_admin_can_access_staff_endpoint(self, mock_db, mock_redis):
         user = _make_user(role=UserRole.ADMIN)
         token = create_access_token(str(user.id), UserRole.ADMIN)
@@ -276,7 +265,6 @@ class TestRequireRoles:
 
         assert resp.status_code == 200
 
-    @pytest.mark.asyncio
     async def test_customer_cannot_access_technician_endpoint(self, mock_db, mock_redis):
         user = _make_user(role=UserRole.CUSTOMER)
         token = create_access_token(str(user.id), UserRole.CUSTOMER)
@@ -295,7 +283,6 @@ class TestRequireRoles:
 
         assert resp.status_code == 403
 
-    @pytest.mark.asyncio
     async def test_technician_can_access_technician_endpoint(self, mock_db, mock_redis):
         user = _make_user(role=UserRole.TECHNICIAN)
         token = create_access_token(str(user.id), UserRole.TECHNICIAN)
@@ -316,7 +303,6 @@ class TestRequireRoles:
 
 
 class TestUserCache:
-    @pytest.mark.asyncio
     async def test_cache_miss_fetches_from_db_and_caches(self, mock_db, mock_redis):
         user = _make_user()
         token = create_access_token(str(user.id), UserRole.CUSTOMER)
@@ -337,7 +323,6 @@ class TestUserCache:
         mock_repo.get_by_id.assert_awaited_once()
         mock_redis.set.assert_awaited()  # user was cached
 
-    @pytest.mark.asyncio
     async def test_cache_hit_skips_db(self, mock_db, mock_redis):
         user = _make_user()
         token = create_access_token(str(user.id), UserRole.CUSTOMER)
@@ -359,7 +344,6 @@ class TestUserCache:
         assert resp.json()["id"] == str(user.id)
         mock_repo.get_by_id.assert_not_awaited()  # DB was NOT hit
 
-    @pytest.mark.asyncio
     async def test_cache_hit_inactive_user_rejected(self, mock_db, mock_redis):
         user = _make_user(is_active=False)
         token = create_access_token(str(user.id), UserRole.CUSTOMER)
@@ -374,7 +358,6 @@ class TestUserCache:
 
         assert resp.status_code == 401
 
-    @pytest.mark.asyncio
     async def test_cache_hit_preserves_role_for_rbac(self, mock_db, mock_redis):
         user = _make_user(role=UserRole.ADMIN)
         token = create_access_token(str(user.id), UserRole.ADMIN)
@@ -389,7 +372,6 @@ class TestUserCache:
 
         assert resp.status_code == 200
 
-    @pytest.mark.asyncio
     async def test_cache_hit_wrong_role_rejected(self, mock_db, mock_redis):
         user = _make_user(role=UserRole.CUSTOMER)
         token = create_access_token(str(user.id), UserRole.CUSTOMER)

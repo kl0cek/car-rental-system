@@ -3,7 +3,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.models.category import CategoryName
 from app.models.vehicle import EngineType, VehicleStatus
@@ -30,6 +30,19 @@ class VehicleListParams(BaseModel):
     status: VehicleStatus | None = None
     available_from: date | None = None
     available_to: date | None = None
+
+    @model_validator(mode='after')
+    def validate_ranges(self) -> 'VehicleListParams':
+        if self.available_from is not None and self.available_to is not None:
+            if self.available_from > self.available_to:
+                raise ValueError("available_from must be before available_to")
+        if self.min_price is not None and self.max_price is not None:
+            if self.min_price > self.max_price:
+                raise ValueError("min_price must be less than or equal to max_price")
+        if self.min_year is not None and self.max_year is not None:
+            if self.min_year > self.max_year:
+                raise ValueError("min_year must be less than or equal to max_year")
+        return self
 
 
 class CategoryResponse(BaseModel):
@@ -77,8 +90,6 @@ class VehicleDetailResponse(BaseModel):
     brand: str
     model: str
     year: int
-    license_plate: str
-    vin: str
     engine_type: EngineType
     horsepower: int
     seats: int

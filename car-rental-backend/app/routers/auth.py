@@ -1,27 +1,31 @@
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, status
+from typing import Any
 
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Request, Response, status
+from fastapi.responses import JSONResponse
+
+from app.config import settings
 from app.core.email import send_password_reset_email, send_verification_email
 from app.core.exceptions import (
     EmailAlreadyRegisteredError,
     InvalidCredentialsError,
     InvalidTokenError,
 )
+from app.core.deps import CurrentUser
 from app.db.session import DbSession
 from app.schemas.auth import (
     ForgotPasswordRequest,
     LoginRequest,
-    LogoutRequest,
     MessageResponse,
     RefreshRequest,
     RegisterRequest,
     RegisterResponse,
     ResetPasswordRequest,
-    TokenResponse,
+    UserResponse,
 )
 from app.services.auth_service import (
     forgot_password,
     login_user,
-    logout_user,
+    logout_user_tokens,
     refresh_tokens,
     register_user,
     reset_password,
@@ -29,6 +33,33 @@ from app.services.auth_service import (
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+COOKIE_OPTS: dict[str, Any] = {
+    "httponly": True,
+    "samesite": "lax",
+    "secure": not settings.DEBUG,
+    "path": "/",
+}
+
+
+def _set_auth_cookies(response: Response, access_token: str, refresh_token: str) -> None:
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        **COOKIE_OPTS,
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        **COOKIE_OPTS,
+    )
+
+
+def _clear_auth_cookies(response: Response) -> None:
+    response.delete_cookie("access_token", path="/")
+    response.delete_cookie("refresh_token", path="/")
 
 
 @router.post(
@@ -62,10 +93,10 @@ async def register(
     )
 
 
-@router.post("/login", response_model=TokenResponse)
-async def login(body: LoginRequest, db: DbSession) -> TokenResponse:
+@router.post("/login", response_model=UserResponse)
+async def login(body: LoginRequest, db: DbSession, response: Response) -> UserResponse:
     try:
-        return await login_user(body, db)
+        tokens, user = await login_user(body, db)
     except InvalidCredentialsError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -73,22 +104,46 @@ async def login(body: LoginRequest, db: DbSession) -> TokenResponse:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    _set_auth_cookies(response, tokens.access_token, tokens.refresh_token)
+    return UserResponse.model_validate(user)
 
-@router.post("/refresh", response_model=TokenResponse)
-async def refresh(body: RefreshRequest, db: DbSession) -> TokenResponse:
-    try:
-        return await refresh_tokens(body, db)
-    except InvalidTokenError:
+
+@router.post("/refresh", response_model=UserResponse)
+async def refresh(request: Request, db: DbSession, response: Response) -> UserResponse:
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired refresh token",
+            detail="No refresh token",
+        )
+
+    try:
+        tokens, user = await refresh_tokens(RefreshRequest(refresh_token=refresh_token), db)
+    except InvalidTokenError:
+        error_response = JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={"detail": "Invalid or expired refresh token"},
             headers={"WWW-Authenticate": "Bearer"},
         )
+        _clear_auth_cookies(error_response)
+        return error_response
+
+    _set_auth_cookies(response, tokens.access_token, tokens.refresh_token)
+    return UserResponse.model_validate(user)
+
+
+@router.get("/me", response_model=UserResponse)
+async def me(current_user: CurrentUser) -> UserResponse:
+    return UserResponse.model_validate(current_user)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-async def logout(body: LogoutRequest) -> None:
-    await logout_user(body)
+async def logout(request: Request, response: Response) -> None:
+    access_token = request.cookies.get("access_token")
+    refresh_token = request.cookies.get("refresh_token")
+
+    await logout_user_tokens(access_token, refresh_token)
+    _clear_auth_cookies(response)
 
 
 @router.get("/verify-email", response_model=MessageResponse)

@@ -35,4 +35,5 @@ export interface NavItem {
   name: string;
   href: string;
   icon: LucideIcon;
+  staffOnly?: boolean;
 }

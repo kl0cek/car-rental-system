@@ -1,6 +1,7 @@
 import { CalendarCheck, Car, Users, TrendingUp } from 'lucide-react';
+import type { Stat } from '@/types/dashboard/booking';
 
-export const dashboardMockData = [
+export const dashboardMockData: Stat[] = [
   {
     name: 'Active Bookings',
     value: '24',

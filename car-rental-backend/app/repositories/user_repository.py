@@ -18,12 +18,12 @@ async def get_by_email(db: AsyncSession, email: str) -> User | None:
 
 async def create(db: AsyncSession, user: User) -> User:
     db.add(user)
-    await db.commit()
+    await db.flush()
     await db.refresh(user)
     return user
 
 
 async def update(db: AsyncSession, user: User) -> User:
-    await db.commit()
+    await db.flush()
     await db.refresh(user)
     return user

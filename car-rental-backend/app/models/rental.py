@@ -6,7 +6,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Numeric, String, Text, Uuid
+from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -31,7 +31,7 @@ class Rental(Base):
     start_date: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     end_date: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     total_price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
-    status: Mapped[RentalStatus] = mapped_column(String(20), default=RentalStatus.PENDING)
+    status: Mapped[RentalStatus] = mapped_column(Enum(RentalStatus, native_enum=False), default=RentalStatus.PENDING)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     user: Mapped[User] = relationship(back_populates="rentals")

@@ -5,11 +5,15 @@ import { Search, Bell, Menu, X, Car, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { navigation } from '@/data/dashboard/constants';
+import { getFilteredNavigation } from '@/data/dashboard/constants';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function DashboardHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const { user, logout } = useAuth();
+
+  const filteredNavigation = getFilteredNavigation(user?.role);
 
   return (
     <>
@@ -46,7 +50,9 @@ export default function DashboardHeader() {
             </button>
             <div className="hidden sm:flex items-center gap-3 pl-3 border-l border-border">
               <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
-                <span className="text-xs font-medium text-secondary-foreground">JD</span>
+                <span className="text-xs font-medium text-secondary-foreground">
+                  {user ? `${user.firstName[0]}${user.lastName[0]}` : '??'}
+                </span>
               </div>
             </div>
           </div>
@@ -78,7 +84,7 @@ export default function DashboardHeader() {
             </div>
 
             <nav className="px-3 py-4 space-y-1">
-              {navigation.map((item) => (
+              {filteredNavigation.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}
@@ -97,13 +103,16 @@ export default function DashboardHeader() {
             </nav>
 
             <div className="absolute bottom-0 left-0 right-0 px-3 py-4 border-t border-border">
-              <Link
-                href="/"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
+              <button
+                onClick={async () => {
+                  await logout();
+                  window.location.href = '/';
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
               >
                 <LogOut className="w-5 h-5" />
                 Sign out
-              </Link>
+              </button>
             </div>
           </div>
         </div>
