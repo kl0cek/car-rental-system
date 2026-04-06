@@ -23,11 +23,6 @@ class RefreshRequest(BaseModel):
     refresh_token: str
 
 
-class LogoutRequest(BaseModel):
-    access_token: str
-    refresh_token: str
-
-
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
@@ -47,7 +42,7 @@ class MessageResponse(BaseModel):
     message: str
 
 
-class RegisterResponse(BaseModel):
+class UserResponse(BaseModel):
     id: uuid.UUID
     email: str
     first_name: str
@@ -55,6 +50,9 @@ class RegisterResponse(BaseModel):
     role: UserRole
     is_verified: bool
     created_at: datetime
-    message: str
 
     model_config = {"from_attributes": True}
+
+
+class RegisterResponse(UserResponse):
+    message: str

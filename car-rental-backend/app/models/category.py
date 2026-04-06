@@ -4,7 +4,7 @@ import enum
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Numeric, String, Text
+from sqlalchemy import Enum, Numeric, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -24,7 +24,7 @@ class CategoryName(enum.StrEnum):
 class Category(Base):
     __tablename__ = "categories"
 
-    name: Mapped[CategoryName] = mapped_column(String(20), unique=True)
+    name: Mapped[CategoryName] = mapped_column(Enum(CategoryName, native_enum=False), unique=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     price_multiplier: Mapped[Decimal] = mapped_column(Numeric(5, 3), default=Decimal("1.000"))
 

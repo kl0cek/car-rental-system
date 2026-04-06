@@ -25,7 +25,6 @@ from app.repositories import user_repository
 from app.schemas.auth import (
     ForgotPasswordRequest,
     LoginRequest,
-    LogoutRequest,
     RefreshRequest,
     RegisterRequest,
     ResetPasswordRequest,
@@ -61,10 +60,16 @@ async def register_user(body: RegisterRequest, db: AsyncSession) -> tuple[User, 
     return user, token
 
 
-async def login_user(body: LoginRequest, db: AsyncSession) -> TokenResponse:
+async def login_user(body: LoginRequest, db: AsyncSession) -> tuple[TokenResponse, User]:
     user = await user_repository.get_by_email(db, body.email)
     if user is None:
         raise InvalidCredentialsError("User not found")
+
+    if not user.is_active:
+        raise InvalidCredentialsError("Account is disabled")
+
+    if not user.is_verified:
+        raise InvalidCredentialsError("Email address is not verified")
 
     loop = get_running_loop()
     is_valid = await loop.run_in_executor(
@@ -76,10 +81,10 @@ async def login_user(body: LoginRequest, db: AsyncSession) -> TokenResponse:
     access_token = create_access_token(subject=str(user.id), role=user.role)
     refresh_token = create_refresh_token(subject=str(user.id), role=user.role)
 
-    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token), user
 
 
-async def refresh_tokens(body: RefreshRequest, db: AsyncSession) -> TokenResponse:
+async def refresh_tokens(body: RefreshRequest, db: AsyncSession) -> tuple[TokenResponse, User]:
     payload = decode_token(body.refresh_token)
 
     if payload.get("type") != "refresh":
@@ -104,17 +109,19 @@ async def refresh_tokens(body: RefreshRequest, db: AsyncSession) -> TokenRespons
     access_token = create_access_token(subject=sub, role=user.role)
     new_refresh_token = create_refresh_token(subject=sub, role=user.role)
 
-    return TokenResponse(access_token=access_token, refresh_token=new_refresh_token)
+    return TokenResponse(access_token=access_token, refresh_token=new_refresh_token), user
 
 
-async def logout_user(body: LogoutRequest) -> None:
+async def logout_user_tokens(access_token: str | None, refresh_token: str | None) -> None:
     redis = get_redis()
 
-    refresh_ttl = int(timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS).total_seconds())
-    await blacklist_token(redis, body.refresh_token, refresh_ttl)
+    if refresh_token:
+        refresh_ttl = int(timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS).total_seconds())
+        await blacklist_token(redis, refresh_token, refresh_ttl)
 
-    access_ttl = int(timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES).total_seconds())
-    await blacklist_token(redis, body.access_token, access_ttl)
+    if access_token:
+        access_ttl = int(timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES).total_seconds())
+        await blacklist_token(redis, access_token, access_ttl)
 
 
 async def verify_email(token: str, db: AsyncSession) -> None:
