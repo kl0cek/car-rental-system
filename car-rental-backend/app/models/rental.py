@@ -101,15 +101,11 @@ class RentalPriceBreakdown(Base):
         CheckConstraint(
             "fuel_surcharge >= 0", name="ck_price_breakdown_fuel_surcharge_non_negative"
         ),
-        CheckConstraint(
-            "risk_multiplier >= 1", name="ck_price_breakdown_risk_multiplier_gte_one"
-        ),
+        CheckConstraint("risk_multiplier >= 1", name="ck_price_breakdown_risk_multiplier_gte_one"),
         CheckConstraint("final_price >= 0", name="ck_price_breakdown_final_price_non_negative"),
     )
 
-    rental_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("rentals.id"), unique=True
-    )
+    rental_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("rentals.id"), unique=True)
     base_price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     fuel_surcharge: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     risk_multiplier: Mapped[Decimal] = mapped_column(Numeric(6, 4))

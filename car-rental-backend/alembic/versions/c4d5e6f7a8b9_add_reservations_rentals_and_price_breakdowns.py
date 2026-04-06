@@ -66,7 +66,9 @@ def upgrade() -> None:
         sa.Column("fuel_level_end", sa.Numeric(5, 2), nullable=True),
         sa.Column("damage_notes", sa.Text(), nullable=True),
         sa.Column("employee_id", sa.Uuid(), nullable=False),
-        sa.ForeignKeyConstraint(["reservation_id"], ["reservations.id"], name="fk_rentals_reservation_id"),
+        sa.ForeignKeyConstraint(
+            ["reservation_id"], ["reservations.id"], name="fk_rentals_reservation_id"
+        ),
         sa.ForeignKeyConstraint(["employee_id"], ["users.id"], name="fk_rentals_employee_id"),
         sa.UniqueConstraint("reservation_id", name="uq_rentals_reservation_id"),
         sa.CheckConstraint("mileage_start >= 0", name="ck_rental_mileage_start_non_negative"),
@@ -122,18 +124,14 @@ def upgrade() -> None:
             ["rental_id"], ["rentals.id"], name="fk_rental_price_breakdowns_rental_id"
         ),
         sa.UniqueConstraint("rental_id", name="uq_rental_price_breakdowns_rental_id"),
-        sa.CheckConstraint(
-            "base_price >= 0", name="ck_price_breakdown_base_price_non_negative"
-        ),
+        sa.CheckConstraint("base_price >= 0", name="ck_price_breakdown_base_price_non_negative"),
         sa.CheckConstraint(
             "fuel_surcharge >= 0", name="ck_price_breakdown_fuel_surcharge_non_negative"
         ),
         sa.CheckConstraint(
             "risk_multiplier >= 1", name="ck_price_breakdown_risk_multiplier_gte_one"
         ),
-        sa.CheckConstraint(
-            "final_price >= 0", name="ck_price_breakdown_final_price_non_negative"
-        ),
+        sa.CheckConstraint("final_price >= 0", name="ck_price_breakdown_final_price_non_negative"),
     )
 
 
@@ -155,11 +153,7 @@ def downgrade() -> None:
     op.add_column("reservations", sa.Column("notes", sa.Text(), nullable=True))
 
     op.drop_index("ix_reservations_status", "reservations")
-    op.execute(
-        "ALTER INDEX IF EXISTS ix_reservations_user_id RENAME TO ix_rentals_user_id"
-    )
-    op.execute(
-        "ALTER INDEX IF EXISTS ix_reservations_vehicle_id RENAME TO ix_rentals_vehicle_id"
-    )
+    op.execute("ALTER INDEX IF EXISTS ix_reservations_user_id RENAME TO ix_rentals_user_id")
+    op.execute("ALTER INDEX IF EXISTS ix_reservations_vehicle_id RENAME TO ix_rentals_vehicle_id")
 
     op.rename_table("reservations", "rentals")
