@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import contains_eager, joinedload
 
 from app.models.category import Category, CategoryName
-from app.models.rental import Rental, RentalStatus
+from app.models.rental import Reservation, ReservationStatus
 from app.models.vehicle import EngineType, Vehicle, VehicleStatus
 
 SORTABLE_COLUMNS = {
@@ -21,7 +21,7 @@ SORTABLE_COLUMNS = {
     "horsepower": Vehicle.horsepower,
 }
 
-BLOCKING_STATUSES = (RentalStatus.PENDING, RentalStatus.ACTIVE)
+BLOCKING_STATUSES = (ReservationStatus.PENDING, ReservationStatus.CONFIRMED, ReservationStatus.ACTIVE)
 
 
 def _apply_filters(
@@ -96,11 +96,11 @@ async def get_list(
 
     if available_from is not None and available_to is not None:
         conflicting = (
-            select(Rental.vehicle_id)
+            select(Reservation.vehicle_id)
             .where(
-                Rental.status.in_(BLOCKING_STATUSES),
-                Rental.start_date < _date_to_datetime_end(available_to),
-                Rental.end_date > _date_to_datetime(available_from),
+                Reservation.status.in_(BLOCKING_STATUSES),
+                Reservation.start_date < _date_to_datetime_end(available_to),
+                Reservation.end_date > _date_to_datetime(available_from),
             )
             .scalar_subquery()
         )
@@ -131,17 +131,17 @@ async def get_by_id(db: AsyncSession, vehicle_id: uuid.UUID) -> Vehicle | None:
     return result.scalar_one_or_none()
 
 
-async def count_conflicting_rentals(
+async def count_conflicting_reservations(
     db: AsyncSession,
     vehicle_id: uuid.UUID,
     start_date: date,
     end_date: date,
 ) -> int:
     stmt = select(func.count()).where(
-        Rental.vehicle_id == vehicle_id,
-        Rental.status.in_(BLOCKING_STATUSES),
-        Rental.start_date < _date_to_datetime_end(end_date),
-        Rental.end_date > _date_to_datetime(start_date),
+        Reservation.vehicle_id == vehicle_id,
+        Reservation.status.in_(BLOCKING_STATUSES),
+        Reservation.start_date < _date_to_datetime_end(end_date),
+        Reservation.end_date > _date_to_datetime(start_date),
     )
     result = await db.execute(stmt)
     return result.scalar_one()
@@ -152,13 +152,13 @@ async def get_booked_dates(
     vehicle_id: uuid.UUID,
 ) -> list[dict[str, Any]]:
     stmt = (
-        select(Rental.start_date, Rental.end_date)
+        select(Reservation.start_date, Reservation.end_date)
         .where(
-            Rental.vehicle_id == vehicle_id,
-            Rental.status.in_(BLOCKING_STATUSES),
-            Rental.end_date > func.now(),
+            Reservation.vehicle_id == vehicle_id,
+            Reservation.status.in_(BLOCKING_STATUSES),
+            Reservation.end_date > func.now(),
         )
-        .order_by(Rental.start_date)
+        .order_by(Reservation.start_date)
     )
     result = await db.execute(stmt)
     return [{"start_date": row.start_date, "end_date": row.end_date} for row in result.all()]
