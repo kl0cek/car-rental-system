@@ -26,7 +26,9 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(Text)
     first_name: Mapped[str] = mapped_column(String(100))
     last_name: Mapped[str] = mapped_column(String(100))
-    role: Mapped[UserRole] = mapped_column(Enum(UserRole, native_enum=False), default=UserRole.CUSTOMER)
+    role: Mapped[UserRole] = mapped_column(
+        Enum(UserRole, native_enum=False), default=UserRole.CUSTOMER
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True)

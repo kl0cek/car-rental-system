@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -104,7 +105,7 @@ async def check_availability(
 
 async def _get_review_stats(vehicle_id: uuid.UUID) -> tuple[float | None, int]:
     mongo_db = get_mongo_db()
-    pipeline = [
+    pipeline: list[dict[str, Any]] = [
         {"$match": {"vehicle_id": str(vehicle_id)}},
         {"$group": {"_id": None, "avg": {"$avg": "$rating"}, "count": {"$sum": 1}}},
     ]

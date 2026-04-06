@@ -60,7 +60,9 @@ async def list_vehicles(
     except ValidationError as exc:
         raise HTTPException(
             status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=[{"loc": list(e["loc"]), "msg": e["msg"], "type": e["type"]} for e in exc.errors()],
+            detail=[
+                {"loc": list(e["loc"]), "msg": e["msg"], "type": e["type"]} for e in exc.errors()
+            ],
         )
     return await vehicle_service.list_vehicles(params, db)
 

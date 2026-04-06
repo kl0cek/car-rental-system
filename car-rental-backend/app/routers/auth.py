@@ -4,13 +4,13 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Request, R
 from fastapi.responses import JSONResponse
 
 from app.config import settings
+from app.core.deps import CurrentUser
 from app.core.email import send_password_reset_email, send_verification_email
 from app.core.exceptions import (
     EmailAlreadyRegisteredError,
     InvalidCredentialsError,
     InvalidTokenError,
 )
-from app.core.deps import CurrentUser
 from app.db.session import DbSession
 from app.schemas.auth import (
     ForgotPasswordRequest,
@@ -109,7 +109,7 @@ async def login(body: LoginRequest, db: DbSession, response: Response) -> UserRe
 
 
 @router.post("/refresh", response_model=UserResponse)
-async def refresh(request: Request, db: DbSession, response: Response) -> UserResponse:
+async def refresh(request: Request, db: DbSession, response: Response) -> UserResponse | Response:
     refresh_token = request.cookies.get("refresh_token")
     if not refresh_token:
         raise HTTPException(

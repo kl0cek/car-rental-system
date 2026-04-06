@@ -31,8 +31,8 @@ class VehicleListParams(BaseModel):
     available_from: date | None = None
     available_to: date | None = None
 
-    @model_validator(mode='after')
-    def validate_ranges(self) -> 'VehicleListParams':
+    @model_validator(mode="after")
+    def validate_ranges(self) -> "VehicleListParams":
         if self.available_from is not None and self.available_to is not None:
             if self.available_from > self.available_to:
                 raise ValueError("available_from must be before available_to")

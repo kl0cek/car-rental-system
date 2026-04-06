@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 from app.models.category import CategoryName
 from app.models.vehicle import EngineType, VehicleStatus
@@ -73,13 +73,10 @@ def _make_vehicle_detail(vehicle_id: uuid.UUID | None = None) -> VehicleDetailRe
     )
 
 
-
 class TestListVehicles:
     async def test_returns_paginated_list(self, client):
         vehicle = _make_vehicle_list_item()
-        paginated = PaginatedVehicleResponse(
-            items=[vehicle], total=1, offset=0, limit=20
-        )
+        paginated = PaginatedVehicleResponse(items=[vehicle], total=1, offset=0, limit=20)
 
         with patch(
             "app.routers.vehicles.vehicle_service.list_vehicles",

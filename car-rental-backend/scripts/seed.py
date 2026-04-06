@@ -34,13 +34,13 @@ NOW = datetime.now(UTC)
 async def seed_postgres(*, drop: bool = False) -> None:
     from sqlalchemy import text
 
+    from app.core.security import hash_password
     from app.db.base import Base
     from app.db.engine import async_engine, async_session_factory
     from app.models.category import Category, CategoryName
     from app.models.rental import Rental, RentalStatus
     from app.models.user import User, UserRole
     from app.models.vehicle import EngineType, Vehicle, VehicleStatus
-    from app.core.security import hash_password
 
     if drop:
         async with async_engine.begin() as conn:

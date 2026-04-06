@@ -1,6 +1,7 @@
 import uuid
 from datetime import UTC, date, datetime, time
 from decimal import Decimal
+from typing import Any
 
 from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,7 +25,7 @@ BLOCKING_STATUSES = (RentalStatus.PENDING, RentalStatus.ACTIVE)
 
 
 def _apply_filters(
-    stmt: Select,
+    stmt: Select[Any],
     *,
     category: CategoryName | None = None,
     engine_type: EngineType | None = None,
@@ -34,7 +35,7 @@ def _apply_filters(
     max_year: int | None = None,
     min_seats: int | None = None,
     status: VehicleStatus | None = None,
-) -> Select:
+) -> Select[Any]:
     if category is not None:
         stmt = stmt.where(Category.name == category)
     if engine_type is not None:
@@ -111,7 +112,9 @@ async def get_list(
     sort_col = SORTABLE_COLUMNS.get(sort_by, Vehicle.created_at)
     order = sort_col.asc() if sort_order == "asc" else sort_col.desc()
 
-    stmt = base.options(contains_eager(Vehicle.category)).order_by(order).offset(offset).limit(limit)
+    stmt = (
+        base.options(contains_eager(Vehicle.category)).order_by(order).offset(offset).limit(limit)
+    )
     result = await db.execute(stmt)
     vehicles = list(result.scalars().unique())
 
@@ -147,7 +150,7 @@ async def count_conflicting_rentals(
 async def get_booked_dates(
     db: AsyncSession,
     vehicle_id: uuid.UUID,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     stmt = (
         select(Rental.start_date, Rental.end_date)
         .where(
