@@ -21,7 +21,11 @@ SORTABLE_COLUMNS = {
     "horsepower": Vehicle.horsepower,
 }
 
-BLOCKING_STATUSES = (ReservationStatus.PENDING, ReservationStatus.CONFIRMED, ReservationStatus.ACTIVE)
+BLOCKING_STATUSES = (
+    ReservationStatus.PENDING,
+    ReservationStatus.CONFIRMED,
+    ReservationStatus.ACTIVE,
+)
 
 
 def _apply_filters(
