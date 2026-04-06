@@ -22,7 +22,7 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.category import Category
-    from app.models.rental import Rental
+    from app.models.rental import Reservation
 
 
 class EngineType(enum.StrEnum):
@@ -69,4 +69,4 @@ class Vehicle(Base):
     category_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("categories.id"), index=True)
 
     category: Mapped[Category] = relationship(back_populates="vehicles")
-    rentals: Mapped[list[Rental]] = relationship(back_populates="vehicle")
+    reservations: Mapped[list[Reservation]] = relationship(back_populates="vehicle")

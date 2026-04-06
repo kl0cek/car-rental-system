@@ -9,7 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 if TYPE_CHECKING:
-    from app.models.rental import Rental
+    from app.models.rental import Reservation
 
 
 class UserRole(enum.StrEnum):
@@ -33,4 +33,4 @@ class User(Base):
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
-    rentals: Mapped[list[Rental]] = relationship(back_populates="user")
+    reservations: Mapped[list[Reservation]] = relationship(back_populates="user")

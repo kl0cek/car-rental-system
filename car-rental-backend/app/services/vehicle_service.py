@@ -90,7 +90,7 @@ async def check_availability(
     if vehicle is None:
         return None
 
-    conflicts = await vehicle_repository.count_conflicting_rentals(
+    conflicts = await vehicle_repository.count_conflicting_reservations(
         db, vehicle_id, body.start_date, body.end_date
     )
 

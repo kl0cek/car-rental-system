@@ -23,7 +23,9 @@ from decimal import Decimal
 USER_IDS = [uuid.uuid4() for _ in range(6)]
 CATEGORY_IDS = [uuid.uuid4() for _ in range(5)]
 VEHICLE_IDS = [uuid.uuid4() for _ in range(8)]
-RENTAL_IDS = [uuid.uuid4() for _ in range(10)]
+RESERVATION_IDS = [uuid.uuid4() for _ in range(10)]
+# Active rental IDs — only for reservations that reached pickup (indices 0,1,2,3,5,7,9)
+ACTIVE_RENTAL_IDS = [uuid.uuid4() for _ in range(7)]
 
 NOW = datetime.now(UTC)
 
@@ -38,7 +40,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
     from app.db.base import Base
     from app.db.engine import async_engine, async_session_factory
     from app.models.category import Category, CategoryName
-    from app.models.rental import Rental, RentalStatus
+    from app.models.rental import Rental, RentalPriceBreakdown, Reservation, ReservationStatus
     from app.models.user import User, UserRole
     from app.models.vehicle import EngineType, Vehicle, VehicleStatus
 
@@ -291,99 +293,246 @@ async def seed_postgres(*, drop: bool = False) -> None:
         ),
     ]
 
-    # --- Rentals ---
-    rentals = [
-        Rental(
-            id=RENTAL_IDS[0],
+    # --- Reservations (formerly Rentals) ---
+    reservations = [
+        Reservation(
+            id=RESERVATION_IDS[0],
             user_id=USER_IDS[0],
             vehicle_id=VEHICLE_IDS[0],
             start_date=NOW - timedelta(days=30),
             end_date=NOW - timedelta(days=25),
-            total_price=750.00,
-            status=RentalStatus.COMPLETED,
+            total_price=Decimal("750.00"),
+            status=ReservationStatus.COMPLETED,
         ),
-        Rental(
-            id=RENTAL_IDS[1],
+        Reservation(
+            id=RESERVATION_IDS[1],
             user_id=USER_IDS[0],
             vehicle_id=VEHICLE_IDS[2],
             start_date=NOW - timedelta(days=15),
             end_date=NOW - timedelta(days=12),
-            total_price=1050.00,
-            status=RentalStatus.COMPLETED,
+            total_price=Decimal("1050.00"),
+            status=ReservationStatus.COMPLETED,
         ),
-        Rental(
-            id=RENTAL_IDS[2],
+        Reservation(
+            id=RESERVATION_IDS[2],
             user_id=USER_IDS[1],
             vehicle_id=VEHICLE_IDS[1],
             start_date=NOW - timedelta(days=3),
             end_date=NOW + timedelta(days=4),
-            total_price=1190.00,
-            status=RentalStatus.ACTIVE,
+            total_price=Decimal("1190.00"),
+            status=ReservationStatus.ACTIVE,
         ),
-        Rental(
-            id=RENTAL_IDS[3],
+        Reservation(
+            id=RESERVATION_IDS[3],
             user_id=USER_IDS[1],
             vehicle_id=VEHICLE_IDS[3],
             start_date=NOW - timedelta(days=60),
             end_date=NOW - timedelta(days=55),
-            total_price=1400.00,
-            status=RentalStatus.COMPLETED,
+            total_price=Decimal("1400.00"),
+            status=ReservationStatus.COMPLETED,
         ),
-        Rental(
-            id=RENTAL_IDS[4],
+        Reservation(
+            id=RESERVATION_IDS[4],
             user_id=USER_IDS[2],
             vehicle_id=VEHICLE_IDS[5],
             start_date=NOW + timedelta(days=2),
             end_date=NOW + timedelta(days=5),
-            total_price=960.00,
-            status=RentalStatus.PENDING,
+            total_price=Decimal("960.00"),
+            status=ReservationStatus.PENDING,
         ),
-        Rental(
-            id=RENTAL_IDS[5],
+        Reservation(
+            id=RESERVATION_IDS[5],
             user_id=USER_IDS[2],
             vehicle_id=VEHICLE_IDS[0],
             start_date=NOW - timedelta(days=90),
             end_date=NOW - timedelta(days=85),
-            total_price=750.00,
-            status=RentalStatus.COMPLETED,
+            total_price=Decimal("750.00"),
+            status=ReservationStatus.COMPLETED,
         ),
-        Rental(
-            id=RENTAL_IDS[6],
+        Reservation(
+            id=RESERVATION_IDS[6],
             user_id=USER_IDS[0],
             vehicle_id=VEHICLE_IDS[6],
             start_date=NOW + timedelta(days=7),
             end_date=NOW + timedelta(days=14),
-            total_price=1750.00,
-            status=RentalStatus.PENDING,
-            notes="Potrzebna ładowarka domowa",
+            total_price=Decimal("1750.00"),
+            status=ReservationStatus.CONFIRMED,
         ),
-        Rental(
-            id=RENTAL_IDS[7],
+        Reservation(
+            id=RESERVATION_IDS[7],
             user_id=USER_IDS[1],
             vehicle_id=VEHICLE_IDS[0],
             start_date=NOW - timedelta(days=120),
             end_date=NOW - timedelta(days=117),
-            total_price=450.00,
-            status=RentalStatus.COMPLETED,
+            total_price=Decimal("450.00"),
+            status=ReservationStatus.COMPLETED,
         ),
-        Rental(
-            id=RENTAL_IDS[8],
+        Reservation(
+            id=RESERVATION_IDS[8],
             user_id=USER_IDS[2],
             vehicle_id=VEHICLE_IDS[3],
             start_date=NOW - timedelta(days=45),
             end_date=NOW - timedelta(days=44),
-            total_price=280.00,
-            status=RentalStatus.CANCELLED,
-            notes="Klient odwołał rezerwację",
+            total_price=Decimal("280.00"),
+            status=ReservationStatus.CANCELLED,
         ),
-        Rental(
-            id=RENTAL_IDS[9],
+        Reservation(
+            id=RESERVATION_IDS[9],
             user_id=USER_IDS[0],
             vehicle_id=VEHICLE_IDS[4],
             start_date=NOW - timedelta(days=200),
             end_date=NOW - timedelta(days=193),
-            total_price=980.00,
-            status=RentalStatus.COMPLETED,
+            total_price=Decimal("980.00"),
+            status=ReservationStatus.COMPLETED,
+        ),
+    ]
+
+    # --- Active Rentals (only for reservations that reached pickup stage) ---
+    # employee USER_IDS[3] (Marta Zielińska) handled all pickups
+    active_rentals = [
+        # arl[0]: res[0] — Toyota Corolla, completed
+        Rental(
+            id=ACTIVE_RENTAL_IDS[0],
+            reservation_id=RESERVATION_IDS[0],
+            pickup_date=NOW - timedelta(days=30),
+            return_date=NOW - timedelta(days=25),
+            mileage_start=24500,
+            mileage_end=25000,
+            fuel_level_start=Decimal("75.00"),
+            fuel_level_end=Decimal("55.00"),
+            damage_notes=None,
+            employee_id=USER_IDS[3],
+        ),
+        # arl[1]: res[1] — Tesla Model 3, completed
+        Rental(
+            id=ACTIVE_RENTAL_IDS[1],
+            reservation_id=RESERVATION_IDS[1],
+            pickup_date=NOW - timedelta(days=15),
+            return_date=NOW - timedelta(days=12),
+            mileage_start=7500,
+            mileage_end=8000,
+            fuel_level_start=Decimal("90.00"),
+            fuel_level_end=Decimal("45.00"),
+            damage_notes=None,
+            employee_id=USER_IDS[3],
+        ),
+        # arl[2]: res[2] — VW Golf, currently active (no return yet)
+        Rental(
+            id=ACTIVE_RENTAL_IDS[2],
+            reservation_id=RESERVATION_IDS[2],
+            pickup_date=NOW - timedelta(days=3),
+            return_date=None,
+            mileage_start=44800,
+            mileage_end=None,
+            fuel_level_start=Decimal("80.00"),
+            fuel_level_end=None,
+            damage_notes=None,
+            employee_id=USER_IDS[3],
+        ),
+        # arl[3]: res[3] — Toyota RAV4 Hybrid, completed
+        Rental(
+            id=ACTIVE_RENTAL_IDS[3],
+            reservation_id=RESERVATION_IDS[3],
+            pickup_date=NOW - timedelta(days=60),
+            return_date=NOW - timedelta(days=55),
+            mileage_start=17300,
+            mileage_end=18000,
+            fuel_level_start=Decimal("85.00"),
+            fuel_level_end=Decimal("70.00"),
+            damage_notes=None,
+            employee_id=USER_IDS[3],
+        ),
+        # arl[4]: res[5] — Toyota Corolla, completed
+        Rental(
+            id=ACTIVE_RENTAL_IDS[4],
+            reservation_id=RESERVATION_IDS[5],
+            pickup_date=NOW - timedelta(days=90),
+            return_date=NOW - timedelta(days=85),
+            mileage_start=19800,
+            mileage_end=20500,
+            fuel_level_start=Decimal("100.00"),
+            fuel_level_end=Decimal("60.00"),
+            damage_notes=None,
+            employee_id=USER_IDS[3],
+        ),
+        # arl[5]: res[7] — Toyota Corolla, completed
+        Rental(
+            id=ACTIVE_RENTAL_IDS[5],
+            reservation_id=RESERVATION_IDS[7],
+            pickup_date=NOW - timedelta(days=120),
+            return_date=NOW - timedelta(days=117),
+            mileage_start=22500,
+            mileage_end=23000,
+            fuel_level_start=Decimal("90.00"),
+            fuel_level_end=Decimal("75.00"),
+            damage_notes=None,
+            employee_id=USER_IDS[3],
+        ),
+        # arl[6]: res[9] — Skoda Octavia, completed (minor damage noted)
+        Rental(
+            id=ACTIVE_RENTAL_IDS[6],
+            reservation_id=RESERVATION_IDS[9],
+            pickup_date=NOW - timedelta(days=200),
+            return_date=NOW - timedelta(days=193),
+            mileage_start=64000,
+            mileage_end=65200,
+            fuel_level_start=Decimal("80.00"),
+            fuel_level_end=Decimal("50.00"),
+            damage_notes="Drobne zarysowanie zderzaka przedniego na parkingu.",
+            employee_id=USER_IDS[3],
+        ),
+    ]
+
+    # --- Rental Price Breakdowns (for all completed/active rentals) ---
+    price_breakdowns = [
+        RentalPriceBreakdown(
+            rental_id=ACTIVE_RENTAL_IDS[0],
+            base_price=Decimal("750.00"),
+            fuel_surcharge=Decimal("15.00"),
+            risk_multiplier=Decimal("1.0000"),
+            final_price=Decimal("750.00"),
+        ),
+        RentalPriceBreakdown(
+            rental_id=ACTIVE_RENTAL_IDS[1],
+            base_price=Decimal("1050.00"),
+            fuel_surcharge=Decimal("0.00"),
+            risk_multiplier=Decimal("1.0000"),
+            final_price=Decimal("1050.00"),
+        ),
+        RentalPriceBreakdown(
+            rental_id=ACTIVE_RENTAL_IDS[2],
+            base_price=Decimal("1190.00"),
+            fuel_surcharge=Decimal("28.00"),
+            risk_multiplier=Decimal("1.0000"),
+            final_price=Decimal("1190.00"),
+        ),
+        RentalPriceBreakdown(
+            rental_id=ACTIVE_RENTAL_IDS[3],
+            base_price=Decimal("1260.00"),
+            fuel_surcharge=Decimal("0.00"),
+            risk_multiplier=Decimal("1.1111"),
+            final_price=Decimal("1400.00"),
+        ),
+        RentalPriceBreakdown(
+            rental_id=ACTIVE_RENTAL_IDS[4],
+            base_price=Decimal("750.00"),
+            fuel_surcharge=Decimal("12.00"),
+            risk_multiplier=Decimal("1.0000"),
+            final_price=Decimal("750.00"),
+        ),
+        RentalPriceBreakdown(
+            rental_id=ACTIVE_RENTAL_IDS[5],
+            base_price=Decimal("450.00"),
+            fuel_surcharge=Decimal("10.00"),
+            risk_multiplier=Decimal("1.0000"),
+            final_price=Decimal("450.00"),
+        ),
+        RentalPriceBreakdown(
+            rental_id=ACTIVE_RENTAL_IDS[6],
+            base_price=Decimal("840.00"),
+            fuel_surcharge=Decimal("22.00"),
+            risk_multiplier=Decimal("1.1667"),
+            final_price=Decimal("980.00"),
         ),
     ]
 
@@ -401,12 +550,17 @@ async def seed_postgres(*, drop: bool = False) -> None:
         await session.flush()
         session.add_all(vehicles)
         await session.flush()
-        session.add_all(rentals)
+        session.add_all(reservations)
+        await session.flush()
+        session.add_all(active_rentals)
+        await session.flush()
+        session.add_all(price_breakdowns)
         await session.commit()
 
     print(
         f"[PG] Seeded: {len(users)} users, {len(categories)} categories, "
-        f"{len(vehicles)} vehicles, {len(rentals)} rentals"
+        f"{len(vehicles)} vehicles, {len(reservations)} reservations, "
+        f"{len(active_rentals)} active rentals, {len(price_breakdowns)} price breakdowns"
     )
 
     await async_engine.dispose()
@@ -438,9 +592,11 @@ async def seed_mongo(*, drop: bool = False) -> None:
         print(f"[MONGO] Skipping — {existing} rental logs already exist")
         return
 
+    # rental_id here refers to the active Rental (ACTIVE_RENTAL_IDS), not reservation
     rental_logs = [
         {
-            "rental_id": str(RENTAL_IDS[0]),
+            "rental_id": str(ACTIVE_RENTAL_IDS[0]),
+            "reservation_id": str(RESERVATION_IDS[0]),
             "user_id": str(USER_IDS[0]),
             "vehicle_id": str(VEHICLE_IDS[0]),
             "action": "pickup",
@@ -449,17 +605,19 @@ async def seed_mongo(*, drop: bool = False) -> None:
             "location": "Warszawa - oddział główny",
         },
         {
-            "rental_id": str(RENTAL_IDS[0]),
+            "rental_id": str(ACTIVE_RENTAL_IDS[0]),
+            "reservation_id": str(RESERVATION_IDS[0]),
             "user_id": str(USER_IDS[0]),
             "vehicle_id": str(VEHICLE_IDS[0]),
             "action": "return",
             "timestamp": (NOW - timedelta(days=25)).isoformat(),
             "mileage_at_event": 25000,
             "location": "Warszawa - oddział główny",
-            "fuel_level": 0.75,
+            "fuel_level": 55.0,
         },
         {
-            "rental_id": str(RENTAL_IDS[2]),
+            "rental_id": str(ACTIVE_RENTAL_IDS[2]),
+            "reservation_id": str(RESERVATION_IDS[2]),
             "user_id": str(USER_IDS[1]),
             "vehicle_id": str(VEHICLE_IDS[1]),
             "action": "pickup",
@@ -468,7 +626,8 @@ async def seed_mongo(*, drop: bool = False) -> None:
             "location": "Kraków - lotnisko",
         },
         {
-            "rental_id": str(RENTAL_IDS[1]),
+            "rental_id": str(ACTIVE_RENTAL_IDS[1]),
+            "reservation_id": str(RESERVATION_IDS[1]),
             "user_id": str(USER_IDS[0]),
             "vehicle_id": str(VEHICLE_IDS[2]),
             "action": "pickup",
@@ -477,14 +636,15 @@ async def seed_mongo(*, drop: bool = False) -> None:
             "location": "Gdańsk - centrum",
         },
         {
-            "rental_id": str(RENTAL_IDS[1]),
+            "rental_id": str(ACTIVE_RENTAL_IDS[1]),
+            "reservation_id": str(RESERVATION_IDS[1]),
             "user_id": str(USER_IDS[0]),
             "vehicle_id": str(VEHICLE_IDS[2]),
             "action": "return",
             "timestamp": (NOW - timedelta(days=12)).isoformat(),
             "mileage_at_event": 8000,
             "location": "Gdańsk - centrum",
-            "battery_level": 0.45,
+            "battery_level": 45.0,
         },
     ]
 
@@ -493,7 +653,7 @@ async def seed_mongo(*, drop: bool = False) -> None:
         {
             "user_id": str(USER_IDS[0]),
             "vehicle_id": str(VEHICLE_IDS[0]),
-            "rental_id": str(RENTAL_IDS[0]),
+            "reservation_id": str(RESERVATION_IDS[0]),
             "rating": 5,
             "comment": "Świetny samochód, czysty i zadbany. Polecam!",
             "created_at": (NOW - timedelta(days=24)).isoformat(),
@@ -501,7 +661,7 @@ async def seed_mongo(*, drop: bool = False) -> None:
         {
             "user_id": str(USER_IDS[0]),
             "vehicle_id": str(VEHICLE_IDS[2]),
-            "rental_id": str(RENTAL_IDS[1]),
+            "reservation_id": str(RESERVATION_IDS[1]),
             "rating": 4,
             "comment": "Tesla super, ale zasięg mniejszy niż obiecany.",
             "created_at": (NOW - timedelta(days=11)).isoformat(),
@@ -509,7 +669,7 @@ async def seed_mongo(*, drop: bool = False) -> None:
         {
             "user_id": str(USER_IDS[1]),
             "vehicle_id": str(VEHICLE_IDS[3]),
-            "rental_id": str(RENTAL_IDS[3]),
+            "reservation_id": str(RESERVATION_IDS[3]),
             "rating": 5,
             "comment": "RAV4 Hybrid idealny na dłuższą trasę. Niskie spalanie.",
             "created_at": (NOW - timedelta(days=54)).isoformat(),
@@ -517,7 +677,7 @@ async def seed_mongo(*, drop: bool = False) -> None:
         {
             "user_id": str(USER_IDS[2]),
             "vehicle_id": str(VEHICLE_IDS[0]),
-            "rental_id": str(RENTAL_IDS[5]),
+            "reservation_id": str(RESERVATION_IDS[5]),
             "rating": 3,
             "comment": "Samochód OK, ale trochę hałaśliwy silnik.",
             "created_at": (NOW - timedelta(days=84)).isoformat(),
@@ -558,7 +718,8 @@ async def seed_mongo(*, drop: bool = False) -> None:
     # --- Incidents ---
     incidents = [
         {
-            "rental_id": str(RENTAL_IDS[9]),
+            "rental_id": str(ACTIVE_RENTAL_IDS[6]),
+            "reservation_id": str(RESERVATION_IDS[9]),
             "user_id": str(USER_IDS[0]),
             "vehicle_id": str(VEHICLE_IDS[4]),
             "type": "minor_damage",
@@ -569,7 +730,8 @@ async def seed_mongo(*, drop: bool = False) -> None:
             "repair_cost": 450.00,
         },
         {
-            "rental_id": str(RENTAL_IDS[3]),
+            "rental_id": str(ACTIVE_RENTAL_IDS[3]),
+            "reservation_id": str(RESERVATION_IDS[3]),
             "user_id": str(USER_IDS[1]),
             "vehicle_id": str(VEHICLE_IDS[3]),
             "type": "flat_tire",
@@ -614,11 +776,14 @@ async def seed_mongo(*, drop: bool = False) -> None:
 
     # Create indexes
     await mongo_db.rental_logs.create_index("rental_id")
+    await mongo_db.rental_logs.create_index("reservation_id")
     await mongo_db.rental_logs.create_index("user_id")
     await mongo_db.reviews.create_index("vehicle_id")
     await mongo_db.reviews.create_index("user_id")
+    await mongo_db.reviews.create_index("reservation_id")
     await mongo_db.price_history.create_index([("fuel_type", 1), ("recorded_at", -1)])
     await mongo_db.incidents.create_index("rental_id")
+    await mongo_db.incidents.create_index("reservation_id")
     await mongo_db.user_preferences.create_index("user_id", unique=True)
 
     print(
@@ -691,15 +856,15 @@ async def seed_redis(*, drop: bool = False) -> None:
     email_tasks = [
         {
             "to": "jan.kowalski@example.com",
-            "subject": "Przypomnienie o nadchodzącym wypożyczeniu",
-            "rental_id": str(RENTAL_IDS[6]),
-            "type": "reminder",
+            "subject": "Potwierdzenie rezerwacji",
+            "reservation_id": str(RESERVATION_IDS[6]),
+            "type": "confirmation",
         },
         {
             "to": "piotr.wisniewski@example.com",
-            "subject": "Potwierdzenie rezerwacji",
-            "rental_id": str(RENTAL_IDS[4]),
-            "type": "confirmation",
+            "subject": "Przypomnienie o nadchodzącym wypożyczeniu",
+            "reservation_id": str(RESERVATION_IDS[4]),
+            "type": "reminder",
         },
     ]
     for task in email_tasks:
