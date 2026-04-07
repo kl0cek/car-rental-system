@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from pydantic_settings import BaseSettings
 
 
@@ -42,6 +44,9 @@ class Settings(BaseSettings):
 
     # Frontend
     FRONTEND_URL: str = "http://localhost:3000"
+
+    # Pricing
+    fuel_surcharge_rate_per_percent: Decimal = Decimal("2.00")
 
     model_config = {
         "env_file": (".env", "../.env"),
