@@ -36,7 +36,13 @@ async def list_reservations(
     current_user: CurrentUser,
     params: Annotated[ReservationListParams, Query()],
 ) -> PaginatedReservationResponse:
-    return await reservation_service.list_user_reservations(db, current_user, params)
+    reservations, total = await reservation_service.list_user_reservations(db, current_user, params)
+    return PaginatedReservationResponse(
+        items=[ReservationResponse.model_validate(r) for r in reservations],
+        total=total,
+        offset=params.offset,
+        limit=params.limit,
+    )
 
 
 @router.put("/{reservation_id}/cancel")

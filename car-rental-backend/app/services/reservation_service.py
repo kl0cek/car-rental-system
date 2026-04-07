@@ -1,34 +1,19 @@
 import uuid
-from dataclasses import dataclass
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.utils import date_to_utc_datetime
 from app.models.rental import Reservation, ReservationStatus
 from app.models.user import User, UserRole
 from app.repositories import reservation_repository, vehicle_repository
 from app.schemas.reservation import (
     CreateReservationRequest,
-    PaginatedReservationResponse,
+    ReservationConfirmedEmailData,
     ReservationListParams,
-    ReservationResponse,
 )
-
-
-@dataclass
-class ReservationConfirmedEmailData:
-    to_email: str
-    first_name: str
-    vehicle_name: str
-    start_date: date
-    end_date: date
-    total_price: Decimal
-
-
-def _date_to_datetime(d: date) -> datetime:
-    return datetime.combine(d, time.min, tzinfo=UTC)
 
 
 def _calculate_price(daily_base_price: Decimal, price_multiplier: Decimal, days: int) -> Decimal:
@@ -40,7 +25,7 @@ async def create_reservation(
     current_user: User,
     body: CreateReservationRequest,
 ) -> Reservation:
-    vehicle = await vehicle_repository.get_by_id(db, body.vehicle_id)
+    vehicle = await vehicle_repository.get_by_id_for_update(db, body.vehicle_id)
     if vehicle is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vehicle not found")
 
@@ -58,34 +43,27 @@ async def create_reservation(
         vehicle.daily_base_price, vehicle.category.price_multiplier, days
     )
 
-    reservation = await reservation_repository.create(
+    return await reservation_repository.create(
         db,
         user_id=current_user.id,
         vehicle_id=vehicle.id,
-        start_date=_date_to_datetime(body.start_date),
-        end_date=_date_to_datetime(body.end_date),
+        start_date=date_to_utc_datetime(body.start_date),
+        end_date=date_to_utc_datetime(body.end_date),
         total_price=total_price,
     )
-    return reservation
 
 
 async def list_user_reservations(
     db: AsyncSession,
     current_user: User,
     params: ReservationListParams,
-) -> PaginatedReservationResponse:
-    reservations, total = await reservation_repository.get_list_by_user(
+) -> tuple[list[Reservation], int]:
+    return await reservation_repository.get_list_by_user(
         db,
         current_user.id,
         offset=params.offset,
         limit=params.limit,
         status=params.status,
-    )
-    return PaginatedReservationResponse(
-        items=[ReservationResponse.model_validate(r) for r in reservations],
-        total=total,
-        offset=params.offset,
-        limit=params.limit,
     )
 
 

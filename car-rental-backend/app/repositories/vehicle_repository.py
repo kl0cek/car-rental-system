@@ -7,6 +7,7 @@ from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import contains_eager, joinedload
 
+from app.core.utils import date_to_utc_datetime
 from app.models.category import Category, CategoryName
 from app.models.rental import Reservation, ReservationStatus
 from app.models.vehicle import EngineType, Vehicle, VehicleStatus
@@ -59,10 +60,6 @@ def _apply_filters(
     return stmt
 
 
-def _date_to_datetime(d: date) -> datetime:
-    return datetime.combine(d, time.min, tzinfo=UTC)
-
-
 def _date_to_datetime_end(d: date) -> datetime:
     return datetime.combine(d, time.max, tzinfo=UTC)
 
@@ -104,7 +101,7 @@ async def get_list(
             .where(
                 Reservation.status.in_(BLOCKING_STATUSES),
                 Reservation.start_date < _date_to_datetime_end(available_to),
-                Reservation.end_date > _date_to_datetime(available_from),
+                Reservation.end_date > date_to_utc_datetime(available_from),
             )
             .scalar_subquery()
         )
@@ -135,24 +132,28 @@ async def get_by_id(db: AsyncSession, vehicle_id: uuid.UUID) -> Vehicle | None:
     return result.scalar_one_or_none()
 
 
+async def get_by_id_for_update(db: AsyncSession, vehicle_id: uuid.UUID) -> Vehicle | None:
+    """Fetch vehicle and lock its row for the duration of the transaction.
+
+    Use this instead of get_by_id when you need to serialize concurrent writes
+    (e.g. availability check + reservation insert).
+    """
+    await db.execute(select(Vehicle).where(Vehicle.id == vehicle_id).with_for_update())
+    return await get_by_id(db, vehicle_id)
+
+
 async def count_conflicting_reservations(
     db: AsyncSession,
     vehicle_id: uuid.UUID,
     start_date: date,
     end_date: date,
 ) -> int:
-    locked_subq = (
-        select(Reservation.id)
-        .where(
-            Reservation.vehicle_id == vehicle_id,
-            Reservation.status.in_(BLOCKING_STATUSES),
-            Reservation.start_date < _date_to_datetime_end(end_date),
-            Reservation.end_date > _date_to_datetime(start_date),
-        )
-        .with_for_update()
-        .subquery()
+    stmt = select(func.count()).where(
+        Reservation.vehicle_id == vehicle_id,
+        Reservation.status.in_(BLOCKING_STATUSES),
+        Reservation.start_date < _date_to_datetime_end(end_date),
+        Reservation.end_date > date_to_utc_datetime(start_date),
     )
-    stmt = select(func.count()).select_from(locked_subq)
     result = await db.execute(stmt)
     return result.scalar_one()
 

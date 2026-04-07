@@ -1,5 +1,6 @@
 import uuid
-from datetime import date, datetime
+from dataclasses import dataclass
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from pydantic import BaseModel, Field, model_validator
@@ -14,7 +15,7 @@ class CreateReservationRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_dates(self) -> "CreateReservationRequest":
-        today = date.today()
+        today = datetime.now(UTC).date()
         if self.start_date < today:
             raise ValueError("start_date must not be in the past")
         if self.end_date <= self.start_date:
@@ -57,3 +58,13 @@ class PaginatedReservationResponse(BaseModel):
     total: int
     offset: int
     limit: int
+
+
+@dataclass
+class ReservationConfirmedEmailData:
+    to_email: str
+    first_name: str
+    vehicle_name: str
+    start_date: date
+    end_date: date
+    total_price: Decimal
