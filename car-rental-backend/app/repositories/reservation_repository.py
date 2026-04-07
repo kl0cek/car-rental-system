@@ -19,6 +19,17 @@ async def get_by_id(db: AsyncSession, reservation_id: uuid.UUID) -> Reservation 
     return result.scalar_one_or_none()
 
 
+async def get_by_id_for_update(db: AsyncSession, reservation_id: uuid.UUID) -> Reservation | None:
+    stmt = (
+        select(Reservation)
+        .options(joinedload(Reservation.vehicle), joinedload(Reservation.user))
+        .where(Reservation.id == reservation_id)
+        .with_for_update()
+    )
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
+
+
 async def get_list_by_user(
     db: AsyncSession,
     user_id: uuid.UUID,
