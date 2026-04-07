@@ -141,12 +141,18 @@ async def count_conflicting_reservations(
     start_date: date,
     end_date: date,
 ) -> int:
-    stmt = select(func.count()).where(
-        Reservation.vehicle_id == vehicle_id,
-        Reservation.status.in_(BLOCKING_STATUSES),
-        Reservation.start_date < _date_to_datetime_end(end_date),
-        Reservation.end_date > _date_to_datetime(start_date),
+    locked_subq = (
+        select(Reservation.id)
+        .where(
+            Reservation.vehicle_id == vehicle_id,
+            Reservation.status.in_(BLOCKING_STATUSES),
+            Reservation.start_date < _date_to_datetime_end(end_date),
+            Reservation.end_date > _date_to_datetime(start_date),
+        )
+        .with_for_update()
+        .subquery()
     )
+    stmt = select(func.count()).select_from(locked_subq)
     result = await db.execute(stmt)
     return result.scalar_one()
 

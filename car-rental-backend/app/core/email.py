@@ -1,5 +1,7 @@
 import logging
 import smtplib
+from datetime import date
+from decimal import Decimal
 from email.message import EmailMessage
 
 from app.config import settings
@@ -61,4 +63,29 @@ def send_verification_email(to_email: str, token: str) -> None:
 
 def send_password_reset_email(to_email: str, token: str) -> None:
     msg = _build_password_reset_message(to_email, token)
+    _send_email(msg)
+
+
+def send_reservation_confirmed_email(
+    to_email: str,
+    first_name: str,
+    vehicle_name: str,
+    start_date: date,
+    end_date: date,
+    total_price: Decimal,
+) -> None:
+    msg = EmailMessage()
+    msg["Subject"] = "DriveEase - Your reservation has been confirmed"
+    msg["From"] = settings.SMTP_FROM_EMAIL
+    msg["To"] = to_email
+    msg.set_content(
+        f"Hi {first_name},\n\n"
+        f"Great news! Your reservation has been confirmed.\n\n"
+        f"Vehicle: {vehicle_name}\n"
+        f"Pick-up date: {start_date}\n"
+        f"Return date: {end_date}\n"
+        f"Total price: {total_price} PLN\n\n"
+        f"If you have any questions, please contact us.\n\n"
+        f"DriveEase Team"
+    )
     _send_email(msg)
