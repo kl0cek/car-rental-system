@@ -7,7 +7,12 @@ interface FilterToggleGroupProps<T extends string> {
   onChange: (value: T | null) => void;
 }
 
-export function FilterToggleGroup<T extends string>({ label, options, value, onChange }: FilterToggleGroupProps<T>) {
+export function FilterToggleGroup<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+}: FilterToggleGroupProps<T>) {
   return (
     <div className="space-y-2">
       <Label className="text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>

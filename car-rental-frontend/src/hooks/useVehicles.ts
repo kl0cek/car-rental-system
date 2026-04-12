@@ -1,5 +1,10 @@
 import useSWR from 'swr';
-import type { PaginatedVehiclesApi, CategoryName, EngineType, SortableField } from '@/types/vehicle';
+import type {
+  PaginatedVehiclesApi,
+  CategoryName,
+  EngineType,
+  SortableField,
+} from '@/types/vehicle';
 import { mapVehicle, PRICE_MIN, PRICE_MAX, YEAR_MIN, YEAR_MAX, PAGE_SIZE } from '@/types/vehicle';
 
 export interface VehicleSearchParams {
@@ -34,11 +39,7 @@ function buildQuery(params: VehicleSearchParams): string {
 
   if (params.minSeats) p.set('min_seats', String(params.minSeats));
 
-  if (
-    params.availableFrom &&
-    params.availableTo &&
-    params.availableFrom <= params.availableTo
-  ) {
+  if (params.availableFrom && params.availableTo && params.availableFrom <= params.availableTo) {
     p.set('available_from', params.availableFrom);
     p.set('available_to', params.availableTo);
   }

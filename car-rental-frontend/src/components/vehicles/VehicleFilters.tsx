@@ -76,10 +76,7 @@ export function VehicleFilters({ filters, onChange }: VehicleFiltersProps) {
 
       <Separator />
 
-      <MinSeatsFilter
-        value={filters.minSeats}
-        onChange={(minSeats) => onChange({ minSeats })}
-      />
+      <MinSeatsFilter value={filters.minSeats} onChange={(minSeats) => onChange({ minSeats })} />
 
       <Separator />
 

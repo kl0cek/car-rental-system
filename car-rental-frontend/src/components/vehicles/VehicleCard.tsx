@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import type { Vehicle } from '@/types/vehicle';
-import {STATUS_CONFIG, ENGINE_CONFIG, CATEGORY_LABELS} from '@/data/vehicles/constants'
+import { STATUS_CONFIG, ENGINE_CONFIG, CATEGORY_LABELS } from '@/data/vehicles/constants';
+import Image from 'next/image';
 
 export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
   const status = STATUS_CONFIG[vehicle.status];
@@ -17,7 +18,7 @@ export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
     <Card className="overflow-hidden group hover:shadow-md transition-all duration-200">
       <div className="relative aspect-video bg-linear-to-br from-secondary to-muted overflow-hidden">
         {vehicle.imageUrl ? (
-          <img
+          <Image
             src={vehicle.imageUrl}
             alt={`${vehicle.brand} ${vehicle.model}`}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -27,9 +28,7 @@ export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
             <Car className="w-14 h-14 text-muted-foreground/20" />
           </div>
         )}
-        <Badge className={`absolute top-2 right-2 ${status.className}`}>
-          {status.label}
-        </Badge>
+        <Badge className={`absolute top-2 right-2 ${status.className}`}>{status.label}</Badge>
       </div>
 
       <CardContent className="p-4 space-y-3">

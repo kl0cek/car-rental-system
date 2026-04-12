@@ -9,7 +9,11 @@ interface AvailabilityFilterProps {
   onChange: (updates: { availableFrom?: string; availableTo?: string }) => void;
 }
 
-export function AvailabilityFilter({ availableFrom, availableTo, onChange }: AvailabilityFilterProps) {
+export function AvailabilityFilter({
+  availableFrom,
+  availableTo,
+  onChange,
+}: AvailabilityFilterProps) {
   const today = new Date().toISOString().split('T')[0];
 
   return (

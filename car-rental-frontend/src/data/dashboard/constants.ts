@@ -1,4 +1,12 @@
-import { Car, LayoutDashboard, CalendarDays, Users, Settings, HelpCircle, LayoutGrid } from 'lucide-react';
+import {
+  Car,
+  LayoutDashboard,
+  CalendarDays,
+  Users,
+  Settings,
+  HelpCircle,
+  LayoutGrid,
+} from 'lucide-react';
 import type { NavItem } from '@/src/types/booking';
 import type { UserRole } from '@/types/auth';
 

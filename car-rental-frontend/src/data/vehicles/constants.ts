@@ -1,6 +1,5 @@
-import type { CategoryName, EngineType } from "@/src/types/vehicle";
+import type { CategoryName, EngineType } from '@/src/types/vehicle';
 import { Zap, Fuel, Leaf } from 'lucide-react';
-
 
 export const CATEGORIES: { value: CategoryName; label: string }[] = [
   { value: 'economy', label: 'Economy' },

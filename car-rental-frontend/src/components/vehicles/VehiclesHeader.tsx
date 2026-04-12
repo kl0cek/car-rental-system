@@ -10,7 +10,12 @@ interface VehiclesHeaderProps {
   onToggleSidebar: () => void;
 }
 
-export function VehiclesHeader({ total, isLoading, sidebarOpen, onToggleSidebar }: VehiclesHeaderProps) {
+export function VehiclesHeader({
+  total,
+  isLoading,
+  sidebarOpen,
+  onToggleSidebar,
+}: VehiclesHeaderProps) {
   return (
     <div className="flex items-center justify-between">
       <div>
@@ -19,12 +24,7 @@ export function VehiclesHeader({ total, isLoading, sidebarOpen, onToggleSidebar 
           {isLoading ? 'Loading...' : `${total} vehicle${total !== 1 ? 's' : ''} found`}
         </p>
       </div>
-      <Button
-        variant="outline"
-        size="sm"
-        className="lg:hidden"
-        onClick={onToggleSidebar}
-      >
+      <Button variant="outline" size="sm" className="lg:hidden" onClick={onToggleSidebar}>
         {sidebarOpen ? (
           <X className="w-4 h-4 mr-1.5" />
         ) : (
