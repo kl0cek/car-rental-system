@@ -12,7 +12,7 @@ import { PriceRangeFilter } from '@/components/vehicles/PriceFilter';
 import { YearRangeFilter } from '@/components/vehicles/YearFilter';
 import { AvailabilityFilter } from '@/components/vehicles/AvaibilityFilter';
 import { MinSeatsFilter } from '@/components/vehicles/SeatFilter';
-import { isDefaultFilters, getDefaultFilters } from '@/lib/utils';
+import { isDefaultFilters, getDefaultFilters } from '@/lib/filters';
 
 export interface FiltersState {
   category: CategoryName | null;
