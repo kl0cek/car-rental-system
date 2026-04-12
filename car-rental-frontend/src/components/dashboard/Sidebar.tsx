@@ -17,10 +17,12 @@ export default function DashboardSidebar() {
     <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
       <div className="flex flex-col grow bg-card border-r border-border">
         <div className="flex items-center gap-3 px-6 py-5 border-b border-border">
-          <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center">
-            <Car className="w-5 h-5 text-primary-foreground" />
-          </div>
-          <span className="text-lg font-semibold tracking-tight text-foreground">DriveEase</span>
+          <Link href="/dashboard" className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center">
+              <Car className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <span className="text-lg font-semibold tracking-tight text-foreground">DriveEase</span>
+          </Link>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">

@@ -14,6 +14,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const isStaff = isStaffRole(user?.role);
   const [availableCars, setAvailableCars] = useState<number | null>(null);
+  const [activeBookings, setActiveBookings] = useState<number | null>(null);
 
   useEffect(() => {
     fetch('/api/vehicles?status=available&limit=1', { credentials: 'include' })
@@ -22,13 +23,22 @@ export default function DashboardPage() {
         if (data?.total != null) setAvailableCars(data.total);
       })
       .catch(() => {});
+
+    fetch('/api/reservations?status=active&limit=1', { credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.total != null) setActiveBookings(data.total);
+      })
+      .catch(() => {});
   }, []);
 
-  const statsData = dashboardMockData.map((stat) =>
-    stat.name === 'Available Cars' && availableCars !== null
-      ? { ...stat, value: String(availableCars), change: '', trend: 'up' as const }
-      : stat
-  );
+  const statsData = dashboardMockData.map((stat) => {
+    if (stat.name === 'Available Cars' && availableCars !== null)
+      return { ...stat, value: String(availableCars), change: '', trend: 'up' as const };
+    if (stat.name === 'Active Bookings' && activeBookings !== null)
+      return { ...stat, value: String(activeBookings), change: '', trend: 'up' as const };
+    return stat;
+  });
 
   // Customers see only Active Bookings and Available Cars
   const filteredStats = isStaff

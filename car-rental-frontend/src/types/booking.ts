@@ -1,6 +1,33 @@
 import type { LucideIcon } from 'lucide-react';
 
-export type BookingStatus = 'active' | 'pending' | 'completed' | 'confirmed';
+export type BookingStatus = 'active' | 'pending' | 'completed' | 'confirmed' | 'cancelled';
+
+export interface ReservationVehicleApi {
+  id: string;
+  brand: string;
+  model: string;
+  year: number;
+  license_plate: string;
+  image_url: string | null;
+}
+
+export interface ReservationApi {
+  id: string;
+  vehicle_id: string;
+  vehicle: ReservationVehicleApi;
+  start_date: string;
+  end_date: string;
+  status: BookingStatus;
+  total_price: string;
+  created_at: string;
+}
+
+export interface PaginatedReservationsApi {
+  items: ReservationApi[];
+  total: number;
+  offset: number;
+  limit: number;
+}
 
 export interface Booking {
   id: string;

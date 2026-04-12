@@ -1,12 +1,4 @@
-import {
-  Car,
-  LayoutDashboard,
-  CalendarDays,
-  Users,
-  Settings,
-  HelpCircle,
-  LayoutGrid,
-} from 'lucide-react';
+import { Car, LayoutDashboard, CalendarDays, Users, Settings, LayoutGrid } from 'lucide-react';
 import type { NavItem } from '@/src/types/booking';
 import type { UserRole } from '@/types/auth';
 
@@ -30,6 +22,4 @@ export const navigation: NavItem[] = [
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ];
 
-export const secondaryNavigation: NavItem[] = [
-  { name: 'Help Center', href: '#', icon: HelpCircle },
-];
+export const secondaryNavigation: NavItem[] = [];

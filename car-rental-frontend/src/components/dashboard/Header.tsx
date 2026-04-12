@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Bell, Menu, X, Car, LogOut } from 'lucide-react';
+import { X, Car, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -17,48 +17,6 @@ export default function DashboardHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-card/80 backdrop-blur-sm border-b border-border">
-        <div className="flex items-center justify-between h-16 px-6">
-          <button
-            type="button"
-            aria-label="Open menu"
-            className="lg:hidden -ml-2 p-2 rounded-lg text-muted-foreground hover:bg-secondary transition-colors"
-            onClick={() => setMobileMenuOpen(true)}
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-
-          <div className="flex-1 max-w-md mx-4 lg:mx-0">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="search"
-                placeholder="Search bookings, customers..."
-                className="w-full h-10 pl-10 pr-4 rounded-lg border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-all"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              aria-label="Notifications"
-              className="relative p-2 rounded-lg text-muted-foreground hover:bg-secondary transition-colors"
-            >
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-accent rounded-full" />
-            </button>
-            <div className="hidden sm:flex items-center gap-3 pl-3 border-l border-border">
-              <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
-                <span className="text-xs font-medium text-secondary-foreground">
-                  {user ? `${user.firstName[0]}${user.lastName[0]}` : '??'}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div
