@@ -1,5 +1,5 @@
 import { Clock, ChevronRight } from 'lucide-react';
-import type { Return } from '@/types/dashboard/booking';
+import type { Return } from '@/src/types/booking';
 import { mockReturns } from '@/data/dashboard/mockReturns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

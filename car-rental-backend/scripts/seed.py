@@ -46,7 +46,8 @@ async def seed_postgres(*, drop: bool = False) -> None:
 
     if drop:
         async with async_engine.begin() as conn:
-            await conn.run_sync(Base.metadata.drop_all)
+            await conn.execute(text("DROP SCHEMA public CASCADE"))
+            await conn.execute(text("CREATE SCHEMA public"))
         print("[PG] Dropped all tables")
 
     async with async_engine.begin() as conn:
@@ -169,6 +170,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
             daily_base_price=Decimal("150.00"),
             color="Biały",
             mileage=25000,
+            image_url="https://images.unsplash.com/photo-1623869675781-80aa31012a5a?w=800&q=80",
             status=VehicleStatus.AVAILABLE,
             category_id=CATEGORY_IDS[1],
         ),
@@ -186,6 +188,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
             daily_base_price=Decimal("170.00"),
             color="Szary",
             mileage=45000,
+            image_url="https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=800&q=80",
             status=VehicleStatus.RENTED,
             category_id=CATEGORY_IDS[1],
         ),
@@ -203,6 +206,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
             daily_base_price=Decimal("350.00"),
             color="Czarny",
             mileage=8000,
+            image_url="https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=800&q=80",
             status=VehicleStatus.AVAILABLE,
             category_id=CATEGORY_IDS[2],
         ),
@@ -220,6 +224,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
             daily_base_price=Decimal("280.00"),
             color="Zielony",
             mileage=18000,
+            image_url="https://images.unsplash.com/photo-1568844293986-8d0400b5d25f?w=800&q=80",
             status=VehicleStatus.AVAILABLE,
             category_id=CATEGORY_IDS[3],
         ),
@@ -237,6 +242,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
             daily_base_price=Decimal("140.00"),
             color="Niebieski",
             mileage=72000,
+            image_url="https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&q=80",
             status=VehicleStatus.MAINTENANCE,
             category_id=CATEGORY_IDS[1],
         ),
@@ -254,6 +260,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
             daily_base_price=Decimal("320.00"),
             color="Czarny",
             mileage=5000,
+            image_url="https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&q=80",
             status=VehicleStatus.AVAILABLE,
             category_id=CATEGORY_IDS[2],
         ),
@@ -271,6 +278,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
             daily_base_price=Decimal("250.00"),
             color="Biały",
             mileage=12000,
+            image_url="https://images.unsplash.com/photo-1593941707874-ef25b8b4a92b?w=800&q=80",
             status=VehicleStatus.AVAILABLE,
             category_id=CATEGORY_IDS[1],
         ),
@@ -288,6 +296,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
             daily_base_price=Decimal("120.00"),
             color="Czerwony",
             mileage=95000,
+            image_url="https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
             status=VehicleStatus.OUT_OF_SERVICE,
             category_id=CATEGORY_IDS[0],
         ),

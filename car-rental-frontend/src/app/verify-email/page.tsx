@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { AuthLayout } from '@/components/auth/AuthLayout';
 import { StatusMessage } from '@/components/auth/StatusMessage';
-import { useVerifyEmail } from '@/hooks/auth/useVerifyEmail';
+import { useVerifyEmail } from '@/src/hooks/useVerifyEmail';
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();

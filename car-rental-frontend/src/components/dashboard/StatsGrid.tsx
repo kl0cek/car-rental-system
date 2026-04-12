@@ -1,6 +1,6 @@
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import type { Stat } from '@/types/dashboard/booking';
+import type { Stat } from '@/src/types/booking';
 
 interface StatsGridProps {
   data: Stat[];

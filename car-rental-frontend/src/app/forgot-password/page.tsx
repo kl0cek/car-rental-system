@@ -7,7 +7,7 @@ import { AuthSubmitButton } from '@/components/auth/AuthSubmitButton';
 import { ErrorAlert } from '@/components/auth/ErrorAlert';
 import { StatusMessage } from '@/components/auth/StatusMessage';
 import { TextField } from '@/components/home/TextField';
-import { useForgotPassword } from '@/hooks/auth/useForgotPassword';
+import { useForgotPassword } from '@/src/hooks/useForgotPassword';
 
 export default function ForgotPasswordPage() {
   const { email, setEmail, isLoading, submitted, error, handleSubmit } = useForgotPassword();

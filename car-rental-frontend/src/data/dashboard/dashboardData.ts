@@ -1,33 +1,19 @@
-import { CalendarCheck, Car, Users, TrendingUp } from 'lucide-react';
-import type { Stat } from '@/types/dashboard/booking';
+import { CalendarCheck, Car } from 'lucide-react';
+import type { Stat } from '@/src/types/booking';
 
 export const dashboardMockData: Stat[] = [
   {
     name: 'Active Bookings',
-    value: '24',
-    change: '+12%',
+    value: '0',
+    change: '',
     trend: 'up',
     icon: CalendarCheck,
   },
   {
     name: 'Available Cars',
-    value: '156',
-    change: '-3%',
-    trend: 'down',
+    value: '0',
+    change: '',
+    trend: 'up',
     icon: Car,
-  },
-  {
-    name: 'Total Customers',
-    value: '1,429',
-    change: '+8%',
-    trend: 'up',
-    icon: Users,
-  },
-  {
-    name: 'Revenue This Month',
-    value: '$48,250',
-    change: '+23%',
-    trend: 'up',
-    icon: TrendingUp,
   },
 ];

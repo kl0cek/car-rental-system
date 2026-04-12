@@ -1,4 +1,4 @@
-import type { Booking } from '@/types/dashboard/booking';
+import type { Booking } from '@/src/types/booking';
 
 export const mockBookings: Booking[] = [
   {
