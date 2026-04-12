@@ -8,7 +8,7 @@ import { AuthSubmitButton } from '@/components/auth/AuthSubmitButton';
 import { ErrorAlert } from '@/components/auth/ErrorAlert';
 import { StatusMessage } from '@/components/auth/StatusMessage';
 import { PasswordField } from '@/components/home/PasswordField';
-import { useResetPassword } from '@/hooks/auth/useResetPassword';
+import { useResetPassword } from '@/src/hooks/useResetPassword';
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();

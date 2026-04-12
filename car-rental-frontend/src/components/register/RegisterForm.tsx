@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { BrandingSidebar } from '@/components/home/BrandingSidebar';
-import { useRegisterForm } from '@/hooks/register/useRegisterForm';
+import { useRegisterForm } from '@/src/hooks/useRegisterForm';
 import { PasswordRequirements } from './PasswordRequirements';
 import { SocialButtons } from '@/components/home/SocialButtons';
 import { TextField } from '@/components/home/TextField';

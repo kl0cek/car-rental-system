@@ -1,4 +1,4 @@
-import type { PasswordRequirement } from '@/types/register/register';
+import type { PasswordRequirement } from '@/src/types/register';
 
 export function getPasswordRequirements(password: string): PasswordRequirement[] {
   return [

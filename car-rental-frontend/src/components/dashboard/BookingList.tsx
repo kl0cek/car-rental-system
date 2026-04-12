@@ -1,7 +1,7 @@
 'use client';
 
 import { MoreHorizontal, Eye } from 'lucide-react';
-import type { Booking, BookingStatus } from '@/types/dashboard/booking';
+import type { Booking, BookingStatus } from '@/src/types/booking';
 import { mockBookings } from '@/data/dashboard/mockBooking';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

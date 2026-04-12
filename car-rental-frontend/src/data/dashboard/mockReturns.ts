@@ -1,4 +1,4 @@
-import type { Return } from '@/types/dashboard/booking';
+import type { Return } from '@/src/types/booking';
 
 export const mockReturns: Return[] = [
   {
