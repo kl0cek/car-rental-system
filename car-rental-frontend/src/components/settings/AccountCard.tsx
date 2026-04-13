@@ -1,4 +1,5 @@
 import { User, ShieldCheck } from 'lucide-react';
+import { formatDateLong, getInitials } from '@/lib/formatters';
 import { Separator } from '@/components/ui/separator';
 import { SettingsCard } from './SettingsCard';
 import type { User as UserType } from '@/types/auth';
@@ -33,7 +34,7 @@ export function AccountCard({ user }: AccountCardProps) {
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center shrink-0">
               <span className="text-base font-semibold text-secondary-foreground">
-                {user.firstName[0]}{user.lastName[0]}
+                {getInitials(user.firstName, user.lastName)}
               </span>
             </div>
             <div>
@@ -51,11 +52,7 @@ export function AccountCard({ user }: AccountCardProps) {
             </StatField>
             <StatField label="Member since">
               <span className="font-medium text-foreground">
-                {new Date(user.createdAt).toLocaleDateString('en-GB', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
+                {formatDateLong(user.createdAt)}
               </span>
             </StatField>
             <StatField label="Email verified">

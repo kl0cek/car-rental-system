@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { Search } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { CustomerTable, type Customer } from '@/components/customers/CustomerTable';
+import { CustomerTable } from '@/components/customers/CustomerTable';
+import type { Customer } from '@/types/customer';
 
 // TODO: replace with useSWR hook when GET /users endpoint is available
 const MOCK_CUSTOMERS: Customer[] = [
@@ -75,7 +76,11 @@ export default function CustomersPage() {
 
       <Card>
         <CardContent className="p-0 overflow-x-auto">
-          <CustomerTable customers={filtered} isLoading={isLoading} search={search} />
+          <CustomerTable
+            customers={filtered}
+            isLoading={isLoading}
+            emptyMessage={search ? `No results for "${search}"` : undefined}
+          />
         </CardContent>
       </Card>
     </div>
