@@ -15,25 +15,20 @@ interface SettingsContextValue {
 const SettingsContext = createContext<SettingsContextValue | null>(null);
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('light');
-  const [language, setLanguageState] = useState<Language>('en');
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window === 'undefined') return 'light';
+    const raw = localStorage.getItem('theme');
+    return raw === 'light' || raw === 'dark' ? raw : 'light';
+  });
+  const [language, setLanguageState] = useState<Language>(() => {
+    if (typeof window === 'undefined') return 'en';
+    const raw = localStorage.getItem('language');
+    return raw === 'en' || raw === 'pl' ? raw : 'en';
+  });
 
   useEffect(() => {
-    const VALID_THEMES: Theme[] = ['light', 'dark'];
-    const VALID_LANGS: Language[] = ['en', 'pl'];
-
-    const raw = localStorage.getItem('theme');
-    const savedTheme: Theme = VALID_THEMES.includes(raw as Theme) ? (raw as Theme) : 'light';
-
-    const rawLang = localStorage.getItem('language');
-    const savedLang: Language = VALID_LANGS.includes(rawLang as Language) ? (rawLang as Language) : 'en';
-
-    setThemeState(savedTheme);
-    setLanguageState(savedLang);
-    localStorage.setItem('theme', savedTheme);
-    localStorage.setItem('language', savedLang);
-    document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-  }, []);
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
 
   const setTheme = (t: Theme) => {
     setThemeState(t);

@@ -38,7 +38,9 @@ export function AccountCard({ user }: AccountCardProps) {
               </span>
             </div>
             <div>
-              <p className="font-medium text-foreground">{user.firstName} {user.lastName}</p>
+              <p className="font-medium text-foreground">
+                {user.firstName} {user.lastName}
+              </p>
               <p className="text-sm text-muted-foreground">{user.email}</p>
             </div>
           </div>
@@ -47,16 +49,18 @@ export function AccountCard({ user }: AccountCardProps) {
             <StatField label="Role">
               <div className="flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="font-medium text-foreground">{ROLE_LABELS[user.role] ?? user.role}</span>
+                <span className="font-medium text-foreground">
+                  {ROLE_LABELS[user.role] ?? user.role}
+                </span>
               </div>
             </StatField>
             <StatField label="Member since">
-              <span className="font-medium text-foreground">
-                {formatDateLong(user.createdAt)}
-              </span>
+              <span className="font-medium text-foreground">{formatDateLong(user.createdAt)}</span>
             </StatField>
             <StatField label="Email verified">
-              <span className={`font-medium ${user.isVerified ? 'text-green-600' : 'text-destructive'}`}>
+              <span
+                className={`font-medium ${user.isVerified ? 'text-green-600' : 'text-destructive'}`}
+              >
                 {user.isVerified ? 'Verified' : 'Not verified'}
               </span>
             </StatField>

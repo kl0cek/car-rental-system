@@ -21,7 +21,9 @@ export function CustomerRow({ customer: c }: { customer: Customer }) {
               {getInitials(c.firstName, c.lastName)}
             </span>
           </div>
-          <p className="font-medium text-foreground">{c.firstName} {c.lastName}</p>
+          <p className="font-medium text-foreground">
+            {c.firstName} {c.lastName}
+          </p>
         </div>
       </TableCell>
       <TableCell className="px-5 py-4 text-sm text-muted-foreground">{c.email}</TableCell>
@@ -29,7 +31,9 @@ export function CustomerRow({ customer: c }: { customer: Customer }) {
         {c.phone ?? <span className="text-muted-foreground/50">—</span>}
       </TableCell>
       <TableCell className="px-5 py-4 font-medium text-foreground">{c.totalReservations}</TableCell>
-      <TableCell className="px-5 py-4 text-sm text-muted-foreground">{formatDate(c.createdAt)}</TableCell>
+      <TableCell className="px-5 py-4 text-sm text-muted-foreground">
+        {formatDate(c.createdAt)}
+      </TableCell>
       <TableCell className="px-5 py-4">
         {c.isVerified ? (
           <Badge variant="secondary" className="gap-1">
@@ -37,7 +41,9 @@ export function CustomerRow({ customer: c }: { customer: Customer }) {
             Verified
           </Badge>
         ) : (
-          <Badge variant="outline" className="text-muted-foreground">Unverified</Badge>
+          <Badge variant="outline" className="text-muted-foreground">
+            Unverified
+          </Badge>
         )}
       </TableCell>
       <TableCell className="px-5 py-4 text-right">

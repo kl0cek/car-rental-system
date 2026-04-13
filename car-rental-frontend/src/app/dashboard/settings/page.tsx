@@ -6,7 +6,11 @@ import { useSettings, type Theme, type Language } from '@/contexts/SettingsConte
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { AccountCard } from '@/components/settings/AccountCard';
 
-function OptionButton({ active, onClick, children }: {
+function OptionButton({
+  active,
+  onClick,
+  children,
+}: {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
@@ -50,7 +54,11 @@ export default function SettingsPage() {
           </div>
         </SettingsCard>
 
-        <SettingsCard icon={Globe} title="Language" description="Interface language (translations coming soon)">
+        <SettingsCard
+          icon={Globe}
+          title="Language"
+          description="Interface language (translations coming soon)"
+        >
           <div className="flex gap-3">
             <OptionButton active={language === 'en'} onClick={() => setLanguage('en' as Language)}>
               🇬🇧 English

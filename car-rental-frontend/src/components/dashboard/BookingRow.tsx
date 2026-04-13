@@ -21,7 +21,9 @@ export function BookingRow({ reservation: r, onHide }: BookingRowProps) {
   return (
     <TableRow>
       <TableCell className="px-5 py-4">
-        <p className="font-medium text-foreground">{r.vehicle.brand} {r.vehicle.model}</p>
+        <p className="font-medium text-foreground">
+          {r.vehicle.brand} {r.vehicle.model}
+        </p>
         <p className="text-sm text-muted-foreground">{r.vehicle.license_plate}</p>
       </TableCell>
       <TableCell className="px-5 py-4">
@@ -29,7 +31,9 @@ export function BookingRow({ reservation: r, onHide }: BookingRowProps) {
         <p className="text-sm text-muted-foreground">to {formatDate(r.end_date)}</p>
       </TableCell>
       <TableCell className="px-5 py-4">
-        <Badge variant={BOOKING_STATUS_VARIANT[r.status]} className="capitalize">{r.status}</Badge>
+        <Badge variant={BOOKING_STATUS_VARIANT[r.status]} className="capitalize">
+          {r.status}
+        </Badge>
       </TableCell>
       <TableCell className="px-5 py-4 font-medium">
         {Number(r.total_price).toFixed(0)} PLN

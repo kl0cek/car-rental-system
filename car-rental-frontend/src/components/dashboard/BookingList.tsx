@@ -5,7 +5,14 @@ import { useHiddenRows } from '@/hooks/useHiddenRows';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { BookingRow } from './BookingRow';
 import { BookingCard } from './BookingCard';
 
@@ -15,7 +22,9 @@ function AllHiddenMessage({ onShowAll }: { onShowAll: () => void }) {
   return (
     <p className="py-6 text-sm text-center text-muted-foreground">
       All rows hidden.{' '}
-      <button onClick={onShowAll} className="underline">Show all</button>
+      <button onClick={onShowAll} className="underline">
+        Show all
+      </button>
     </p>
   );
 }
@@ -36,7 +45,12 @@ export default function BookingsList() {
           </div>
           <div className="flex items-center gap-2">
             {hiddenCount > 0 && (
-              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={showAll}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-muted-foreground"
+                onClick={showAll}
+              >
                 Show {hiddenCount} hidden
               </Button>
             )}
@@ -73,7 +87,9 @@ export default function BookingsList() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {visible.map((r) => <BookingRow key={r.id} reservation={r} onHide={hide} />)}
+                  {visible.map((r) => (
+                    <BookingRow key={r.id} reservation={r} onHide={hide} />
+                  ))}
                   {visible.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={5} className="p-0">
@@ -86,7 +102,9 @@ export default function BookingsList() {
             </div>
 
             <div className="md:hidden divide-y divide-border">
-              {visible.map((r) => <BookingCard key={r.id} reservation={r} onHide={hide} />)}
+              {visible.map((r) => (
+                <BookingCard key={r.id} reservation={r} onHide={hide} />
+              ))}
               {visible.length === 0 && <AllHiddenMessage onShowAll={showAll} />}
             </div>
           </>

@@ -2,7 +2,10 @@ import type { LucideIcon } from 'lucide-react';
 
 export type BookingStatus = 'active' | 'pending' | 'completed' | 'confirmed' | 'cancelled';
 
-export const BOOKING_STATUS_VARIANT: Record<BookingStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+export const BOOKING_STATUS_VARIANT: Record<
+  BookingStatus,
+  'default' | 'secondary' | 'destructive' | 'outline'
+> = {
   active: 'default',
   confirmed: 'secondary',
   pending: 'outline',

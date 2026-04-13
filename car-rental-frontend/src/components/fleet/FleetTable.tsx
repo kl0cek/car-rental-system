@@ -20,9 +20,13 @@ interface FleetTableProps {
 }
 
 const SortIcon = ({ field, sort }: { field: SortableField; sort: SortState }) =>
-  sort.sortBy !== field ? <ChevronsUpDown className="w-3.5 h-3.5 ml-1 opacity-40" /> :
-  sort.sortOrder === 'asc' ? <ChevronUp className="w-3.5 h-3.5 ml-1" /> :
-  <ChevronDown className="w-3.5 h-3.5 ml-1" />;
+  sort.sortBy !== field ? (
+    <ChevronsUpDown className="w-3.5 h-3.5 ml-1 opacity-40" />
+  ) : sort.sortOrder === 'asc' ? (
+    <ChevronUp className="w-3.5 h-3.5 ml-1" />
+  ) : (
+    <ChevronDown className="w-3.5 h-3.5 ml-1" />
+  );
 
 export function FleetTable({ vehicles, isLoading, sort, onSortChange }: FleetTableProps) {
   if (isLoading) {
@@ -64,7 +68,10 @@ export function FleetTable({ vehicles, isLoading, sort, onSortChange }: FleetTab
             </TableHead>
           ))}
           {['Category', 'Engine', 'Plate', 'Status'].map((col) => (
-            <TableHead key={col} className="px-4 text-xs uppercase tracking-wider text-muted-foreground">
+            <TableHead
+              key={col}
+              className="px-4 text-xs uppercase tracking-wider text-muted-foreground"
+            >
               {col}
             </TableHead>
           ))}
@@ -74,7 +81,9 @@ export function FleetTable({ vehicles, isLoading, sort, onSortChange }: FleetTab
         </TableRow>
       </TableHeader>
       <TableBody>
-        {vehicles.map((v) => <VehicleRow key={v.id} vehicle={v} />)}
+        {vehicles.map((v) => (
+          <VehicleRow key={v.id} vehicle={v} />
+        ))}
       </TableBody>
     </Table>
   );

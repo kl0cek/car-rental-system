@@ -24,20 +24,31 @@ export const ENGINE_CONFIG = Object.fromEntries(
   ENGINE_TYPES.map((e) => [e.value, { label: e.label, Icon: e.Icon }])
 ) as Record<EngineType, { label: string; Icon: LucideIcon }>;
 
-export const STATUS_CONFIG: Record<VehicleStatus, { label: string; className: string; dot: string }> = {
-  available:    { label: 'Available',    className: 'bg-green-500 text-slate-600',       dot: 'bg-green-500' },
-  rented:       { label: 'Rented',       className: 'bg-orange-500 text-slate-600',      dot: 'bg-orange-500' },
-  maintenance:  { label: 'Maintenance',  className: 'bg-yellow-500 text-slate-600',      dot: 'bg-yellow-500' },
-  out_of_service: { label: 'Out of Service', className: 'bg-destructive/10 text-destructive', dot: 'bg-destructive' },
+export const STATUS_CONFIG: Record<
+  VehicleStatus,
+  { label: string; className: string; dot: string }
+> = {
+  available: { label: 'Available', className: 'bg-green-500 text-slate-600', dot: 'bg-green-500' },
+  rented: { label: 'Rented', className: 'bg-orange-500 text-slate-600', dot: 'bg-orange-500' },
+  maintenance: {
+    label: 'Maintenance',
+    className: 'bg-yellow-500 text-slate-600',
+    dot: 'bg-yellow-500',
+  },
+  out_of_service: {
+    label: 'Out of Service',
+    className: 'bg-destructive/10 text-destructive',
+    dot: 'bg-destructive',
+  },
 };
 
 export const SORT_OPTIONS = [
-  { value: 'created_at|desc',       label: 'Newest first' },
-  { value: 'daily_base_price|asc',  label: 'Price: Low to High' },
+  { value: 'created_at|desc', label: 'Newest first' },
+  { value: 'daily_base_price|asc', label: 'Price: Low to High' },
   { value: 'daily_base_price|desc', label: 'Price: High to Low' },
-  { value: 'year|desc',             label: 'Year: Newest' },
-  { value: 'year|asc',              label: 'Year: Oldest' },
-  { value: 'mileage|asc',           label: 'Mileage: Lowest' },
+  { value: 'year|desc', label: 'Year: Newest' },
+  { value: 'year|asc', label: 'Year: Oldest' },
+  { value: 'mileage|asc', label: 'Mileage: Lowest' },
 ];
 
 export const SEATS_OPTIONS = [
@@ -58,8 +69,8 @@ export const TABS: { value: VehicleStatus | null; label: string; dot: string }[]
 ];
 
 export const SORTABLE_COLS: { label: string; field: SortableField }[] = [
-  { label: 'Vehicle',    field: 'brand' },
-  { label: 'Year',       field: 'year' },
-  { label: 'Mileage',   field: 'mileage' },
+  { label: 'Vehicle', field: 'brand' },
+  { label: 'Year', field: 'year' },
+  { label: 'Mileage', field: 'mileage' },
   { label: 'Price / day', field: 'daily_base_price' },
 ];

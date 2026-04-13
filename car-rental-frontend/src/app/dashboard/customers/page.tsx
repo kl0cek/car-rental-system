@@ -60,7 +60,9 @@ export default function CustomersPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Customers</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {isLoading ? 'Loading...' : `${filtered.length} customer${filtered.length !== 1 ? 's' : ''}`}
+            {isLoading
+              ? 'Loading...'
+              : `${filtered.length} customer${filtered.length !== 1 ? 's' : ''}`}
           </p>
         </div>
         <div className="relative w-full sm:w-64">

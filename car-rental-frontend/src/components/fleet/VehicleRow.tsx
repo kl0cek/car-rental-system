@@ -10,6 +10,7 @@ import {
 import { TableCell, TableRow } from '@/components/ui/table';
 import { STATUS_CONFIG, ENGINE_CONFIG, CATEGORY_LABELS } from '@/data/vehicles/constants';
 import type { Vehicle } from '@/types/vehicle';
+import Image from 'next/image';
 
 export function VehicleRow({ vehicle: v }: { vehicle: Vehicle }) {
   const status = STATUS_CONFIG[v.status];
@@ -21,7 +22,7 @@ export function VehicleRow({ vehicle: v }: { vehicle: Vehicle }) {
       <TableCell className="px-4 py-3">
         <div className="w-10 h-10 rounded-md bg-muted overflow-hidden shrink-0 flex items-center justify-center">
           {v.imageUrl ? (
-            <img src={v.imageUrl} alt="" className="w-full h-full object-cover" />
+            <Image src={v.imageUrl} alt="" className="w-full h-full object-cover" />
           ) : (
             <Car className="w-5 h-5 text-muted-foreground/40" />
           )}
@@ -29,15 +30,17 @@ export function VehicleRow({ vehicle: v }: { vehicle: Vehicle }) {
       </TableCell>
 
       <TableCell className="px-4 py-3">
-        <p className="font-medium text-foreground">{v.brand} {v.model}</p>
-        <p className="text-xs text-muted-foreground">{v.color} · {v.seats} seats</p>
+        <p className="font-medium text-foreground">
+          {v.brand} {v.model}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {v.color} · {v.seats} seats
+        </p>
       </TableCell>
 
       <TableCell className="px-4 py-3 text-foreground">{v.year}</TableCell>
 
-      <TableCell className="px-4 py-3 text-foreground">
-        {v.mileage.toLocaleString()} km
-      </TableCell>
+      <TableCell className="px-4 py-3 text-foreground">{v.mileage.toLocaleString()} km</TableCell>
 
       <TableCell className="px-4 py-3 font-medium text-foreground">
         {v.dailyBasePrice.toFixed(0)} PLN

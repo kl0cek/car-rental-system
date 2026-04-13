@@ -15,11 +15,15 @@ export function BookingCard({ reservation: r, onHide }: BookingCardProps) {
     <div className="p-4 space-y-3">
       <div className="flex items-start justify-between">
         <div>
-          <p className="font-medium text-foreground">{r.vehicle.brand} {r.vehicle.model}</p>
+          <p className="font-medium text-foreground">
+            {r.vehicle.brand} {r.vehicle.model}
+          </p>
           <p className="text-sm text-muted-foreground">{r.vehicle.license_plate}</p>
         </div>
         <div className="flex items-center gap-1">
-          <Badge variant={BOOKING_STATUS_VARIANT[r.status]} className="capitalize">{r.status}</Badge>
+          <Badge variant={BOOKING_STATUS_VARIANT[r.status]} className="capitalize">
+            {r.status}
+          </Badge>
           <Button variant="ghost" size="icon" onClick={() => onHide(r.id)}>
             <EyeOff className="w-3.5 h-3.5" />
           </Button>
@@ -29,9 +33,7 @@ export function BookingCard({ reservation: r, onHide }: BookingCardProps) {
         <span className="text-muted-foreground">
           {formatDate(r.start_date)} – {formatDate(r.end_date)}
         </span>
-        <span className="font-medium text-foreground">
-          {Number(r.total_price).toFixed(0)} PLN
-        </span>
+        <span className="font-medium text-foreground">{Number(r.total_price).toFixed(0)} PLN</span>
       </div>
     </div>
   );

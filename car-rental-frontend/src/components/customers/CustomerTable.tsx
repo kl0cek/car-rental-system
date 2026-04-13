@@ -30,9 +30,7 @@ export function CustomerTable({ customers, isLoading, emptyMessage }: CustomerTa
           <Users className="w-7 h-7 text-muted-foreground" />
         </div>
         <p className="font-medium text-foreground">No customers found</p>
-        {emptyMessage && (
-          <p className="text-sm text-muted-foreground mt-1">{emptyMessage}</p>
-        )}
+        {emptyMessage && <p className="text-sm text-muted-foreground mt-1">{emptyMessage}</p>}
       </div>
     );
   }
@@ -52,7 +50,9 @@ export function CustomerTable({ customers, isLoading, emptyMessage }: CustomerTa
         </TableRow>
       </TableHeader>
       <TableBody>
-        {customers.map((c) => <CustomerRow key={c.id} customer={c} />)}
+        {customers.map((c) => (
+          <CustomerRow key={c.id} customer={c} />
+        ))}
       </TableBody>
     </Table>
   );
