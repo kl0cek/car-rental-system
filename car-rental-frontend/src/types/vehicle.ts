@@ -30,6 +30,7 @@ export interface VehicleApi {
   brand: string;
   model: string;
   year: number;
+  license_plate: string;
   engine_type: EngineType;
   horsepower: number;
   seats: number;
@@ -56,6 +57,7 @@ export interface Vehicle {
   brand: string;
   model: string;
   year: number;
+  licensePlate: string;
   engineType: EngineType;
   horsepower: number;
   seats: number;
@@ -79,6 +81,7 @@ export function mapVehicle(api: VehicleApi): Vehicle {
     brand: api.brand,
     model: api.model,
     year: api.year,
+    licensePlate: api.license_plate,
     engineType: api.engine_type,
     horsepower: api.horsepower,
     seats: api.seats,
