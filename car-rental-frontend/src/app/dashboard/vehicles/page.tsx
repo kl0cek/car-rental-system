@@ -4,11 +4,13 @@ import { useCallback, useState } from 'react';
 import { Car } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { VehicleCard } from '@/components/vehicles/VehicleCard';
+import { VehicleDetailPanel } from '@/src/components/vehicles/DetailPanel/VehicleDetailPanel';
 import { VehicleFilters, type FiltersState } from '@/components/vehicles/VehicleFilters';
 import { VehiclePagination } from '@/components/vehicles/VehiclePagination';
 import { VehiclesHeader } from '@/components/vehicles/VehiclesHeader';
 import { useVehicles } from '@/hooks/useVehicles';
 import { PRICE_MIN, PRICE_MAX, YEAR_MIN, YEAR_MAX, PAGE_SIZE } from '@/types/vehicle';
+import type { Vehicle } from '@/types/vehicle';
 
 const DEFAULT_FILTERS: FiltersState & { page: number } = {
   category: null,
@@ -26,6 +28,7 @@ const DEFAULT_FILTERS: FiltersState & { page: number } = {
 export default function VehiclesPage() {
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
 
   const updateFilters = useCallback((updates: Partial<typeof DEFAULT_FILTERS>) => {
     setFilters((prev) => ({
@@ -40,6 +43,9 @@ export default function VehiclesPage() {
 
   return (
     <div className="space-y-5">
+      {selectedVehicle && (
+        <VehicleDetailPanel vehicle={selectedVehicle} onClose={() => setSelectedVehicle(null)} />
+      )}
       <VehiclesHeader
         total={total}
         isLoading={isLoading}
@@ -76,7 +82,7 @@ export default function VehiclesPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
               {vehicles.map((vehicle) => (
-                <VehicleCard key={vehicle.id} vehicle={vehicle} />
+                <VehicleCard key={vehicle.id} vehicle={vehicle} onSelect={setSelectedVehicle} />
               ))}
             </div>
           )}
