@@ -67,7 +67,6 @@ export interface Vehicle {
   mileage: number;
   imageUrl: string | null;
   status: VehicleStatus;
-  licensePlate: string | null;
   category: {
     id: string;
     name: CategoryName;
@@ -92,7 +91,6 @@ export function mapVehicle(api: VehicleApi): Vehicle {
     mileage: api.mileage,
     imageUrl: api.image_url,
     status: api.status,
-    licensePlate: null, // This field is not provided by the API, set to null for now
     category: {
       id: api.category.id,
       name: api.category.name,
