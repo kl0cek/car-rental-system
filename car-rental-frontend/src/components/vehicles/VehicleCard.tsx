@@ -8,7 +8,13 @@ import type { Vehicle } from '@/types/vehicle';
 import { STATUS_CONFIG, ENGINE_CONFIG, CATEGORY_LABELS } from '@/data/vehicles/constants';
 import Image from 'next/image';
 
-export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
+export function VehicleCard({
+  vehicle,
+  onSelect,
+}: {
+  vehicle: Vehicle;
+  onSelect?: (vehicle: Vehicle) => void;
+}) {
   const status = STATUS_CONFIG[vehicle.status];
   const engine = ENGINE_CONFIG[vehicle.engineType];
   const EngineIcon = engine.Icon;
@@ -16,7 +22,10 @@ export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
 
   return (
     <Card className="overflow-hidden group hover:shadow-md transition-all duration-200">
-      <div className="relative aspect-video bg-linear-to-br from-secondary to-muted overflow-hidden">
+      <div
+        className={`relative aspect-video bg-linear-to-br from-secondary to-muted overflow-hidden ${onSelect ? 'cursor-pointer' : ''}`}
+        onClick={() => onSelect?.(vehicle)}
+      >
         {vehicle.imageUrl ? (
           <Image
             src={vehicle.imageUrl}
@@ -43,7 +52,10 @@ export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
         </div>
 
         <div>
-          <h3 className="font-semibold text-foreground leading-tight">
+          <h3
+            className={`font-semibold text-foreground leading-tight ${onSelect ? 'cursor-pointer hover:text-primary transition-colors' : ''}`}
+            onClick={() => onSelect?.(vehicle)}
+          >
             {vehicle.brand} {vehicle.model}
           </h3>
           <p className="text-sm text-muted-foreground">
