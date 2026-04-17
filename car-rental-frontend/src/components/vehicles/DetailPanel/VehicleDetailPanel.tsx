@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -11,6 +11,8 @@ import { VehicleGallery } from './VehicleGallery';
 import { VehicleSpecs } from './VehicleSpec';
 import { AvailabilityCalendar } from './AvailabilityCalendar';
 import { PriceCalculator } from './PriceCalculator';
+import { useVehicleAvailability } from '@/hooks/useVehicleAvailability';
+import { useCreateReservation } from '@/hooks/useCreateReservation';
 
 interface VehicleDetailPanelProps {
   vehicle: Vehicle;
@@ -20,6 +22,18 @@ interface VehicleDetailPanelProps {
 export function VehicleDetailPanel({ vehicle, onClose }: VehicleDetailPanelProps) {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [reserved, setReserved] = useState(false);
+
+  const { available, isLoading: availabilityLoading } = useVehicleAvailability(
+    vehicle.id,
+    dateFrom,
+    dateTo
+  );
+  const {
+    createReservation,
+    isLoading: reserving,
+    error: reservationError,
+  } = useCreateReservation();
 
   const status = STATUS_CONFIG[vehicle.status];
   const engine = ENGINE_CONFIG[vehicle.engineType];
@@ -38,7 +52,21 @@ export function VehicleDetailPanel({ vehicle, onClose }: VehicleDetailPanelProps
   const handleDatesChange = useCallback((from: string, to: string) => {
     setDateFrom(from);
     setDateTo(to);
+    setReserved(false);
   }, []);
+
+  const handleReserve = async () => {
+    try {
+      await createReservation({
+        vehicle_id: vehicle.id,
+        start_date: dateFrom,
+        end_date: dateTo,
+      });
+      setReserved(true);
+    } catch {
+      // error displayed via reservationError
+    }
+  };
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -54,6 +82,18 @@ export function VehicleDetailPanel({ vehicle, onClose }: VehicleDetailPanelProps
       document.body.style.overflow = '';
     };
   }, []);
+
+  const canReserve = isAvailable && days > 0 && available === true && !reserving && !reserved;
+
+  const buttonLabel = () => {
+    if (!isAvailable) return 'Pojazd niedostępny';
+    if (days === 0) return 'Wybierz daty, aby zarezerwować';
+    if (availabilityLoading) return 'Sprawdzanie dostępności…';
+    if (available === false) return 'Termin niedostępny';
+    if (reserving) return 'Rezerwowanie…';
+    if (reserved) return 'Zarezerwowano!';
+    return `Zarezerwuj za ${finalTotal.toFixed(0)} PLN`;
+  };
 
   return (
     <div
@@ -102,6 +142,8 @@ export function VehicleDetailPanel({ vehicle, onClose }: VehicleDetailPanelProps
             dateFrom={dateFrom}
             dateTo={dateTo}
             onDatesChange={handleDatesChange}
+            available={available}
+            availabilityLoading={availabilityLoading}
           />
 
           <Separator />
@@ -114,13 +156,13 @@ export function VehicleDetailPanel({ vehicle, onClose }: VehicleDetailPanelProps
             onDateToChange={setDateTo}
           />
 
-          {/* TODO: podpiąć pod POST /api/reservations gdy endpoint będzie gotowy */}
-          <Button className="w-full" size="lg" disabled={!isAvailable || days === 0}>
-            {!isAvailable
-              ? 'Pojazd niedostępny'
-              : days === 0
-                ? 'Wybierz daty, aby zarezerwować'
-                : `Zarezerwuj za ${finalTotal.toFixed(0)} PLN`}
+          {reservationError && (
+            <p className="text-sm text-red-600 dark:text-red-400">{reservationError}</p>
+          )}
+
+          <Button className="w-full" size="lg" disabled={!canReserve} onClick={handleReserve}>
+            {reserving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            {buttonLabel()}
           </Button>
         </div>
       </div>

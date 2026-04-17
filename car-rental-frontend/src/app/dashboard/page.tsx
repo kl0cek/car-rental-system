@@ -6,9 +6,10 @@ import UpcomingReturns from '@/components/dashboard/UpcomingReturns';
 import { StatsGrid } from '@/components/dashboard/StatsGrid';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { dashboardMockData } from '@/data/dashboard/dashboardData';
 import { useAuth } from '@/contexts/AuthContext';
-import { isStaffRole } from '@/data/dashboard/constants';
+import { isStaffRole, STATS_BASE } from '@/data/dashboard/constants';
+import type { Stat, PaginatedReservationsApi } from '@/types/booking';
+import type { PaginatedVehiclesApi } from '@/types/vehicle';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -18,29 +19,33 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetch('/api/vehicles?status=available&limit=1', { credentials: 'include' })
-      .then((res) => (res.ok ? res.json() : null))
+      .then(
+        (res): Promise<PaginatedVehiclesApi | null> => (res.ok ? res.json() : Promise.resolve(null))
+      )
       .then((data) => {
         if (data?.total != null) setAvailableCars(data.total);
       })
       .catch(() => {});
 
     fetch('/api/reservations?status=active&limit=1', { credentials: 'include' })
-      .then((res) => (res.ok ? res.json() : null))
+      .then(
+        (res): Promise<PaginatedReservationsApi | null> =>
+          res.ok ? res.json() : Promise.resolve(null)
+      )
       .then((data) => {
         if (data?.total != null) setActiveBookings(data.total);
       })
       .catch(() => {});
   }, []);
 
-  const statsData = dashboardMockData.map((stat) => {
-    if (stat.name === 'Available Cars' && availableCars !== null)
-      return { ...stat, value: String(availableCars), change: '', trend: 'up' as const };
+  const statsData: Stat[] = STATS_BASE.map((stat) => {
     if (stat.name === 'Active Bookings' && activeBookings !== null)
-      return { ...stat, value: String(activeBookings), change: '', trend: 'up' as const };
+      return { ...stat, value: String(activeBookings) };
+    if (stat.name === 'Available Cars' && availableCars !== null)
+      return { ...stat, value: String(availableCars) };
     return stat;
   });
 
-  // Customers see only Active Bookings and Available Cars
   const filteredStats = isStaff
     ? statsData
     : statsData.filter((s) => s.name === 'Active Bookings' || s.name === 'Available Cars');

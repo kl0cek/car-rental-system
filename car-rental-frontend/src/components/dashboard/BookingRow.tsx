@@ -1,4 +1,4 @@
-import { EyeOff, MoreHorizontal, ExternalLink } from 'lucide-react';
+import { EyeOff, MoreHorizontal, ExternalLink, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,12 +12,19 @@ import { formatDate } from '@/lib/formatters';
 import type { ReservationApi } from '@/types/booking';
 import { BOOKING_STATUS_VARIANT } from '@/types/booking';
 
+const CANCELLABLE_STATUSES = new Set(['pending', 'confirmed']);
+
 interface BookingRowProps {
   reservation: ReservationApi;
   onHide: (id: string) => void;
+  onCancel: (id: string) => void;
+  cancellingId: string | null;
 }
 
-export function BookingRow({ reservation: r, onHide }: BookingRowProps) {
+export function BookingRow({ reservation: r, onHide, onCancel, cancellingId }: BookingRowProps) {
+  const isCancelling = cancellingId === r.id;
+  const canCancel = CANCELLABLE_STATUSES.has(r.status);
+
   return (
     <TableRow>
       <TableCell className="px-5 py-4">
@@ -54,6 +61,16 @@ export function BookingRow({ reservation: r, onHide }: BookingRowProps) {
                 <ExternalLink className="w-4 h-4 mr-2" />
                 View details
               </DropdownMenuItem>
+              {canCancel && (
+                <DropdownMenuItem
+                  className="text-red-600 dark:text-red-400 focus:text-red-600"
+                  disabled={isCancelling}
+                  onClick={() => onCancel(r.id)}
+                >
+                  <XCircle className="w-4 h-4 mr-2" />
+                  {isCancelling ? 'Anulowanie…' : 'Anuluj rezerwację'}
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

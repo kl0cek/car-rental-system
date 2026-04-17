@@ -38,7 +38,10 @@ export default function VehiclesPage() {
     }));
   }, []);
 
-  const { vehicles, total, isLoading } = useVehicles(filters);
+  const { vehicles: allVehicles, total, isLoading } = useVehicles(filters);
+  const vehicles = allVehicles.filter(
+    (v) => v.status === 'available' || v.status === 'rented' || v.status === 'maintenance'
+  );
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
