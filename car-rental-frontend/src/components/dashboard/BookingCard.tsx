@@ -1,16 +1,23 @@
-import { EyeOff } from 'lucide-react';
+import { EyeOff, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/formatters';
 import type { ReservationApi } from '@/types/booking';
 import { BOOKING_STATUS_VARIANT } from '@/types/booking';
 
+const CANCELLABLE_STATUSES = new Set(['pending', 'confirmed']);
+
 interface BookingCardProps {
   reservation: ReservationApi;
   onHide: (id: string) => void;
+  onCancel: (id: string) => void;
+  cancellingId: string | null;
 }
 
-export function BookingCard({ reservation: r, onHide }: BookingCardProps) {
+export function BookingCard({ reservation: r, onHide, onCancel, cancellingId }: BookingCardProps) {
+  const isCancelling = cancellingId === r.id;
+  const canCancel = CANCELLABLE_STATUSES.has(r.status);
+
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-start justify-between">
@@ -35,6 +42,18 @@ export function BookingCard({ reservation: r, onHide }: BookingCardProps) {
         </span>
         <span className="font-medium text-foreground">{Number(r.total_price).toFixed(0)} PLN</span>
       </div>
+      {canCancel && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full text-red-600 dark:text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+          disabled={isCancelling}
+          onClick={() => onCancel(r.id)}
+        >
+          <XCircle className="w-3.5 h-3.5 mr-1.5" />
+          {isCancelling ? 'Anulowanie…' : 'Anuluj rezerwację'}
+        </Button>
+      )}
     </div>
   );
 }

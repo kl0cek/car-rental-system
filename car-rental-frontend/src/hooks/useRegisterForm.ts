@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { RegisterFormData } from '@/src/types/register';
+import type { RegisterFormData } from '@/types/register';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPasswordRequirements, isPasswordValid } from '@/lib/password';
 

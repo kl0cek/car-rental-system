@@ -8,7 +8,7 @@ const fetcher = (url: string) =>
   });
 
 export function useReservations(limit = 5) {
-  const { data, isLoading } = useSWR<PaginatedReservationsApi>(
+  const { data, isLoading, mutate } = useSWR<PaginatedReservationsApi>(
     `/api/reservations?limit=${limit}&offset=0`,
     fetcher
   );
@@ -17,5 +17,6 @@ export function useReservations(limit = 5) {
     reservations: data?.items ?? [],
     total: data?.total ?? 0,
     isLoading,
+    mutate,
   };
 }

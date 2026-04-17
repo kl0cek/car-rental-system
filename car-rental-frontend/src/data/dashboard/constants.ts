@@ -1,8 +1,21 @@
-import { Car, LayoutDashboard, CalendarDays, Users, Settings, LayoutGrid } from 'lucide-react';
-import type { NavItem } from '@/src/types/booking';
+import {
+  Car,
+  LayoutDashboard,
+  CalendarDays,
+  Users,
+  Settings,
+  LayoutGrid,
+  CalendarCheck,
+} from 'lucide-react';
+import type { NavItem, Stat } from '@/types/booking';
 import type { UserRole } from '@/types/auth';
 
 export const STAFF_ROLES: UserRole[] = ['employee', 'technician', 'admin'];
+
+export const STATS_BASE: Stat[] = [
+  { name: 'Active Bookings', value: '—', change: '', trend: 'up', icon: CalendarCheck },
+  { name: 'Available Cars', value: '—', change: '', trend: 'up', icon: Car },
+];
 
 export function isStaffRole(role?: UserRole): boolean {
   return role ? STAFF_ROLES.includes(role) : false;

@@ -2,6 +2,7 @@
 
 import { useReservations } from '@/hooks/useReservations';
 import { useHiddenRows } from '@/hooks/useHiddenRows';
+import { useCancelReservation } from '@/hooks/useCancelReservation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -30,10 +31,20 @@ function AllHiddenMessage({ onShowAll }: { onShowAll: () => void }) {
 }
 
 export default function BookingsList() {
-  const { reservations, isLoading } = useReservations(5);
+  const { reservations, isLoading, mutate } = useReservations(5);
   const { hide, showAll, isHidden, hiddenCount } = useHiddenRows();
+  const { cancel, loadingId } = useCancelReservation();
 
   const visible = reservations.filter((r) => !isHidden(r.id));
+
+  const handleCancel = async (id: string) => {
+    try {
+      await cancel(id);
+      await mutate();
+    } catch {
+      // ignore — could show a toast here
+    }
+  };
 
   return (
     <Card>
@@ -88,7 +99,13 @@ export default function BookingsList() {
                 </TableHeader>
                 <TableBody>
                   {visible.map((r) => (
-                    <BookingRow key={r.id} reservation={r} onHide={hide} />
+                    <BookingRow
+                      key={r.id}
+                      reservation={r}
+                      onHide={hide}
+                      onCancel={handleCancel}
+                      cancellingId={loadingId}
+                    />
                   ))}
                   {visible.length === 0 && (
                     <TableRow>
@@ -103,7 +120,13 @@ export default function BookingsList() {
 
             <div className="md:hidden divide-y divide-border">
               {visible.map((r) => (
-                <BookingCard key={r.id} reservation={r} onHide={hide} />
+                <BookingCard
+                  key={r.id}
+                  reservation={r}
+                  onHide={hide}
+                  onCancel={handleCancel}
+                  cancellingId={loadingId}
+                />
               ))}
               {visible.length === 0 && <AllHiddenMessage onShowAll={showAll} />}
             </div>

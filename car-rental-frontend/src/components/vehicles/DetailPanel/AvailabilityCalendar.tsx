@@ -1,9 +1,17 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Info } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  Wrench,
+  Clock,
+} from 'lucide-react';
 import { MiniCalendar } from './MiniCalendar';
-import { getMockBookedRanges } from '@/lib/availability';
+import { useVehicleBookedDates } from '@/hooks/useVehicleBookedDates';
 import type { Vehicle } from '@/types/vehicle';
 
 interface AvailabilityCalendarProps {
@@ -11,6 +19,8 @@ interface AvailabilityCalendarProps {
   dateFrom: string;
   dateTo: string;
   onDatesChange: (from: string, to: string) => void;
+  available: boolean | null;
+  availabilityLoading: boolean;
 }
 
 export function AvailabilityCalendar({
@@ -18,15 +28,24 @@ export function AvailabilityCalendar({
   dateFrom,
   dateTo,
   onDatesChange,
+  available,
+  availabilityLoading,
 }: AvailabilityCalendarProps) {
+  const { bookedRanges } = useVehicleBookedDates(vehicle.id);
+
   const [calMonth, setCalMonth] = useState(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() };
   });
   const [hoverDate, setHoverDate] = useState('');
 
-  // MOCK: zastąpić danymi z GET /api/vehicles/{id}/availability gdy endpoint gotowy
-  const bookedRanges = useMemo(() => getMockBookedRanges(vehicle.id), [vehicle.id]);
+  const today = new Date().toISOString().slice(0, 10);
+
+  const currentRentalEnd = useMemo(() => {
+    if (vehicle.status !== 'rented') return null;
+    const active = bookedRanges.find(([start, end]) => start <= today && end >= today);
+    return active ? active[1] : null;
+  }, [vehicle.status, bookedRanges, today]);
 
   const nextMonthVal = useMemo(
     () =>
@@ -89,6 +108,21 @@ export function AvailabilityCalendar({
 
   return (
     <div>
+      {vehicle.status === 'maintenance' && (
+        <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-xs font-medium">
+          <Wrench className="w-3.5 h-3.5 shrink-0" />
+          Pojazd jest w serwisie — data powrotu nie jest znana
+        </div>
+      )}
+
+      {vehicle.status === 'rented' && (
+        <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-400 text-xs font-medium">
+          <Clock className="w-3.5 h-3.5 shrink-0" />
+          {currentRentalEnd
+            ? `Aktualnie wynajęty — dostępny od ${currentRentalEnd}`
+            : 'Aktualnie wynajęty — możliwa rezerwacja na późniejszy termin'}
+        </div>
+      )}
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           Kalendarz dostępności
@@ -122,11 +156,6 @@ export function AvailabilityCalendar({
           <span className="w-3 h-3 rounded-sm bg-primary/15 border border-primary/30" />
           Twój wybór
         </span>
-        <span className="flex items-center gap-1.5 opacity-60">
-          <Info className="w-3 h-3" />
-          {/* TODO: dane mock – zastąpić GET /api/vehicles/{id}/availability */}
-          Dane przykładowe
-        </span>
       </div>
 
       <div className="flex gap-6 flex-wrap">
@@ -148,6 +177,27 @@ export function AvailabilityCalendar({
           >
             Wyczyść
           </button>
+        </div>
+      )}
+
+      {dateFrom && dateTo && (
+        <div className="mt-2">
+          {availabilityLoading ? (
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              Sprawdzanie dostępności…
+            </p>
+          ) : available === true ? (
+            <p className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400 font-medium">
+              <CheckCircle className="w-3.5 h-3.5" />
+              Termin dostępny
+            </p>
+          ) : available === false ? (
+            <p className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400 font-medium">
+              <XCircle className="w-3.5 h-3.5" />
+              Termin niedostępny — pojazd jest już zarezerwowany w tym okresie
+            </p>
+          ) : null}
         </div>
       )}
     </div>
