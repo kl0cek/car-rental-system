@@ -8,6 +8,13 @@ from sqlalchemy.orm import joinedload
 
 from app.models.rental import Reservation, ReservationStatus
 
+SORTABLE_COLUMNS = {
+    "created_at": Reservation.created_at,
+    "start_date": Reservation.start_date,
+    "end_date": Reservation.end_date,
+    "total_price": Reservation.total_price,
+}
+
 
 async def get_by_id(db: AsyncSession, reservation_id: uuid.UUID) -> Reservation | None:
     stmt = (
@@ -52,6 +59,48 @@ async def get_list_by_user(
 
     data_stmt = data_stmt.order_by(Reservation.created_at.desc()).offset(offset).limit(limit)
     result = await db.execute(data_stmt)
+    return list(result.scalars().unique()), total
+
+
+async def get_admin_list(
+    db: AsyncSession,
+    *,
+    offset: int = 0,
+    limit: int = 20,
+    sort_by: str = "created_at",
+    sort_order: str = "desc",
+    status: ReservationStatus | None = None,
+    user_id: uuid.UUID | None = None,
+    vehicle_id: uuid.UUID | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+) -> tuple[list[Reservation], int]:
+    base = select(Reservation)
+    if status is not None:
+        base = base.where(Reservation.status == status)
+    if user_id is not None:
+        base = base.where(Reservation.user_id == user_id)
+    if vehicle_id is not None:
+        base = base.where(Reservation.vehicle_id == vehicle_id)
+    # Overlap semantics: include reservations whose interval intersects [date_from, date_to].
+    if date_from is not None:
+        base = base.where(Reservation.end_date >= date_from)
+    if date_to is not None:
+        base = base.where(Reservation.start_date <= date_to)
+
+    count_stmt = select(func.count()).select_from(base.subquery())
+    total = (await db.execute(count_stmt)).scalar_one()
+
+    sort_col = SORTABLE_COLUMNS.get(sort_by, Reservation.created_at)
+    order = sort_col.asc() if sort_order == "asc" else sort_col.desc()
+
+    stmt = (
+        base.options(joinedload(Reservation.user), joinedload(Reservation.vehicle))
+        .order_by(order)
+        .offset(offset)
+        .limit(limit)
+    )
+    result = await db.execute(stmt)
     return list(result.scalars().unique()), total
 
 

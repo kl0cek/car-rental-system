@@ -2,11 +2,17 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import contains_eager, joinedload
 
-from app.models.rental import Rental, RentalPriceBreakdown
+from app.models.rental import Rental, RentalPriceBreakdown, Reservation, ReservationStatus
+
+SORTABLE_COLUMNS = {
+    "pickup_date": Rental.pickup_date,
+    "return_date": Rental.return_date,
+    "created_at": Rental.created_at,
+}
 
 
 async def get_by_id(db: AsyncSession, rental_id: uuid.UUID) -> Rental | None:
@@ -65,6 +71,51 @@ async def update_return(
     rental.return_date = return_date
     await db.flush()
     return rental
+
+
+async def get_list_by_user(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    *,
+    offset: int = 0,
+    limit: int = 20,
+    sort_by: str = "pickup_date",
+    sort_order: str = "desc",
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    status: ReservationStatus | None = None,
+) -> tuple[list[Rental], int]:
+    base = (
+        select(Rental)
+        .join(Rental.reservation)
+        .where(Reservation.user_id == user_id)
+    )
+    if status is not None:
+        base = base.where(Reservation.status == status)
+    if date_from is not None:
+        base = base.where(Rental.pickup_date >= date_from)
+    if date_to is not None:
+        base = base.where(Rental.pickup_date <= date_to)
+
+    count_stmt = select(func.count()).select_from(base.subquery())
+    total = (await db.execute(count_stmt)).scalar_one()
+
+    sort_col = SORTABLE_COLUMNS.get(sort_by, Rental.pickup_date)
+    order = sort_col.asc() if sort_order == "asc" else sort_col.desc()
+    if sort_by == "return_date":
+        order = order.nulls_last() if sort_order == "desc" else order.nulls_first()
+
+    stmt = (
+        base.options(
+            contains_eager(Rental.reservation).joinedload(Reservation.vehicle),
+            joinedload(Rental.price_breakdown),
+        )
+        .order_by(order)
+        .offset(offset)
+        .limit(limit)
+    )
+    result = await db.execute(stmt)
+    return list(result.scalars().unique()), total
 
 
 async def create_price_breakdown(

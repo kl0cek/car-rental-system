@@ -1,6 +1,8 @@
 import json
 import logging
 import uuid
+from datetime import datetime
+from decimal import Decimal
 
 from redis.asyncio import Redis
 
@@ -26,10 +28,14 @@ def _serialize_user(user: User) -> dict[str, object]:
         "is_active": user.is_active,
         "is_verified": user.is_verified,
         "phone": user.phone,
+        "avatar_url": user.avatar_url,
+        "risk_score": str(user.risk_score),
+        "last_login_at": user.last_login_at.isoformat() if user.last_login_at else None,
     }
 
 
 def _deserialize_user(data: dict[str, object]) -> User:
+    last_login_raw = data.get("last_login_at")
     user = User(
         email=str(data["email"]),
         hashed_password="",
@@ -39,6 +45,9 @@ def _deserialize_user(data: dict[str, object]) -> User:
         is_active=bool(data["is_active"]),
         is_verified=bool(data["is_verified"]),
         phone=str(data["phone"]) if data.get("phone") else None,
+        avatar_url=str(data["avatar_url"]) if data.get("avatar_url") else None,
+        risk_score=Decimal(str(data.get("risk_score", "0.00"))),
+        last_login_at=datetime.fromisoformat(str(last_login_raw)) if last_login_raw else None,
     )
     user.id = uuid.UUID(str(data["id"]))
     return user
