@@ -81,13 +81,13 @@ def _validate_and_detect_image(contents: bytes) -> str:
     try:
         with Image.open(BytesIO(contents)) as img:
             img.verify()
-            detected = img.format
+            detected: str | None = img.format
     except (UnidentifiedImageError, OSError):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Uploaded file is not a valid image",
         )
-    if detected not in ALLOWED_IMAGE_FORMATS:
+    if detected is None or detected not in ALLOWED_IMAGE_FORMATS:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Avatar must be a JPEG, PNG or WEBP image",

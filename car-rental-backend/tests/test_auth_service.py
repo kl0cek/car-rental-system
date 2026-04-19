@@ -98,15 +98,17 @@ class TestRegisterUser:
 
 
 class TestLoginUser:
-    async def test_login_success_returns_tokens_and_user(self, mock_db):
+    async def test_login_success_returns_tokens_and_user(self, mock_db, mock_redis):
         user = _make_user(role=UserRole.EMPLOYEE)
         body = LoginRequest(email="john@example.com", password="correct")
 
         with (
             patch("app.services.auth_service.user_repository") as mock_repo,
             patch("app.services.auth_service.verify_password", return_value=True),
+            patch("app.services.auth_service.get_redis", return_value=mock_redis),
         ):
             mock_repo.get_by_email = AsyncMock(return_value=user)
+            mock_repo.update_last_login = AsyncMock(return_value=user)
 
             tokens, returned_user = await login_user(body, mock_db)
 

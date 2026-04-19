@@ -1,5 +1,6 @@
 import json
 import uuid
+from decimal import Decimal
 from unittest.mock import AsyncMock
 
 import pytest
@@ -26,6 +27,7 @@ def _make_user(
         role=role,
         is_active=is_active,
         is_verified=False,
+        risk_score=Decimal("0.00"),
     )
     user.id = user_id or uuid.uuid4()
     return user
