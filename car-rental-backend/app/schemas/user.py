@@ -162,9 +162,7 @@ class PaginatedAdminReservationsResponse(BaseModel):
     limit: int
 
 
-AdminUserSortField = Literal[
-    "created_at", "last_login_at", "risk_score", "email", "last_name"
-]
+AdminUserSortField = Literal["created_at", "last_login_at", "risk_score", "email", "last_name"]
 
 
 class AdminUserListParams(BaseModel):

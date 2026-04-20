@@ -85,11 +85,7 @@ async def get_list_by_user(
     date_to: datetime | None = None,
     status: ReservationStatus | None = None,
 ) -> tuple[list[Rental], int]:
-    base = (
-        select(Rental)
-        .join(Rental.reservation)
-        .where(Reservation.user_id == user_id)
-    )
+    base = select(Rental).join(Rental.reservation).where(Reservation.user_id == user_id)
     if status is not None:
         base = base.where(Reservation.status == status)
     if date_from is not None:

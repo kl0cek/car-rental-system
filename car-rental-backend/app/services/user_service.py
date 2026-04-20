@@ -187,5 +187,3 @@ async def list_admin_users(
         active_since=params.active_since,
         search=params.search,
     )
-
-
