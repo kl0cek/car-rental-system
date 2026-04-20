@@ -18,6 +18,8 @@ COPY --from=builder /usr/local/bin/alembic /usr/local/bin/alembic
 
 COPY --chown=appuser:appgroup . .
 
+RUN mkdir -p /app/uploads/avatars && chown -R appuser:appgroup /app/uploads
+
 USER appuser
 
 EXPOSE 8000

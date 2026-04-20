@@ -1,6 +1,7 @@
 'use client';
 
 import { isDateBooked } from '@/lib/availability';
+import React from 'react';
 
 interface MiniCalendarProps {
   year: number;
@@ -14,7 +15,7 @@ interface MiniCalendarProps {
   onDayLeave: () => void;
 }
 
-export function MiniCalendar({
+export const MiniCalendar = React.memo(function MiniCalendar({
   year,
   month,
   bookedRanges,
@@ -112,4 +113,4 @@ export function MiniCalendar({
       </div>
     </div>
   );
-}
+});

@@ -39,7 +39,7 @@ export function AvailabilityCalendar({
   });
   const [hoverDate, setHoverDate] = useState('');
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   const currentRentalEnd = useMemo(() => {
     if (vehicle.status !== 'rented') return null;
@@ -73,6 +73,7 @@ export function AvailabilityCalendar({
 
   const handleDayClick = useCallback(
     (dateStr: string) => {
+      if (dateStr < today) return;
       if (!dateFrom || (dateFrom && dateTo)) {
         onDatesChange(dateStr, '');
       } else if (dateStr === dateFrom) {
@@ -84,7 +85,7 @@ export function AvailabilityCalendar({
         onDatesChange(dateStr, '');
       }
     },
-    [dateFrom, dateTo, onDatesChange]
+    [today, dateFrom, dateTo, onDatesChange]
   );
 
   const calendarHint = !dateFrom
@@ -93,8 +94,7 @@ export function AvailabilityCalendar({
       ? 'Teraz wybierz datę zakończenia'
       : null;
 
-  const calendarProps = useMemo(
-    () => ({
+  const calendarProps = () => ({
       bookedRanges,
       selectedFrom: dateFrom,
       selectedTo: dateTo,
@@ -102,8 +102,7 @@ export function AvailabilityCalendar({
       onDayClick: handleDayClick,
       onDayHover: (d: string) => !dateTo && setHoverDate(d),
       onDayLeave: () => setHoverDate(''),
-    }),
-    [bookedRanges, dateFrom, dateTo, hoverDate, handleDayClick]
+    }
   );
 
   return (
@@ -159,8 +158,8 @@ export function AvailabilityCalendar({
       </div>
 
       <div className="flex gap-6 flex-wrap">
-        <MiniCalendar year={calMonth.year} month={calMonth.month} {...calendarProps} />
-        <MiniCalendar year={nextMonthVal.year} month={nextMonthVal.month} {...calendarProps} />
+        <MiniCalendar year={calMonth.year} month={calMonth.month} {...calendarProps()} />
+        <MiniCalendar year={nextMonthVal.year} month={nextMonthVal.month} {...calendarProps()} />
       </div>
 
       {(dateFrom || dateTo) && (
