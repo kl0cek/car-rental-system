@@ -39,8 +39,8 @@ class Reservation(Base):
 
     user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"), index=True)
     vehicle_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("vehicles.id"), index=True)
-    start_date: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    end_date: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    start_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    end_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     status: Mapped[ReservationStatus] = mapped_column(
         Enum(ReservationStatus, native_enum=False),
         default=ReservationStatus.PENDING,

@@ -5,47 +5,13 @@ import { Search } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { CustomerTable } from '@/components/customers/CustomerTable';
-import type { Customer } from '@/types/customer';
-
-// TODO: replace with useSWR hook when GET /users endpoint is available
-const MOCK_CUSTOMERS: Customer[] = [
-  {
-    id: '1',
-    firstName: 'Jan',
-    lastName: 'Kowalski',
-    email: 'jan.kowalski@example.com',
-    phone: '+48600100200',
-    isVerified: true,
-    createdAt: '2025-11-01T10:00:00Z',
-    totalReservations: 3,
-  },
-  {
-    id: '2',
-    firstName: 'Anna',
-    lastName: 'Nowak',
-    email: 'anna.nowak@example.com',
-    phone: '+48601200300',
-    isVerified: true,
-    createdAt: '2025-12-15T08:30:00Z',
-    totalReservations: 2,
-  },
-  {
-    id: '3',
-    firstName: 'Piotr',
-    lastName: 'Wiśniewski',
-    email: 'piotr.wisniewski@example.com',
-    phone: null,
-    isVerified: false,
-    createdAt: '2026-01-20T14:00:00Z',
-    totalReservations: 1,
-  },
-];
+import { useCustomers } from '@/hooks/useCustomers';
 
 export default function CustomersPage() {
   const [search, setSearch] = useState('');
-  const isLoading = false;
+  const { customers, isLoading } = useCustomers();
 
-  const filtered = MOCK_CUSTOMERS.filter((c) => {
+  const filtered = customers.filter((c) => {
     const q = search.toLowerCase();
     return (
       c.firstName.toLowerCase().includes(q) ||

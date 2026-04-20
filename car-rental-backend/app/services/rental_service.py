@@ -12,6 +12,22 @@ from app.models.rental import Rental, ReservationStatus
 from app.models.user import User
 from app.repositories import rental_repository, reservation_repository
 from app.schemas.rental import PickupRequest, ReturnRequest
+from app.schemas.user import UserRentalItem, UserRentalVehicleInfo
+
+
+def build_user_rental_item(rental: Rental) -> UserRentalItem:
+    reservation = rental.reservation
+    return UserRentalItem(
+        id=rental.id,
+        reservation_id=rental.reservation_id,
+        vehicle=UserRentalVehicleInfo.model_validate(reservation.vehicle),
+        pickup_date=rental.pickup_date,
+        return_date=rental.return_date,
+        status=reservation.status,
+        total_price=reservation.total_price,
+        final_price=rental.price_breakdown.final_price if rental.price_breakdown else None,
+        created_at=rental.created_at,
+    )
 
 
 async def pickup_rental(

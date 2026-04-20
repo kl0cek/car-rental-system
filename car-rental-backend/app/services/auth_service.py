@@ -1,7 +1,7 @@
 import secrets
 import uuid
 from asyncio import get_running_loop
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,6 +19,7 @@ from app.core.security import (
     verify_password,
 )
 from app.core.token_blacklist import blacklist_token, is_token_blacklisted
+from app.core.user_cache import invalidate_user_cache
 from app.db.redis import get_redis
 from app.models.user import User
 from app.repositories import user_repository
@@ -80,6 +81,9 @@ async def login_user(body: LoginRequest, db: AsyncSession) -> tuple[TokenRespons
 
     access_token = create_access_token(subject=str(user.id), role=user.role)
     refresh_token = create_refresh_token(subject=str(user.id), role=user.role)
+
+    await user_repository.update_last_login(db, user, datetime.now(tz=UTC))
+    await invalidate_user_cache(get_redis(), user.id)
 
     return TokenResponse(access_token=access_token, refresh_token=refresh_token), user
 

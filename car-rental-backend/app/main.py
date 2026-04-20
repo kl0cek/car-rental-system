@@ -1,8 +1,10 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from app.config import settings
@@ -10,7 +12,8 @@ from app.db.engine import async_engine
 from app.db.mongodb import close_mongo, connect_mongo
 from app.db.redis import close_redis, connect_redis
 from app.db.session import DbSession
-from app.routers import auth, rentals, reservations, vehicles
+from app.routers import admin, auth, rentals, reservations, users, vehicles
+from app.services.user_service import AVATAR_UPLOAD_DIR
 
 
 @asynccontextmanager
@@ -39,10 +42,19 @@ app.add_middleware(
 )
 
 
+AVATAR_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+app.mount(
+    "/static/avatars",
+    StaticFiles(directory=Path(AVATAR_UPLOAD_DIR)),
+    name="avatars",
+)
+
 app.include_router(auth.router)
 app.include_router(vehicles.router)
 app.include_router(reservations.router)
 app.include_router(rentals.router)
+app.include_router(users.router)
+app.include_router(admin.router)
 
 
 @app.get("/")

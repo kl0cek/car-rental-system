@@ -64,7 +64,7 @@ export function VehicleDetailPanel({ vehicle, onClose }: VehicleDetailPanelProps
       });
       setReserved(true);
     } catch {
-      // error displayed via reservationError
+      // error displayed via reservationError TOASTA sie zorbi i bedzixe git xD 
     }
   };
 

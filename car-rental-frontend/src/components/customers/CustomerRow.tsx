@@ -30,7 +30,7 @@ export function CustomerRow({ customer: c }: { customer: Customer }) {
       <TableCell className="px-5 py-4 text-sm text-muted-foreground">
         {c.phone ?? <span className="text-muted-foreground/50">—</span>}
       </TableCell>
-      <TableCell className="px-5 py-4 font-medium text-foreground">{c.totalReservations}</TableCell>
+      <TableCell className="px-5 py-4 font-medium text-muted-foreground/50">—</TableCell>
       <TableCell className="px-5 py-4 text-sm text-muted-foreground">
         {formatDate(c.createdAt)}
       </TableCell>
