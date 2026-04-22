@@ -53,16 +53,17 @@ const fetcher = (url: string) =>
     return r.json() as Promise<PaginatedVehiclesApi>;
   });
 
-export function useVehicles(params: VehicleSearchParams) {
+export function useVehicles(params: VehicleSearchParams, options?: { enabled?: boolean }) {
+  const enabled = options?.enabled ?? true;
   const query = buildQuery(params);
-  const { data, error, isLoading } = useSWR(`/api/vehicles?${query}`, fetcher, {
+  const { data, error, isLoading } = useSWR(enabled ? `/api/vehicles?${query}` : null, fetcher, {
     keepPreviousData: true,
   });
 
   return {
     vehicles: data?.items.map(mapVehicle) ?? [],
     total: data?.total ?? 0,
-    isLoading,
+    isLoading: enabled && isLoading,
     isError: !!error,
   };
 }

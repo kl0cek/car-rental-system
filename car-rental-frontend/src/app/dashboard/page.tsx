@@ -6,6 +6,7 @@ import UpcomingReturns from '@/components/dashboard/UpcomingReturns';
 import { StatsGrid } from '@/components/dashboard/StatsGrid';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { MyRentalsSection } from '@/components/dashboard/MyRentalsSection';
 import { useAuth } from '@/contexts/AuthContext';
 import { isStaffRole, STATS_BASE } from '@/data/dashboard/constants';
 import type { Stat, PaginatedReservationsApi } from '@/types/booking';
@@ -66,6 +67,8 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {!isStaff && <MyRentalsSection />}
 
       {isStaff && <QuickActions />}
     </div>

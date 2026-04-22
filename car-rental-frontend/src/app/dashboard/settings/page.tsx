@@ -5,6 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSettings, type Theme, type Language } from '@/contexts/SettingsContext';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { AccountCard } from '@/components/settings/AccountCard';
+import { ProfileEditCard } from '@/components/settings/ProfileEditCard';
+import { AvatarCard } from '@/components/settings/AvatarCard';
 
 function OptionButton({
   active,
@@ -30,7 +32,7 @@ function OptionButton({
 }
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { theme, language, setTheme, setLanguage } = useSettings();
 
   return (
@@ -41,6 +43,11 @@ export default function SettingsPage() {
       </div>
 
       <AccountCard user={user} />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <ProfileEditCard user={user} onUpdated={refreshUser} />
+        <AvatarCard user={user} onUploaded={refreshUser} />
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <SettingsCard icon={Sun} title="Appearance" description="Choose light or dark theme">

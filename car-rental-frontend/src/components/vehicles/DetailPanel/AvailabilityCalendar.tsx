@@ -95,15 +95,14 @@ export function AvailabilityCalendar({
       : null;
 
   const calendarProps = () => ({
-      bookedRanges,
-      selectedFrom: dateFrom,
-      selectedTo: dateTo,
-      hoverDate,
-      onDayClick: handleDayClick,
-      onDayHover: (d: string) => !dateTo && setHoverDate(d),
-      onDayLeave: () => setHoverDate(''),
-    }
-  );
+    bookedRanges,
+    selectedFrom: dateFrom,
+    selectedTo: dateTo,
+    hoverDate,
+    onDayClick: handleDayClick,
+    onDayHover: (d: string) => !dateTo && setHoverDate(d),
+    onDayLeave: () => setHoverDate(''),
+  });
 
   return (
     <div>
