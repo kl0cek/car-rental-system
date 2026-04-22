@@ -63,8 +63,8 @@ export function VehicleDetailPanel({ vehicle, onClose }: VehicleDetailPanelProps
         end_date: dateTo,
       });
       setReserved(true);
-    } catch {
-      // error displayed via reservationError TOASTA sie zorbi i bedzixe git xD
+    } catch (err) {
+      console.error('Reservation failed', err);
     }
   };
 

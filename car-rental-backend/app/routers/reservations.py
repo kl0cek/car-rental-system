@@ -20,7 +20,7 @@ router = APIRouter(prefix="/reservations", tags=["reservations"])
 EmployeeOrAdmin = Annotated[User, Depends(require_roles(UserRole.EMPLOYEE, UserRole.ADMIN))]
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED)
 async def create_reservation(
     body: CreateReservationRequest,
     db: DbSession,
@@ -30,7 +30,7 @@ async def create_reservation(
     return ReservationResponse.model_validate(reservation)
 
 
-@router.get("/")
+@router.get("")
 async def list_reservations(
     db: DbSession,
     current_user: CurrentUser,
