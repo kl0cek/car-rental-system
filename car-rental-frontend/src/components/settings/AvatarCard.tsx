@@ -7,7 +7,6 @@ import { SettingsCard } from './SettingsCard';
 import { useUploadAvatar } from '@/hooks/useUploadAvatar';
 import { getInitials } from '@/lib/formatters';
 import type { User } from '@/types/auth';
-import Image from 'next/image';
 
 interface AvatarCardProps {
   user: User | null;
@@ -41,7 +40,11 @@ export function AvatarCard({ user, onUploaded }: AvatarCardProps) {
       <div className="flex items-center gap-5">
         <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center shrink-0 overflow-hidden">
           {preview ? (
-            <Image src={preview} alt="Avatar preview" className="w-full h-full object-cover" />
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={preview} alt="Avatar preview" className="w-full h-full object-cover" />
+          ) : user?.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={user.avatarUrl} alt={initials} className="w-full h-full object-cover" />
           ) : (
             <span className="text-lg font-semibold text-secondary-foreground">{initials}</span>
           )}

@@ -6,6 +6,7 @@ export interface Customer {
   phone: string | null;
   isVerified: boolean;
   createdAt: string;
+  avatarUrl: string | null;
 }
 
 export interface AdminUserApiItem {

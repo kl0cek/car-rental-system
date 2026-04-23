@@ -16,6 +16,7 @@ function mapUser(u: AdminUserApiItem): Customer {
     phone: u.phone,
     isVerified: u.is_verified,
     createdAt: u.created_at,
+    avatarUrl: u.avatar_url,
   };
 }
 

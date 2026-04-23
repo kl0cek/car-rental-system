@@ -41,8 +41,8 @@ export default function BookingsList() {
     try {
       await cancel(id);
       await mutate();
-    } catch {
-      // ignore — could show a toast here
+    } catch (err) {
+      console.log('Failed to cancel reservation', err);
     }
   };
 
@@ -65,9 +65,6 @@ export default function BookingsList() {
                 Show {hiddenCount} hidden
               </Button>
             )}
-            <Button variant="link" className="text-sm p-0 h-auto">
-              View all
-            </Button>
           </div>
         </div>
       </CardHeader>
