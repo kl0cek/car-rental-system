@@ -26,7 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = useCallback(async () => {
     try {
-      const res = await fetch('/api/auth/me', { credentials: 'include' });
+      const res = await fetch('/api/users/me', { credentials: 'include' });
       if (res.ok) {
         const data: UserApiResponse = await res.json();
         setUser(mapUserFromApi(data));
@@ -59,7 +59,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const data: UserApiResponse = await res.json();
     setUser(mapUserFromApi(data));
-  }, []);
+    await refreshUser();
+  }, [refreshUser]);
 
   const register = useCallback(
     async (data: { firstName: string; lastName: string; email: string; password: string }) => {

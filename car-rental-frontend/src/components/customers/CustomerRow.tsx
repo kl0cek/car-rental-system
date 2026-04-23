@@ -16,10 +16,15 @@ export function CustomerRow({ customer: c }: { customer: Customer }) {
     <TableRow>
       <TableCell className="px-5 py-4">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
-            <span className="text-xs font-semibold text-secondary-foreground">
-              {getInitials(c.firstName, c.lastName)}
-            </span>
+          <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0 overflow-hidden">
+            {c.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={c.avatarUrl} alt={getInitials(c.firstName, c.lastName)} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-xs font-semibold text-secondary-foreground">
+                {getInitials(c.firstName, c.lastName)}
+              </span>
+            )}
           </div>
           <p className="font-medium text-foreground">
             {c.firstName} {c.lastName}

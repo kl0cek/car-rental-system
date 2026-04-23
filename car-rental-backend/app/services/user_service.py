@@ -46,33 +46,36 @@ async def update_profile(
     """
     verification_token: str | None = None
 
-    if body.email is not None and body.email != current_user.email:
+    db_user = await user_repository.get_by_id(db, current_user.id)
+    assert db_user is not None
+
+    if body.email is not None and body.email != db_user.email:
         existing = await user_repository.get_by_email(db, body.email)
-        if existing is not None and existing.id != current_user.id:
+        if existing is not None and existing.id != db_user.id:
             raise EmailAlreadyRegisteredError(body.email)
-        current_user.email = body.email
-        current_user.is_verified = False
+        db_user.email = body.email
+        db_user.is_verified = False
 
         verification_token = secrets.token_urlsafe(32)
         redis = get_redis()
         await redis.set(
             f"verify:{verification_token}",
-            str(current_user.id),
+            str(db_user.id),
             ex=settings.VERIFICATION_TOKEN_EXPIRE_HOURS * 3600,
         )
 
     if body.first_name is not None:
-        current_user.first_name = body.first_name
+        db_user.first_name = body.first_name
     if body.last_name is not None:
-        current_user.last_name = body.last_name
+        db_user.last_name = body.last_name
     if body.phone is not None:
-        current_user.phone = body.phone or None
+        db_user.phone = body.phone or None
 
     try:
-        user = await update_user(db, current_user)
+        user = await update_user(db, db_user)
     except IntegrityError:
         await db.rollback()
-        raise EmailAlreadyRegisteredError(body.email or current_user.email)
+        raise EmailAlreadyRegisteredError(body.email or db_user.email)
 
     return user, verification_token
 
@@ -115,9 +118,11 @@ async def upload_avatar(
     destination = AVATAR_UPLOAD_DIR / filename
     await asyncio.to_thread(destination.write_bytes, contents)
 
-    previous_url = current_user.avatar_url
-    current_user.avatar_url = f"/static/avatars/{filename}"
-    user = await update_user(db, current_user)
+    db_user = await user_repository.get_by_id(db, current_user.id)
+    assert db_user is not None
+    previous_url = db_user.avatar_url
+    db_user.avatar_url = f"/static/avatars/{filename}"
+    user = await update_user(db, db_user)
 
     if previous_url and previous_url.startswith("/static/avatars/"):
         previous_path = AVATAR_UPLOAD_DIR / previous_url.removeprefix("/static/avatars/")

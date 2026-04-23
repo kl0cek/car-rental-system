@@ -32,10 +32,15 @@ export function AccountCard({ user }: AccountCardProps) {
       ) : (
         <div className="space-y-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center shrink-0">
-              <span className="text-base font-semibold text-secondary-foreground">
-                {getInitials(user.firstName, user.lastName)}
-              </span>
+            <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center shrink-0 overflow-hidden">
+              {user.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={user.avatarUrl} alt={getInitials(user.firstName, user.lastName)} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-base font-semibold text-secondary-foreground">
+                  {getInitials(user.firstName, user.lastName)}
+                </span>
+              )}
             </div>
             <div>
               <p className="font-medium text-foreground">

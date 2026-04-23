@@ -6,6 +6,7 @@ import { Car, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { secondaryNavigation, getFilteredNavigation } from '@/data/dashboard/constants';
 import { useAuth } from '@/contexts/AuthContext';
+import { getInitials } from '@/lib/formatters';
 
 export default function DashboardSidebar() {
   const pathname = usePathname();
@@ -69,11 +70,15 @@ export default function DashboardSidebar() {
         {user && (
           <div className="px-3 py-4 border-t border-border">
             <div className="flex items-center gap-3 px-3 py-2">
-              <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center">
-                <span className="text-sm font-medium text-secondary-foreground">
-                  {user.firstName[0]}
-                  {user.lastName[0]}
-                </span>
+              <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center overflow-hidden shrink-0">
+                {user.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={user.avatarUrl} alt={getInitials(user.firstName, user.lastName)} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-sm font-medium text-secondary-foreground">
+                    {getInitials(user.firstName, user.lastName)}
+                  </span>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">

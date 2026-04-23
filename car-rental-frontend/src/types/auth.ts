@@ -28,6 +28,7 @@ export interface UserApiResponse {
   role: UserRole;
   is_verified: boolean;
   created_at: string;
+  avatar_url: string | null;
 }
 
 // Frontend types (camelCase)
@@ -39,6 +40,7 @@ export interface User {
   role: UserRole;
   isVerified: boolean;
   createdAt: string;
+  avatarUrl: string | null;
 }
 
 export function mapUserFromApi(apiUser: UserApiResponse): User {
@@ -50,5 +52,6 @@ export function mapUserFromApi(apiUser: UserApiResponse): User {
     role: apiUser.role,
     isVerified: apiUser.is_verified,
     createdAt: apiUser.created_at,
+    avatarUrl: apiUser.avatar_url ?? null,
   };
 }

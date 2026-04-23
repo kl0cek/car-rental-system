@@ -6,6 +6,7 @@ import UpcomingReturns from '@/components/dashboard/UpcomingReturns';
 import { StatsGrid } from '@/components/dashboard/StatsGrid';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { MyRentalsSection } from '@/components/dashboard/MyRentalsSection';
 import { useAuth } from '@/contexts/AuthContext';
 import { isStaffRole, STATS_BASE } from '@/data/dashboard/constants';
 import type { Stat, PaginatedReservationsApi } from '@/types/booking';
@@ -27,13 +28,17 @@ export default function DashboardPage() {
       })
       .catch(() => {});
 
-    fetch('/api/reservations?status=active&limit=1', { credentials: 'include' })
-      .then(
-        (res): Promise<PaginatedReservationsApi | null> =>
-          res.ok ? res.json() : Promise.resolve(null)
-      )
-      .then((data) => {
-        if (data?.total != null) setActiveBookings(data.total);
+    Promise.all([
+      fetch('/api/reservations?status=confirmed&limit=1', { credentials: 'include' }).then(
+        (res): Promise<PaginatedReservationsApi | null> => (res.ok ? res.json() : Promise.resolve(null))
+      ),
+      fetch('/api/reservations?status=active&limit=1', { credentials: 'include' }).then(
+        (res): Promise<PaginatedReservationsApi | null> => (res.ok ? res.json() : Promise.resolve(null))
+      ),
+    ])
+      .then(([confirmed, active]) => {
+        const total = (confirmed?.total ?? 0) + (active?.total ?? 0);
+        setActiveBookings(total);
       })
       .catch(() => {});
   }, []);
@@ -66,6 +71,8 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {!isStaff && <MyRentalsSection />}
 
       {isStaff && <QuickActions />}
     </div>
