@@ -8,6 +8,7 @@ import { FleetTable } from '@/components/fleet/FleetTable';
 import { VehiclePagination } from '@/components/vehicles/VehiclePagination';
 import { useFleetVehicles, type FleetParams } from '@/hooks/useFleetVehicles';
 import type { VehicleStatus, SortableField } from '@/types/vehicle';
+import { useTranslation } from '@/i18n/useTranslation';
 
 const DEFAULT_PARAMS: FleetParams = {
   status: null,
@@ -18,6 +19,7 @@ const DEFAULT_PARAMS: FleetParams = {
 
 export default function FleetPage() {
   const [params, setParams] = useState<FleetParams>(DEFAULT_PARAMS);
+  const { t } = useTranslation();
 
   const update = useCallback((patch: Partial<FleetParams>) => {
     setParams((prev) => ({ ...prev, ...patch, page: 'page' in patch ? (patch.page ?? 1) : 1 }));
@@ -40,14 +42,18 @@ export default function FleetPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Fleet Management</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t('fleet.title')}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {isLoading ? 'Loading...' : `${total} vehicle${total !== 1 ? 's' : ''} total`}
+            {isLoading
+              ? t('common.loading')
+              : t(total === 1 ? 'fleet.vehicleCount' : 'fleet.vehicleCountPlural', {
+                  count: total,
+                })}
           </p>
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Car className="w-4 h-4" />
-          <span>Staff only</span>
+          <span>{t('common.staffOnly')}</span>
         </div>
       </div>
 

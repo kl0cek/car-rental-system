@@ -30,10 +30,12 @@ export default function DashboardPage() {
 
     Promise.all([
       fetch('/api/reservations?status=confirmed&limit=1', { credentials: 'include' }).then(
-        (res): Promise<PaginatedReservationsApi | null> => (res.ok ? res.json() : Promise.resolve(null))
+        (res): Promise<PaginatedReservationsApi | null> =>
+          res.ok ? res.json() : Promise.resolve(null)
       ),
       fetch('/api/reservations?status=active&limit=1', { credentials: 'include' }).then(
-        (res): Promise<PaginatedReservationsApi | null> => (res.ok ? res.json() : Promise.resolve(null))
+        (res): Promise<PaginatedReservationsApi | null> =>
+          res.ok ? res.json() : Promise.resolve(null)
       ),
     ])
       .then(([confirmed, active]) => {
@@ -44,16 +46,18 @@ export default function DashboardPage() {
   }, []);
 
   const statsData: Stat[] = STATS_BASE.map((stat) => {
-    if (stat.name === 'Active Bookings' && activeBookings !== null)
+    if (stat.name === 'dashboard.activeBookings' && activeBookings !== null)
       return { ...stat, value: String(activeBookings) };
-    if (stat.name === 'Available Cars' && availableCars !== null)
+    if (stat.name === 'dashboard.availableCars' && availableCars !== null)
       return { ...stat, value: String(availableCars) };
     return stat;
   });
 
   const filteredStats = isStaff
     ? statsData
-    : statsData.filter((s) => s.name === 'Active Bookings' || s.name === 'Available Cars');
+    : statsData.filter(
+        (s) => s.name === 'dashboard.activeBookings' || s.name === 'dashboard.availableCars'
+      );
 
   return (
     <div className="space-y-6">

@@ -8,15 +8,18 @@ import { formatDate } from '@/lib/formatters';
 import { useMyRentals } from '@/hooks/useMyRentals';
 import { BOOKING_STATUS_VARIANT } from '@/types/booking';
 import type { BookingStatus } from '@/types/booking';
+import { useTranslation } from '@/i18n/useTranslation';
+import type { TranslationKey } from '@/i18n/translations';
 
 export function MyRentalsSection() {
   const { rentals, isLoading } = useMyRentals(5);
+  const { t } = useTranslation();
 
   return (
     <Card>
       <CardHeader className="border-b pb-4">
-        <CardTitle>My Rentals</CardTitle>
-        <CardDescription className="mt-0.5">Your recent vehicle rentals</CardDescription>
+        <CardTitle>{t('dashboard.myRentals')}</CardTitle>
+        <CardDescription className="mt-0.5">{t('dashboard.myRentalsDesc')}</CardDescription>
       </CardHeader>
       <CardContent className="p-0">
         {isLoading ? (
@@ -30,10 +33,8 @@ export function MyRentalsSection() {
             <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center mb-3">
               <Car className="w-6 h-6 text-muted-foreground" />
             </div>
-            <p className="text-sm font-medium text-foreground">No rentals yet</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Your completed and active rentals will appear here.
-            </p>
+            <p className="text-sm font-medium text-foreground">{t('dashboard.noRentals')}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t('dashboard.noRentalsDesc')}</p>
           </div>
         ) : (
           <ul className="divide-y divide-border">
@@ -49,16 +50,15 @@ export function MyRentalsSection() {
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {formatDate(r.pickup_date)}
-                      {r.return_date ? ` – ${formatDate(r.return_date)}` : ' · In progress'}
+                      {r.return_date
+                        ? ` – ${formatDate(r.return_date)}`
+                        : ` · ${t('dashboard.inProgress')}`}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  <Badge
-                    variant={BOOKING_STATUS_VARIANT[r.status as BookingStatus] ?? 'outline'}
-                    className="capitalize"
-                  >
-                    {r.status}
+                  <Badge variant={BOOKING_STATUS_VARIANT[r.status as BookingStatus] ?? 'outline'}>
+                    {t(`status.${r.status}` as TranslationKey)}
                   </Badge>
                   <span className="text-sm font-medium text-foreground">
                     {r.final_price

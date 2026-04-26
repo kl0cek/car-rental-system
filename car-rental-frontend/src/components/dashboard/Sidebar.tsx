@@ -7,10 +7,13 @@ import { cn } from '@/lib/utils';
 import { secondaryNavigation, getFilteredNavigation } from '@/data/dashboard/constants';
 import { useAuth } from '@/contexts/AuthContext';
 import { getInitials } from '@/lib/formatters';
+import { useTranslation } from '@/i18n/useTranslation';
+import type { TranslationKey } from '@/i18n/translations';
 
 export default function DashboardSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
 
   const filteredNavigation = getFilteredNavigation(user?.role);
 
@@ -39,7 +42,7 @@ export default function DashboardSidebar() {
               )}
             >
               <item.icon className="w-5 h-5" />
-              {item.name}
+              {t(item.name as TranslationKey)}
             </Link>
           ))}
         </nav>
@@ -52,7 +55,7 @@ export default function DashboardSidebar() {
               className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
             >
               <item.icon className="w-5 h-5" />
-              {item.name}
+              {t(item.name as TranslationKey)}
             </Link>
           ))}
           <button
@@ -63,7 +66,7 @@ export default function DashboardSidebar() {
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
           >
             <LogOut className="w-5 h-5" />
-            Sign out
+            {t('nav.signOut')}
           </button>
         </div>
 
@@ -73,7 +76,11 @@ export default function DashboardSidebar() {
               <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center overflow-hidden shrink-0">
                 {user.avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={user.avatarUrl} alt={getInitials(user.firstName, user.lastName)} className="w-full h-full object-cover" />
+                  <img
+                    src={user.avatarUrl}
+                    alt={getInitials(user.firstName, user.lastName)}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <span className="text-sm font-medium text-secondary-foreground">
                     {getInitials(user.firstName, user.lastName)}

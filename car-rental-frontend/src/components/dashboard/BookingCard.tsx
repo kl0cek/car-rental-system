@@ -1,9 +1,13 @@
+'use client';
+
 import { EyeOff, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/formatters';
 import type { ReservationApi } from '@/types/booking';
 import { BOOKING_STATUS_VARIANT } from '@/types/booking';
+import { useTranslation } from '@/i18n/useTranslation';
+import type { TranslationKey } from '@/i18n/translations';
 
 const CANCELLABLE_STATUSES = new Set(['pending', 'confirmed']);
 
@@ -17,6 +21,7 @@ interface BookingCardProps {
 export function BookingCard({ reservation: r, onHide, onCancel, cancellingId }: BookingCardProps) {
   const isCancelling = cancellingId === r.id;
   const canCancel = CANCELLABLE_STATUSES.has(r.status);
+  const { t } = useTranslation();
 
   return (
     <div className="p-4 space-y-3">
@@ -28,8 +33,8 @@ export function BookingCard({ reservation: r, onHide, onCancel, cancellingId }: 
           <p className="text-sm text-muted-foreground">{r.vehicle.license_plate}</p>
         </div>
         <div className="flex items-center gap-1">
-          <Badge variant={BOOKING_STATUS_VARIANT[r.status]} className="capitalize">
-            {r.status}
+          <Badge variant={BOOKING_STATUS_VARIANT[r.status]}>
+            {t(`status.${r.status}` as TranslationKey)}
           </Badge>
           <Button variant="ghost" size="icon" onClick={() => onHide(r.id)}>
             <EyeOff className="w-3.5 h-3.5" />
@@ -51,7 +56,7 @@ export function BookingCard({ reservation: r, onHide, onCancel, cancellingId }: 
           onClick={() => onCancel(r.id)}
         >
           <XCircle className="w-3.5 h-3.5 mr-1.5" />
-          {isCancelling ? 'Anulowanie…' : 'Anuluj rezerwację'}
+          {isCancelling ? t('bookings.cancelling') : t('bookings.action.cancel')}
         </Button>
       )}
     </div>

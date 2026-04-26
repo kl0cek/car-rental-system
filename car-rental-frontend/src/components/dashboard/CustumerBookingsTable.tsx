@@ -17,12 +17,23 @@ import { BOOKING_STATUS_VARIANT } from '@/types/booking';
 import type { BookingStatus } from '@/types/booking';
 import { LoadingSkeleton } from '@/components/LoadingSkeleton';
 import { EmptyState } from '@/components/EmptyState';
+import { useTranslation } from '@/i18n/useTranslation';
+import type { TranslationKey } from '@/i18n/translations';
 
 const CANCELLABLE = new Set(['pending', 'confirmed']);
+
+const COL_KEYS: TranslationKey[] = [
+  'bookings.col.vehicle',
+  'common.date',
+  'bookings.col.status',
+  'bookings.col.total',
+  'common.actions',
+];
 
 export function CustomerBookingsTable() {
   const { reservations, isLoading, mutate } = useMyReservations();
   const { cancel, loadingId: cancellingId } = useCancelReservation();
+  const { t } = useTranslation();
 
   async function handleCancel(id: string) {
     try {
@@ -38,12 +49,12 @@ export function CustomerBookingsTable() {
     <Table>
       <TableHeader>
         <TableRow>
-          {['Vehicle', 'Dates', 'Status', 'Total', 'Actions'].map((col) => (
+          {COL_KEYS.map((key) => (
             <TableHead
-              key={col}
-              className={`px-5 py-3 text-xs uppercase tracking-wider text-muted-foreground ${col === 'Actions' ? 'text-right' : ''}`}
+              key={key}
+              className={`px-5 py-3 text-xs uppercase tracking-wider text-muted-foreground ${key === 'common.actions' ? 'text-right' : ''}`}
             >
-              {col}
+              {t(key)}
             </TableHead>
           ))}
         </TableRow>
@@ -59,14 +70,13 @@ export function CustomerBookingsTable() {
             </TableCell>
             <TableCell className="px-5 py-4 text-sm">
               <p>{formatDate(r.start_date)}</p>
-              <p className="text-muted-foreground">to {formatDate(r.end_date)}</p>
+              <p className="text-muted-foreground">
+                {t('common.to').toLowerCase()} {formatDate(r.end_date)}
+              </p>
             </TableCell>
             <TableCell className="px-5 py-4">
-              <Badge
-                variant={BOOKING_STATUS_VARIANT[r.status as BookingStatus] ?? 'outline'}
-                className="capitalize"
-              >
-                {r.status}
+              <Badge variant={BOOKING_STATUS_VARIANT[r.status as BookingStatus] ?? 'outline'}>
+                {t(`status.${r.status}` as TranslationKey)}
               </Badge>
             </TableCell>
             <TableCell className="px-5 py-4 font-medium">
@@ -81,7 +91,7 @@ export function CustomerBookingsTable() {
                   disabled={cancellingId === r.id}
                   onClick={() => handleCancel(r.id)}
                 >
-                  {cancellingId === r.id ? 'Cancelling…' : 'Cancel'}
+                  {cancellingId === r.id ? t('bookings.cancelling') : t('bookings.action.cancel')}
                 </Button>
               )}
             </TableCell>

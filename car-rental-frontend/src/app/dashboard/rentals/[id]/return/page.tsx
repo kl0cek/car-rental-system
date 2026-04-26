@@ -6,17 +6,19 @@ import { PageHeader } from '@/components/dashboard/PageHeader';
 import { ReturnForm } from '@/components/rentals/ReturnForm';
 import { ReturnSuccess } from '@/components/rentals/ReturnSuccess';
 import type { RentalResponse } from '@/types/rental';
+import { useTranslation } from '@/i18n/useTranslation';
 
 const BACK_HREF = '/dashboard/bookings';
 
 export default function ReturnPage() {
   const { id } = useParams<{ id: string }>();
   const [result, setResult] = useState<RentalResponse | null>(null);
+  const { t } = useTranslation();
 
   if (result) {
     return (
       <div className="max-w-lg mx-auto space-y-6">
-        <PageHeader backHref={BACK_HREF} title="Return processed" />
+        <PageHeader backHref={BACK_HREF} title={t('return.processed')} />
         <ReturnSuccess result={result} />
       </div>
     );
@@ -26,10 +28,10 @@ export default function ReturnPage() {
     <div className="max-w-lg mx-auto space-y-6">
       <PageHeader
         backHref={BACK_HREF}
-        title="Process Return"
+        title={t('return.title')}
         subtitle={
           <>
-            Rental <span className="font-mono text-xs">{id.slice(0, 8)}…</span>
+            {t('return.rental')} <span className="font-mono text-xs">{id.slice(0, 8)}…</span>
           </>
         }
       />

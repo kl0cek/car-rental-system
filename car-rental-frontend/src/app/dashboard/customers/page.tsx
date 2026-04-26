@@ -6,10 +6,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { CustomerTable } from '@/components/customers/CustomerTable';
 import { useCustomers } from '@/hooks/useCustomers';
+import { useTranslation } from '@/i18n/useTranslation';
 
 export default function CustomersPage() {
   const [search, setSearch] = useState('');
   const { customers, isLoading } = useCustomers();
+  const { t } = useTranslation();
 
   const filtered = customers.filter((c) => {
     const q = search.toLowerCase();
@@ -24,17 +26,19 @@ export default function CustomersPage() {
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Customers</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t('customers.title')}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {isLoading
-              ? 'Loading...'
-              : `${filtered.length} customer${filtered.length !== 1 ? 's' : ''}`}
+              ? t('common.loading')
+              : t(filtered.length === 1 ? 'customers.count' : 'customers.countPlural', {
+                  count: filtered.length,
+                })}
           </p>
         </div>
         <div className="relative w-full sm:w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search by name or email…"
+            placeholder={t('customers.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -47,7 +51,7 @@ export default function CustomersPage() {
           <CustomerTable
             customers={filtered}
             isLoading={isLoading}
-            emptyMessage={search ? `No results for "${search}"` : undefined}
+            emptyMessage={search ? t('customers.noResults', { query: search }) : undefined}
           />
         </CardContent>
       </Card>

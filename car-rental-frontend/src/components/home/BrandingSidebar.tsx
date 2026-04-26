@@ -1,13 +1,18 @@
+'use client';
+
 import { Car } from 'lucide-react';
 import React from 'react';
+import { useTranslation } from '@/i18n/useTranslation';
+import type { TranslationKey } from '@/i18n/translations';
 
-const stats = [
-  { value: '500+', label: 'Vehicles' },
-  { value: '12k+', label: 'Bookings' },
-  { value: '98%', label: 'Satisfaction' },
+const stats: Array<{ value: string; labelKey: TranslationKey }> = [
+  { value: '500+', labelKey: 'brand.stats.vehicles' },
+  { value: '12k+', labelKey: 'brand.stats.bookings' },
+  { value: '98%', labelKey: 'brand.stats.satisfaction' },
 ];
 
 export function BrandingSidebar() {
+  const { t } = useTranslation();
   return (
     <div className="hidden lg:flex lg:w-1/2 bg-primary relative overflow-hidden">
       <div className="absolute inset-0 bg-linear-to-br from-primary to-primary/80" />
@@ -21,21 +26,19 @@ export function BrandingSidebar() {
         </div>
 
         <div className="space-y-6">
-          <h1 className="text-4xl font-bold leading-tight text-balance">
-            Manage your fleet with confidence
-          </h1>
+          <h1 className="text-4xl font-bold leading-tight text-balance">{t('brand.tagline')}</h1>
           <p className="text-primary-foreground/80 text-lg leading-relaxed max-w-md">
-            Streamline your car rental operations with our intuitive booking management system.
+            {t('brand.taglineDesc')}
           </p>
         </div>
 
         <div className="flex flex-row items-center gap-8">
           {stats.map((stat, i) => (
-            <React.Fragment key={stat.label}>
+            <React.Fragment key={stat.labelKey}>
               {i > 0 && <div key={`divider-${i}`} className="w-px h-12 bg-primary-foreground/20" />}
-              <div key={stat.label}>
+              <div key={stat.labelKey}>
                 <p className="text-3xl font-bold">{stat.value}</p>
-                <p className="text-primary-foreground/70 text-sm">{stat.label}</p>
+                <p className="text-primary-foreground/70 text-sm">{t(stat.labelKey)}</p>
               </div>
             </React.Fragment>
           ))}

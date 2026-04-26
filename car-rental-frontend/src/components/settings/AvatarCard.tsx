@@ -7,6 +7,7 @@ import { SettingsCard } from './SettingsCard';
 import { useUploadAvatar } from '@/hooks/useUploadAvatar';
 import { getInitials } from '@/lib/formatters';
 import type { User } from '@/types/auth';
+import { useTranslation } from '@/i18n/useTranslation';
 
 interface AvatarCardProps {
   user: User | null;
@@ -18,6 +19,7 @@ export function AvatarCard({ user, onUploaded }: AvatarCardProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const { uploadAvatar, isLoading, error } = useUploadAvatar();
+  const { t } = useTranslation();
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -36,7 +38,7 @@ export function AvatarCard({ user, onUploaded }: AvatarCardProps) {
   const initials = user ? getInitials(user.firstName, user.lastName) : '??';
 
   return (
-    <SettingsCard icon={Camera} title="Profile Photo" description="Upload a profile picture">
+    <SettingsCard icon={Camera} title={t('avatar.title')} description={t('avatar.description')}>
       <div className="flex items-center gap-5">
         <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center shrink-0 overflow-hidden">
           {preview ? (
@@ -65,11 +67,11 @@ export function AvatarCard({ user, onUploaded }: AvatarCardProps) {
             className="gap-2"
           >
             <Camera className="w-4 h-4" />
-            {isLoading ? 'Uploading…' : 'Choose photo'}
+            {isLoading ? t('avatar.uploading') : t('avatar.choose')}
           </Button>
-          <p className="text-xs text-muted-foreground">JPG, PNG or WebP · max 5 MB</p>
+          <p className="text-xs text-muted-foreground">{t('avatar.hint')}</p>
           {error && <p className="text-xs text-destructive">{error}</p>}
-          {success && <p className="text-xs text-green-600">Photo updated.</p>}
+          {success && <p className="text-xs text-green-600">{t('avatar.success')}</p>}
         </div>
       </div>
     </SettingsCard>

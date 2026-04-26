@@ -7,11 +7,14 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { getFilteredNavigation } from '@/data/dashboard/constants';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from '@/i18n/useTranslation';
+import type { TranslationKey } from '@/i18n/translations';
 
 export default function DashboardHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
 
   const filteredNavigation = getFilteredNavigation(user?.role);
 
@@ -55,7 +58,7 @@ export default function DashboardHeader() {
                   )}
                 >
                   <item.icon className="w-5 h-5" />
-                  {item.name}
+                  {t(item.name as TranslationKey)}
                 </Link>
               ))}
             </nav>
@@ -69,7 +72,7 @@ export default function DashboardHeader() {
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
               >
                 <LogOut className="w-5 h-5" />
-                Sign out
+                {t('nav.signOut')}
               </button>
             </div>
           </div>

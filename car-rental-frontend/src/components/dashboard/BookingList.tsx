@@ -16,15 +16,24 @@ import {
 } from '@/components/ui/table';
 import { BookingRow } from './BookingRow';
 import { BookingCard } from './BookingCard';
+import { useTranslation } from '@/i18n/useTranslation';
+import type { TranslationKey } from '@/i18n/translations';
 
-const COLS = ['Vehicle', 'Duration', 'Status', 'Total', 'Actions'];
+const COL_KEYS: TranslationKey[] = [
+  'bookings.col.vehicle',
+  'bookings.col.duration',
+  'bookings.col.status',
+  'bookings.col.total',
+  'bookings.col.actions',
+];
 
 function AllHiddenMessage({ onShowAll }: { onShowAll: () => void }) {
+  const { t } = useTranslation();
   return (
     <p className="py-6 text-sm text-center text-muted-foreground">
-      All rows hidden.{' '}
+      {t('dashboard.allHidden')}{' '}
       <button onClick={onShowAll} className="underline">
-        Show all
+        {t('dashboard.showAll')}
       </button>
     </p>
   );
@@ -34,6 +43,7 @@ export default function BookingsList() {
   const { reservations, isLoading, mutate } = useReservations(5);
   const { hide, showAll, isHidden, hiddenCount } = useHiddenRows();
   const { cancel, loadingId } = useCancelReservation();
+  const { t } = useTranslation();
 
   const visible = reservations.filter((r) => !isHidden(r.id));
 
@@ -51,8 +61,10 @@ export default function BookingsList() {
       <CardHeader className="border-b pb-4">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Recent Bookings</CardTitle>
-            <CardDescription className="mt-0.5">Your recent rental reservations</CardDescription>
+            <CardTitle>{t('dashboard.recentBookings')}</CardTitle>
+            <CardDescription className="mt-0.5">
+              {t('dashboard.recentBookingsDesc')}
+            </CardDescription>
           </div>
           <div className="flex items-center gap-2">
             {hiddenCount > 0 && (
@@ -62,7 +74,7 @@ export default function BookingsList() {
                 className="text-xs text-muted-foreground"
                 onClick={showAll}
               >
-                Show {hiddenCount} hidden
+                {t('dashboard.showHidden', { count: hiddenCount })}
               </Button>
             )}
           </div>
@@ -77,19 +89,21 @@ export default function BookingsList() {
             ))}
           </div>
         ) : reservations.length === 0 ? (
-          <p className="p-6 text-sm text-muted-foreground text-center">No reservations yet.</p>
+          <p className="p-6 text-sm text-muted-foreground text-center">
+            {t('dashboard.noReservations')}
+          </p>
         ) : (
           <>
             <div className="hidden md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {COLS.map((col) => (
+                    {COL_KEYS.map((key) => (
                       <TableHead
-                        key={col}
-                        className={`text-xs uppercase tracking-wider text-muted-foreground px-5 py-3 ${col === 'Actions' ? 'text-right' : ''}`}
+                        key={key}
+                        className={`text-xs uppercase tracking-wider text-muted-foreground px-5 py-3 ${key === 'bookings.col.actions' ? 'text-right' : ''}`}
                       >
-                        {col}
+                        {t(key)}
                       </TableHead>
                     ))}
                   </TableRow>

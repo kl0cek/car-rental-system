@@ -1,12 +1,17 @@
+'use client';
+
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import type { Stat } from '@/types/booking';
+import { useTranslation } from '@/i18n/useTranslation';
+import type { TranslationKey } from '@/i18n/translations';
 
 interface StatsGridProps {
   data: Stat[];
 }
 
 export function StatsGrid({ data }: StatsGridProps) {
+  const { t } = useTranslation();
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {data.map((stat) => (
@@ -33,7 +38,7 @@ export function StatsGrid({ data }: StatsGridProps) {
             </div>
             <div className="mt-4">
               <p className="text-2xl font-semibold text-foreground">{stat.value}</p>
-              <p className="text-sm text-muted-foreground mt-1">{stat.name}</p>
+              <p className="text-sm text-muted-foreground mt-1">{t(stat.name as TranslationKey)}</p>
             </div>
           </CardContent>
         </Card>

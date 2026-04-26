@@ -1,4 +1,9 @@
+'use client';
+
+import { useTranslation } from '@/i18n/useTranslation';
+
 export function TermsCheckbox() {
+  const { t } = useTranslation();
   return (
     <div className="flex items-start gap-2">
       <input
@@ -8,14 +13,7 @@ export function TermsCheckbox() {
         required
       />
       <label htmlFor="terms" className="text-sm text-muted-foreground">
-        I agree to the{' '}
-        <button type="button" className="text-primary hover:text-primary/80 transition-colors">
-          Terms of Service
-        </button>{' '}
-        and{' '}
-        <button type="button" className="text-primary hover:text-primary/80 transition-colors">
-          Privacy Policy
-        </button>
+        {t('auth.terms')}
       </label>
     </div>
   );

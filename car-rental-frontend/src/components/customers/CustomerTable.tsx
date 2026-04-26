@@ -1,10 +1,22 @@
+'use client';
+
 import { Users } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CustomerRow } from './CustomerRow';
 import type { Customer } from '@/types/customer';
+import { useTranslation } from '@/i18n/useTranslation';
+import type { TranslationKey } from '@/i18n/translations';
 
-const COLS = ['Customer', 'Email', 'Phone', 'Reservations', 'Joined', 'Status', 'Actions'];
+const COL_KEYS: TranslationKey[] = [
+  'customers.col.name',
+  'customers.col.email',
+  'customers.col.phone',
+  'customers.col.bookings',
+  'customers.col.joined',
+  'customers.col.status',
+  'common.actions',
+];
 
 interface CustomerTableProps {
   customers: Customer[];
@@ -13,6 +25,7 @@ interface CustomerTableProps {
 }
 
 export function CustomerTable({ customers, isLoading, emptyMessage }: CustomerTableProps) {
+  const { t } = useTranslation();
   if (isLoading) {
     return (
       <div className="p-4 space-y-3">
@@ -29,7 +42,7 @@ export function CustomerTable({ customers, isLoading, emptyMessage }: CustomerTa
         <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center mb-3">
           <Users className="w-7 h-7 text-muted-foreground" />
         </div>
-        <p className="font-medium text-foreground">No customers found</p>
+        <p className="font-medium text-foreground">{t('customers.title')}</p>
         {emptyMessage && <p className="text-sm text-muted-foreground mt-1">{emptyMessage}</p>}
       </div>
     );
@@ -39,12 +52,12 @@ export function CustomerTable({ customers, isLoading, emptyMessage }: CustomerTa
     <Table>
       <TableHeader>
         <TableRow>
-          {COLS.map((col) => (
+          {COL_KEYS.map((key) => (
             <TableHead
-              key={col}
-              className={`px-5 py-3 text-xs uppercase tracking-wider text-muted-foreground ${col === 'Actions' ? 'text-right' : ''}`}
+              key={key}
+              className={`px-5 py-3 text-xs uppercase tracking-wider text-muted-foreground ${key === 'common.actions' ? 'text-right' : ''}`}
             >
-              {col}
+              {t(key)}
             </TableHead>
           ))}
         </TableRow>
