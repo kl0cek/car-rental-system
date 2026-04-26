@@ -31,11 +31,15 @@ def _serialize_user(user: User) -> dict[str, object]:
         "avatar_url": user.avatar_url,
         "risk_score": str(user.risk_score),
         "last_login_at": user.last_login_at.isoformat() if user.last_login_at else None,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+        "updated_at": user.updated_at.isoformat() if user.updated_at else None,
     }
 
 
 def _deserialize_user(data: dict[str, object]) -> User:
     last_login_raw = data.get("last_login_at")
+    created_at_raw = data.get("created_at")
+    updated_at_raw = data.get("updated_at")
     user = User(
         email=str(data["email"]),
         hashed_password="",
@@ -50,6 +54,10 @@ def _deserialize_user(data: dict[str, object]) -> User:
         last_login_at=datetime.fromisoformat(str(last_login_raw)) if last_login_raw else None,
     )
     user.id = uuid.UUID(str(data["id"]))
+    if created_at_raw:
+        user.created_at = datetime.fromisoformat(str(created_at_raw))
+    if updated_at_raw:
+        user.updated_at = datetime.fromisoformat(str(updated_at_raw))
     return user
 
 
