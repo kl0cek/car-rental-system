@@ -74,4 +74,5 @@ export interface NavItem {
   href: string;
   icon: LucideIcon;
   staffOnly?: boolean;
+  roles?: import('./auth').UserRole[];
 }
