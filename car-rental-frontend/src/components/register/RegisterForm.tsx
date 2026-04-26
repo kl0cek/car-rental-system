@@ -11,6 +11,7 @@ import { PasswordField } from '@/components/home/PasswordField';
 import { TermsCheckbox } from '@/components/register/TermsCheckbox';
 import { AuthSubmitButton } from '@/components/auth/AuthSubmitButton';
 import { ErrorAlert } from '@/components/auth/ErrorAlert';
+import { useTranslation } from '@/i18n/useTranslation';
 
 export function RegisterForm() {
   const {
@@ -26,6 +27,7 @@ export function RegisterForm() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const { t } = useTranslation();
 
   return (
     <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
@@ -36,9 +38,9 @@ export function RegisterForm() {
 
         <div className="space-y-2 text-center lg:text-left">
           <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-            Create an account
+            {t('auth.createAccountTitle')}
           </h2>
-          <p className="text-muted-foreground">Fill in your details to get started</p>
+          <p className="text-muted-foreground">{t('auth.createAccountDesc')}</p>
         </div>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-5">
@@ -47,18 +49,18 @@ export function RegisterForm() {
           <div className="grid grid-cols-2 gap-4">
             <TextField
               id="firstName"
-              label="First Name"
+              label={t('auth.firstName')}
               type="text"
-              placeholder="John"
+              placeholder={t('auth.firstNamePlaceholder')}
               value={formData.firstName}
               onChange={updateField('firstName')}
               autoComplete="given-name"
             />
             <TextField
               id="lastName"
-              label="Last Name"
+              label={t('auth.lastName')}
               type="text"
-              placeholder="Doe"
+              placeholder={t('auth.lastNamePlaceholder')}
               value={formData.lastName}
               onChange={updateField('lastName')}
               autoComplete="family-name"
@@ -67,9 +69,9 @@ export function RegisterForm() {
 
           <TextField
             id="email"
-            label="Email"
+            label={t('auth.email')}
             type="email"
-            placeholder="name@company.com"
+            placeholder={t('auth.emailPlaceholder')}
             value={formData.email}
             onChange={updateField('email')}
             autoComplete="email"
@@ -78,8 +80,8 @@ export function RegisterForm() {
           <div className="space-y-2">
             <PasswordField
               id="password"
-              label="Password"
-              placeholder="Create a password"
+              label={t('auth.password')}
+              placeholder={t('auth.passwordCreate')}
               value={formData.password}
               onChange={updateField('password')}
               show={showPassword}
@@ -92,8 +94,8 @@ export function RegisterForm() {
           <div className="space-y-2">
             <PasswordField
               id="confirmPassword"
-              label="Confirm Password"
-              placeholder="Confirm your password"
+              label={t('auth.confirmPassword')}
+              placeholder={t('auth.confirmPasswordPlaceholder')}
               value={formData.confirmPassword}
               onChange={updateField('confirmPassword')}
               show={showConfirmPassword}
@@ -102,7 +104,7 @@ export function RegisterForm() {
             />
             {formData.confirmPassword && !passwordsMatch && (
               <p className="text-xs text-destructive" role="alert">
-                Passwords do not match
+                {t('auth.passwordsMismatch')}
               </p>
             )}
           </div>
@@ -110,7 +112,7 @@ export function RegisterForm() {
           <TermsCheckbox />
 
           <AuthSubmitButton
-            label="Create account"
+            label={t('auth.createAccount')}
             isLoading={isLoading}
             disabled={isSubmitDisabled}
           />
@@ -119,12 +121,12 @@ export function RegisterForm() {
         <SocialButtons />
 
         <p className="text-center text-sm text-muted-foreground">
-          Already have an account?{' '}
+          {t('auth.alreadyAccount')}{' '}
           <Link
             href="/"
             className="text-primary font-medium hover:text-primary/80 transition-colors"
           >
-            Sign in
+            {t('auth.signIn')}
           </Link>
         </p>
       </div>

@@ -44,23 +44,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshUser();
   }, [refreshUser]);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ email, password }),
-    });
+  const login = useCallback(
+    async (email: string, password: string) => {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (!res.ok) {
-      const data = await res.json();
-      throw new Error(data.detail ?? 'Login failed');
-    }
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail ?? 'Login failed');
+      }
 
-    const data: UserApiResponse = await res.json();
-    setUser(mapUserFromApi(data));
-    await refreshUser();
-  }, [refreshUser]);
+      const data: UserApiResponse = await res.json();
+      setUser(mapUserFromApi(data));
+      await refreshUser();
+    },
+    [refreshUser]
+  );
 
   const register = useCallback(
     async (data: { firstName: string; lastName: string; email: string; password: string }) => {

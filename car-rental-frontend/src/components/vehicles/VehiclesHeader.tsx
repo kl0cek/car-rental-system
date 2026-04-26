@@ -2,6 +2,7 @@
 
 import { SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from '@/i18n/useTranslation';
 
 interface VehiclesHeaderProps {
   total: number;
@@ -16,12 +17,17 @@ export function VehiclesHeader({
   sidebarOpen,
   onToggleSidebar,
 }: VehiclesHeaderProps) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center justify-between">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Browse Vehicles</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t('vehicles.title')}</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          {isLoading ? 'Loading...' : `${total} vehicle${total !== 1 ? 's' : ''} found`}
+          {isLoading
+            ? t('common.loading')
+            : t(total === 1 ? 'vehicles.totalCount' : 'vehicles.totalCountPlural', {
+                count: total,
+              })}
         </p>
       </div>
       <Button variant="outline" size="sm" className="lg:hidden" onClick={onToggleSidebar}>
@@ -30,7 +36,7 @@ export function VehiclesHeader({
         ) : (
           <SlidersHorizontal className="w-4 h-4 mr-1.5" />
         )}
-        Filters
+        {t('filters.title')}
       </Button>
     </div>
   );

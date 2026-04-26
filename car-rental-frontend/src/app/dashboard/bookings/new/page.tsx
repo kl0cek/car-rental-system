@@ -11,6 +11,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useWizardStep } from '@/hooks/useWizardStep';
 import type { Vehicle } from '@/types/vehicle';
+import { useTranslation } from '@/i18n/useTranslation';
 
 const BACK_HREF = '/dashboard/bookings';
 
@@ -49,6 +50,7 @@ function NewBookingWizard() {
     stepCount: WIZARD_STEPS.length,
     canEnterStep: (next) => next === 0 || form.selectedVehicle !== null,
   });
+  const { t } = useTranslation();
 
   const current = WIZARD_STEPS[step];
 
@@ -56,8 +58,8 @@ function NewBookingWizard() {
     <div className="max-w-4xl mx-auto space-y-6">
       <PageHeader
         backHref={BACK_HREF}
-        title="New Booking"
-        subtitle="Reserve a vehicle in a few steps"
+        title={t('newBooking.title')}
+        subtitle={t('newBooking.subtitle')}
       />
       <StepIndicator steps={WIZARD_STEP_LABELS} current={step} />
       {current.render({ form, handlers, goToStep })}

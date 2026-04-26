@@ -6,10 +6,12 @@ import { ArrowLeft, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { AuthLayout } from '@/components/auth/AuthLayout';
 import { StatusMessage } from '@/components/auth/StatusMessage';
 import { useVerifyEmail } from '@/src/hooks/useVerifyEmail';
+import { useTranslation } from '@/i18n/useTranslation';
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const { status, error } = useVerifyEmail(searchParams.get('token'));
+  const { t } = useTranslation();
 
   if (status === 'loading') {
     return (
@@ -18,9 +20,9 @@ function VerifyEmailContent() {
           <Loader2 className="w-8 h-8 text-primary animate-spin" />
         </div>
         <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-          Verifying your email...
+          {t('auth.verifying')}
         </h2>
-        <p className="text-muted-foreground">Please wait a moment.</p>
+        <p className="text-muted-foreground">{t('auth.pleaseWait')}</p>
       </div>
     );
   }
@@ -31,9 +33,9 @@ function VerifyEmailContent() {
         icon={CheckCircle}
         iconClassName="text-green-600"
         bgClassName="bg-green-500/10"
-        title="Email verified!"
-        description="Your email has been verified successfully. You can now sign in."
-        link={{ href: '/', label: 'Go to sign in', icon: ArrowLeft }}
+        title={t('auth.emailVerified')}
+        description={t('auth.emailVerifiedDesc')}
+        link={{ href: '/', label: t('auth.goToSignIn'), icon: ArrowLeft }}
       />
     );
   }
@@ -43,9 +45,9 @@ function VerifyEmailContent() {
       icon={XCircle}
       iconClassName="text-destructive"
       bgClassName="bg-destructive/10"
-      title="Verification failed"
-      description={error ?? 'The verification link is invalid or has expired.'}
-      link={{ href: '/', label: 'Back to sign in', icon: ArrowLeft }}
+      title={t('auth.verificationFailed')}
+      description={error ?? t('auth.verificationFailedDesc')}
+      link={{ href: '/', label: t('auth.backToSignIn'), icon: ArrowLeft }}
     />
   );
 }

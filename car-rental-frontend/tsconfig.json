@@ -27,7 +27,8 @@
       "@/types/*": ["./src/types/*"],
       "@/data/*": ["./src/data/*"],
       "@/lib/*": ["./src/lib/*"],
-      "@/contexts/*": ["./src/contexts/*"]
+      "@/contexts/*": ["./src/contexts/*"],
+      "@/i18n/*": ["./src/i18n/*"]
     }
   },
   "include": [

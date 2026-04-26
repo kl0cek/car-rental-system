@@ -11,6 +11,7 @@ import { VehiclesHeader } from '@/components/vehicles/VehiclesHeader';
 import { useVehicles } from '@/hooks/useVehicles';
 import { PRICE_MIN, PRICE_MAX, YEAR_MIN, YEAR_MAX, PAGE_SIZE } from '@/types/vehicle';
 import type { Vehicle } from '@/types/vehicle';
+import { useTranslation } from '@/i18n/useTranslation';
 
 const DEFAULT_FILTERS: FiltersState & { page: number } = {
   category: null,
@@ -29,6 +30,7 @@ export default function VehiclesPage() {
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const { t } = useTranslation();
 
   const updateFilters = useCallback((updates: Partial<typeof DEFAULT_FILTERS>) => {
     setFilters((prev) => ({
@@ -77,10 +79,8 @@ export default function VehiclesPage() {
               <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-4">
                 <Car className="w-8 h-8 text-muted-foreground" />
               </div>
-              <p className="font-semibold text-foreground">No vehicles found</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Try adjusting or clearing your filters
-              </p>
+              <p className="font-semibold text-foreground">{t('vehicles.noVehicles')}</p>
+              <p className="text-sm text-muted-foreground mt-1">{t('vehicles.tryAdjusting')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">

@@ -9,10 +9,12 @@ import { ErrorAlert } from '@/components/auth/ErrorAlert';
 import { StatusMessage } from '@/components/auth/StatusMessage';
 import { PasswordField } from '@/components/home/PasswordField';
 import { useResetPassword } from '@/src/hooks/useResetPassword';
+import { useTranslation } from '@/i18n/useTranslation';
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
+  const { t } = useTranslation();
 
   const {
     password,
@@ -36,9 +38,9 @@ function ResetPasswordForm() {
         icon={XCircle}
         iconClassName="text-destructive"
         bgClassName="bg-destructive/10"
-        title="Invalid link"
-        description="This password reset link is invalid or has expired."
-        link={{ href: '/forgot-password', label: 'Request a new link', icon: ArrowRight }}
+        title={t('auth.invalidLink')}
+        description={t('auth.invalidLinkDesc')}
+        link={{ href: '/forgot-password', label: t('auth.requestNew'), icon: ArrowRight }}
       />
     );
   }
@@ -49,9 +51,9 @@ function ResetPasswordForm() {
         icon={CheckCircle}
         iconClassName="text-green-600"
         bgClassName="bg-green-500/10"
-        title="Password reset!"
-        description="Your password has been changed successfully."
-        link={{ href: '/', label: 'Back to sign in', icon: ArrowLeft }}
+        title={t('auth.passwordReset')}
+        description={t('auth.passwordResetDesc')}
+        link={{ href: '/', label: t('auth.backToSignIn'), icon: ArrowLeft }}
       />
     );
   }
@@ -62,9 +64,9 @@ function ResetPasswordForm() {
         icon={XCircle}
         iconClassName="text-destructive"
         bgClassName="bg-destructive/10"
-        title="Link expired"
-        description="This reset link has expired. Please request a new one."
-        link={{ href: '/forgot-password', label: 'Request a new link', icon: ArrowRight }}
+        title={t('auth.linkExpired')}
+        description={t('auth.linkExpiredDesc')}
+        link={{ href: '/forgot-password', label: t('auth.requestNew'), icon: ArrowRight }}
       />
     );
   }
@@ -72,8 +74,10 @@ function ResetPasswordForm() {
   return (
     <>
       <div className="space-y-2 text-center lg:text-left">
-        <h2 className="text-2xl font-semibold tracking-tight text-foreground">Set new password</h2>
-        <p className="text-muted-foreground">Enter your new password below.</p>
+        <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+          {t('auth.resetTitle')}
+        </h2>
+        <p className="text-muted-foreground">{t('auth.resetDesc')}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -81,8 +85,8 @@ function ResetPasswordForm() {
 
         <PasswordField
           id="password"
-          label="New Password"
-          placeholder="Enter new password"
+          label={t('auth.newPassword')}
+          placeholder={t('auth.newPasswordPlaceholder')}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           show={showPassword}
@@ -93,8 +97,8 @@ function ResetPasswordForm() {
         <div className="space-y-2">
           <PasswordField
             id="confirmPassword"
-            label="Confirm Password"
-            placeholder="Confirm new password"
+            label={t('auth.confirmPassword')}
+            placeholder={t('auth.confirmNewPasswordPlaceholder')}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             show={showConfirmPassword}
@@ -102,12 +106,12 @@ function ResetPasswordForm() {
             autoComplete="new-password"
           />
           {confirmPassword && !passwordsMatch && (
-            <p className="text-xs text-destructive">Passwords do not match</p>
+            <p className="text-xs text-destructive">{t('auth.passwordsMismatch')}</p>
           )}
         </div>
 
         <AuthSubmitButton
-          label="Reset password"
+          label={t('auth.resetSubmit')}
           isLoading={isLoading}
           disabled={isSubmitDisabled}
         />

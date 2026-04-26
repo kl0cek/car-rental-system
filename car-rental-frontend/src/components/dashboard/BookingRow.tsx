@@ -1,3 +1,5 @@
+'use client';
+
 import { EyeOff, MoreHorizontal, ExternalLink, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,6 +13,8 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { formatDate } from '@/lib/formatters';
 import type { ReservationApi } from '@/types/booking';
 import { BOOKING_STATUS_VARIANT } from '@/types/booking';
+import { useTranslation } from '@/i18n/useTranslation';
+import type { TranslationKey } from '@/i18n/translations';
 
 const CANCELLABLE_STATUSES = new Set(['pending', 'confirmed']);
 
@@ -24,6 +28,7 @@ interface BookingRowProps {
 export function BookingRow({ reservation: r, onHide, onCancel, cancellingId }: BookingRowProps) {
   const isCancelling = cancellingId === r.id;
   const canCancel = CANCELLABLE_STATUSES.has(r.status);
+  const { t } = useTranslation();
 
   return (
     <TableRow>
@@ -35,11 +40,13 @@ export function BookingRow({ reservation: r, onHide, onCancel, cancellingId }: B
       </TableCell>
       <TableCell className="px-5 py-4">
         <p className="text-foreground">{formatDate(r.start_date)}</p>
-        <p className="text-sm text-muted-foreground">to {formatDate(r.end_date)}</p>
+        <p className="text-sm text-muted-foreground">
+          {t('common.to').toLowerCase()} {formatDate(r.end_date)}
+        </p>
       </TableCell>
       <TableCell className="px-5 py-4">
-        <Badge variant={BOOKING_STATUS_VARIANT[r.status]} className="capitalize">
-          {r.status}
+        <Badge variant={BOOKING_STATUS_VARIANT[r.status]}>
+          {t(`status.${r.status}` as TranslationKey)}
         </Badge>
       </TableCell>
       <TableCell className="px-5 py-4 font-medium">
@@ -47,19 +54,24 @@ export function BookingRow({ reservation: r, onHide, onCancel, cancellingId }: B
       </TableCell>
       <TableCell className="px-5 py-4 text-right">
         <div className="flex items-center justify-end gap-1">
-          <Button variant="ghost" size="icon" aria-label="Hide row" onClick={() => onHide(r.id)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={t('bookings.action.hide')}
+            onClick={() => onHide(r.id)}
+          >
             <EyeOff className="w-4 h-4" />
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="More options">
+              <Button variant="ghost" size="icon" aria-label={t('common.actions')}>
                 <MoreHorizontal className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem disabled>
                 <ExternalLink className="w-4 h-4 mr-2" />
-                View details
+                {t('vehicles.viewDetails')}
               </DropdownMenuItem>
               {canCancel && (
                 <DropdownMenuItem
@@ -68,7 +80,7 @@ export function BookingRow({ reservation: r, onHide, onCancel, cancellingId }: B
                   onClick={() => onCancel(r.id)}
                 >
                   <XCircle className="w-4 h-4 mr-2" />
-                  {isCancelling ? 'Anulowanie…' : 'Anuluj rezerwację'}
+                  {isCancelling ? t('bookings.cancelling') : t('bookings.action.cancel')}
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>

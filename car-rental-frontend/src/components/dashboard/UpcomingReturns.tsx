@@ -1,20 +1,26 @@
+'use client';
+
 import { Clock, ChevronRight } from 'lucide-react';
 import type { Return } from '@/types/booking';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from '@/i18n/useTranslation';
 
 interface UpcomingReturnsProps {
   returns?: Return[];
 }
 
 export default function UpcomingReturns({ returns = [] }: UpcomingReturnsProps) {
+  const { t } = useTranslation();
   return (
     <Card className="h-full">
       <CardHeader className="border-b pb-4">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Upcoming Returns</CardTitle>
-            <CardDescription className="mt-0.5">Vehicles due for return</CardDescription>
+            <CardTitle>{t('dashboard.upcomingReturns')}</CardTitle>
+            <CardDescription className="mt-0.5">
+              {t('dashboard.upcomingReturnsDesc')}
+            </CardDescription>
           </div>
           <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
             <Clock className="w-4 h-4 text-foreground" />
@@ -24,7 +30,9 @@ export default function UpcomingReturns({ returns = [] }: UpcomingReturnsProps) 
 
       <CardContent className="p-0">
         {returns.length === 0 ? (
-          <p className="p-6 text-sm text-muted-foreground text-center">No upcoming returns.</p>
+          <p className="p-6 text-sm text-muted-foreground text-center">
+            {t('dashboard.upcomingReturnsDesc')}
+          </p>
         ) : (
           <div className="divide-y divide-border">
             {returns.map((item) => (
@@ -52,7 +60,7 @@ export default function UpcomingReturns({ returns = [] }: UpcomingReturnsProps) 
 
         <div className="p-4 border-t border-border">
           <Button variant="link" className="w-full text-sm p-0 h-auto">
-            View all returns
+            {t('common.viewAll')}
           </Button>
         </div>
       </CardContent>

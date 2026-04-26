@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { SettingsCard } from './SettingsCard';
 import { useUpdateProfile } from '@/hooks/useUpdateProfile';
 import type { User as UserType } from '@/types/auth';
+import { useTranslation } from '@/i18n/useTranslation';
 
 interface ProfileEditCardProps {
   user: UserType | null;
@@ -21,6 +22,7 @@ export function ProfileEditCard({ user, onUpdated }: ProfileEditCardProps) {
   const [phone, setPhone] = useState('');
   const [success, setSuccess] = useState(false);
   const { updateProfile, isLoading, error } = useUpdateProfile();
+  const { t } = useTranslation();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -41,40 +43,40 @@ export function ProfileEditCard({ user, onUpdated }: ProfileEditCardProps) {
   }
 
   return (
-    <SettingsCard icon={User} title="Edit Profile" description="Update your personal information">
+    <SettingsCard icon={User} title={t('profile.title')} description={t('profile.description')}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <Label htmlFor="firstName">First name</Label>
+            <Label htmlFor="firstName">{t('profile.firstName')}</Label>
             <Input
               id="firstName"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
-              placeholder="First name"
+              placeholder={t('profile.firstName')}
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="lastName">Last name</Label>
+            <Label htmlFor="lastName">{t('profile.lastName')}</Label>
             <Input
               id="lastName"
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
-              placeholder="Last name"
+              placeholder={t('profile.lastName')}
             />
           </div>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{t('profile.email')}</Label>
           <Input
             id="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email address"
+            placeholder={t('profile.emailPlaceholder')}
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="phone">Phone</Label>
+          <Label htmlFor="phone">{t('profile.phone')}</Label>
           <Input
             id="phone"
             type="tel"
@@ -84,10 +86,10 @@ export function ProfileEditCard({ user, onUpdated }: ProfileEditCardProps) {
           />
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
-        {success && <p className="text-sm text-green-600">Profile updated successfully.</p>}
+        {success && <p className="text-sm text-green-600">{t('profile.success')}</p>}
         <Button type="submit" disabled={isLoading} className="gap-2">
           <Save className="w-4 h-4" />
-          {isLoading ? 'Saving…' : 'Save changes'}
+          {isLoading ? t('profile.saving') : t('profile.save')}
         </Button>
       </form>
     </SettingsCard>

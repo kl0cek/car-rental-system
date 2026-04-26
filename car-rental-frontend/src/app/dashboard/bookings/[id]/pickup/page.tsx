@@ -6,17 +6,19 @@ import { PageHeader } from '@/components/dashboard/PageHeader';
 import { PickupForm } from '@/components/rentals/PickupForm';
 import { PickupSuccess } from '@/components/rentals/PickupSuccess';
 import type { RentalResponse } from '@/types/rental';
+import { useTranslation } from '@/i18n/useTranslation';
 
 const BACK_HREF = '/dashboard/bookings';
 
 export default function PickupPage() {
   const { id } = useParams<{ id: string }>();
   const [result, setResult] = useState<RentalResponse | null>(null);
+  const { t } = useTranslation();
 
   if (result) {
     return (
       <div className="max-w-lg mx-auto space-y-6">
-        <PageHeader backHref={BACK_HREF} title="Pickup processed" />
+        <PageHeader backHref={BACK_HREF} title={t('pickup.processed')} />
         <PickupSuccess result={result} />
       </div>
     );
@@ -26,10 +28,10 @@ export default function PickupPage() {
     <div className="max-w-lg mx-auto space-y-6">
       <PageHeader
         backHref={BACK_HREF}
-        title="Process Pickup"
+        title={t('pickup.title')}
         subtitle={
           <>
-            Reservation <span className="font-mono text-xs">{id.slice(0, 8)}…</span>
+            {t('pickup.reservation')} <span className="font-mono text-xs">{id.slice(0, 8)}…</span>
           </>
         }
       />

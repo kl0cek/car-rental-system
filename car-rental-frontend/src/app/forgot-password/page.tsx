@@ -8,9 +8,11 @@ import { ErrorAlert } from '@/components/auth/ErrorAlert';
 import { StatusMessage } from '@/components/auth/StatusMessage';
 import { TextField } from '@/components/home/TextField';
 import { useForgotPassword } from '@/src/hooks/useForgotPassword';
+import { useTranslation } from '@/i18n/useTranslation';
 
 export default function ForgotPasswordPage() {
   const { email, setEmail, isLoading, submitted, error, handleSubmit } = useForgotPassword();
+  const { t } = useTranslation();
 
   return (
     <AuthLayout>
@@ -19,19 +21,17 @@ export default function ForgotPasswordPage() {
           icon={Mail}
           iconClassName="text-green-600"
           bgClassName="bg-green-500/10"
-          title="Check your email"
-          description={`If an account with ${email} exists, we've sent a password reset link.`}
-          link={{ href: '/', label: 'Back to sign in', icon: ArrowLeft }}
+          title={t('auth.checkEmail')}
+          description={t('auth.checkEmailDesc', { email })}
+          link={{ href: '/', label: t('auth.backToSignIn'), icon: ArrowLeft }}
         />
       ) : (
         <>
           <div className="space-y-2 text-center lg:text-left">
             <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-              Forgot password?
+              {t('auth.forgotTitle')}
             </h2>
-            <p className="text-muted-foreground">
-              Enter your email and we&apos;ll send you a reset link.
-            </p>
+            <p className="text-muted-foreground">{t('auth.forgotDesc')}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -39,15 +39,19 @@ export default function ForgotPasswordPage() {
 
             <TextField
               id="email"
-              label="Email"
+              label={t('auth.email')}
               type="email"
-              placeholder="name@company.com"
+              placeholder={t('auth.emailPlaceholder')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
             />
 
-            <AuthSubmitButton label="Send reset link" isLoading={isLoading} disabled={!email} />
+            <AuthSubmitButton
+              label={t('auth.sendResetLink')}
+              isLoading={isLoading}
+              disabled={!email}
+            />
           </form>
 
           <p className="text-center text-sm text-muted-foreground">
@@ -56,7 +60,7 @@ export default function ForgotPasswordPage() {
               className="inline-flex items-center gap-1 text-primary font-medium hover:text-primary/80 transition-colors"
             >
               <ArrowLeft className="w-3 h-3" />
-              Back to sign in
+              {t('auth.backToSignIn')}
             </Link>
           </p>
         </>

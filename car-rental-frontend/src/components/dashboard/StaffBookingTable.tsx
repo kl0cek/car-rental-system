@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { useAdminReservations } from '@/src/hooks/useAdminReservations';
 import { useConfirmReservation } from '@/src/hooks/useConfirmReservation';
@@ -18,10 +20,22 @@ import type { AdminReservationItem } from '@/src/types/rental';
 import { LoadingSkeleton } from '@/src/components/LoadingSkeleton';
 import { EmptyState } from '@/src/components/EmptyState';
 import { CheckCircle, Truck } from 'lucide-react';
+import { useTranslation } from '@/i18n/useTranslation';
+import type { TranslationKey } from '@/i18n/translations';
+
+const COL_KEYS: TranslationKey[] = [
+  'bookings.col.customer',
+  'bookings.col.vehicle',
+  'common.date',
+  'bookings.col.status',
+  'bookings.col.total',
+  'common.actions',
+];
 
 export function StaffBookingsTable() {
   const { reservations, isLoading, mutate } = useAdminReservations();
   const { confirm, loadingId: confirmingId } = useConfirmReservation();
+  const { t } = useTranslation();
 
   async function handleConfirm(id: string) {
     try {
@@ -37,12 +51,12 @@ export function StaffBookingsTable() {
     <Table>
       <TableHeader>
         <TableRow>
-          {['Customer', 'Vehicle', 'Dates', 'Status', 'Total', 'Actions'].map((col) => (
+          {COL_KEYS.map((key) => (
             <TableHead
-              key={col}
-              className={`px-5 py-3 text-xs uppercase tracking-wider text-muted-foreground ${col === 'Actions' ? 'text-right' : ''}`}
+              key={key}
+              className={`px-5 py-3 text-xs uppercase tracking-wider text-muted-foreground ${key === 'common.actions' ? 'text-right' : ''}`}
             >
-              {col}
+              {t(key)}
             </TableHead>
           ))}
         </TableRow>
@@ -64,14 +78,13 @@ export function StaffBookingsTable() {
             </TableCell>
             <TableCell className="px-5 py-4 text-sm">
               <p>{formatDate(r.start_date)}</p>
-              <p className="text-muted-foreground">to {formatDate(r.end_date)}</p>
+              <p className="text-muted-foreground">
+                {t('common.to').toLowerCase()} {formatDate(r.end_date)}
+              </p>
             </TableCell>
             <TableCell className="px-5 py-4">
-              <Badge
-                variant={BOOKING_STATUS_VARIANT[r.status as BookingStatus] ?? 'outline'}
-                className="capitalize"
-              >
-                {r.status}
+              <Badge variant={BOOKING_STATUS_VARIANT[r.status as BookingStatus] ?? 'outline'}>
+                {t(`status.${r.status}` as TranslationKey)}
               </Badge>
             </TableCell>
             <TableCell className="px-5 py-4 font-medium">
@@ -88,14 +101,16 @@ export function StaffBookingsTable() {
                     className="gap-1.5"
                   >
                     <CheckCircle className="w-3.5 h-3.5" />
-                    {confirmingId === r.id ? 'Confirming…' : 'Confirm'}
+                    {confirmingId === r.id
+                      ? t('bookings.confirming')
+                      : t('bookings.action.confirm')}
                   </Button>
                 )}
                 {r.status === 'confirmed' && (
                   <Button variant="outline" size="sm" asChild className="gap-1.5">
                     <Link href={`/dashboard/bookings/${r.id}/pickup`}>
                       <Truck className="w-3.5 h-3.5" />
-                      Pickup
+                      {t('bookings.action.pickup')}
                     </Link>
                   </Button>
                 )}
