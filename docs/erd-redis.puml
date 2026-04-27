@@ -1,0 +1,140 @@
+@startuml ERD-Redis
+!theme plain
+title Car Rental — Redis (key-value namespace map)
+
+hide circle
+skinparam linetype ortho
+skinparam roundcorner 6
+skinparam shadowing false
+skinparam class {
+    BackgroundColor #FDFDFD
+    BorderColor #555555
+    ArrowColor #444444
+}
+
+legend top right
+    Redis to key-value store —
+    nie ma "encji" w sensie ERD.
+    Diagram pokazuje **namespace'y kluczy**:
+    wzorzec klucza, typ wartości, TTL,
+    gdzie zapisywane / czytane.
+
+    PG = referencja do PostgreSQL
+endlegend
+
+' ===== Namespace: cache modelu User =====
+
+entity "user:{user_id}" as user_cache <<string-json>> #E8F4FD {
+    **wzorzec** : user:<uuid>
+    --
+    typ : STRING (JSON)
+    TTL : 300s (USER_CACHE_TTL_SECONDS)
+    --
+    payload:
+      id, email, first_name, last_name,
+      role, is_active, is_verified,
+      phone, avatar_url, risk_score,
+      last_login_at,
+      created_at, updated_at
+    --
+    set : core/user_cache.cache_user_model
+    get : core/deps.get_current_user
+    del : core/user_cache.invalidate_user_cache
+}
+
+' ===== Namespace: blacklist tokenów JWT =====
+
+entity "blacklist:{token_hash}" as blacklist <<string>> #FDE8E8 {
+    **wzorzec** : blacklist:<sha256(token)>
+    --
+    typ : STRING ("1")
+    TTL : pozostały czas życia tokenu
+    --
+    cel:
+      revokowane access/refresh tokeny
+      (logout, force-logout)
+    --
+    set : core/token_blacklist.blacklist_token
+    get : core/deps.get_current_user
+          (sprawdzenie przy każdym żądaniu)
+}
+
+' ===== Namespace: tokeny weryfikacji email =====
+
+entity "verify:{token}" as verify <<string>> #E8FDEC {
+    **wzorzec** : verify:<random_token>
+    --
+    typ : STRING (user_id)
+    TTL : 24h (VERIFICATION_TOKEN_EXPIRE_HOURS)
+    --
+    cel:
+      jednorazowy token w linku
+      "potwierdź email"
+    --
+    set : services/auth_service.register
+          services/user_service.update_profile
+          (gdy zmiana email)
+    getdel : services/auth_service.verify_email
+}
+
+' ===== Namespace: tokeny reset hasła =====
+
+entity "reset:{token}" as reset <<string>> #FDF7E8 {
+    **wzorzec** : reset:<random_token>
+    --
+    typ : STRING (user_id)
+    TTL : RESET_TOKEN_EXPIRE
+    --
+    cel:
+      jednorazowy token resetu hasła
+      (link w mailu)
+    --
+    set : services/auth_service.request_reset
+    getdel : services/auth_service.reset_password
+}
+
+' ===== Namespace: cooldown na reset hasła =====
+
+entity "reset_cooldown:{user_id}" as reset_cd <<string>> #F4E8FD {
+    **wzorzec** : reset_cooldown:<uuid>
+    --
+    typ : STRING ("1")
+    TTL : 60s
+    --
+    cel:
+      anty-flood — blokuje
+      ponowne żądanie resetu
+      przed upływem 60s
+    --
+    set : services/auth_service.request_reset
+}
+
+' ===== Encja "cień" z Postgresa =====
+
+entity "users (PG)" as pg_users <<external>> #EEEEEE {
+    id : uuid
+}
+
+' ===== Soft refs =====
+
+pg_users ||..o| user_cache  : "cache po id"
+pg_users ||..o{ verify      : "wartość = user_id"
+pg_users ||..o{ reset       : "wartość = user_id"
+pg_users ||..o{ reset_cd    : "klucz zawiera user_id"
+
+note bottom of blacklist
+    Klucz to **hash** tokenu (SHA-256),
+    nie sam token — nawet przy wycieku
+    Redisa nie da się przejąć sesji.
+end note
+
+note as N1
+    Wszystkie wpisy są **temporary** —
+    każdy ma TTL i sam wygasa.
+    Redis pełni 3 role:
+      1. cache (user:*)
+      2. revocation list (blacklist:*)
+      3. short-lived tokens (verify:*, reset:*, reset_cooldown:*)
+end note
+
+@enduml

@@ -1,0 +1,88 @@
+@startuml ERD-MongoDB
+!theme plain
+title Car Rental — MongoDB (kolekcje + referencje cross-DB)
+
+hide circle
+skinparam linetype ortho
+skinparam roundcorner 6
+skinparam shadowing false
+skinparam class {
+    BackgroundColor #FDFDFD
+    BorderColor #555555
+    ArrowColor #444444
+}
+
+legend top right
+    PK = Primary Key (_id)
+    ref = referencja logiczna
+    do tabeli w PostgreSQL
+    (brak FK po stronie Mongo)
+endlegend
+
+' ===== Kolekcje Mongo =====
+
+entity "rental_logs" as rental_logs <<collection>> {
+    * **_id** : ObjectId <<PK>>
+    --
+    * rental_id : string <<ref → pg.rentals.id>>
+    * reservation_id : string <<ref → pg.reservations.id>>
+    * employee_id : string <<ref → pg.users.id>>
+    * event : string [pickup | return]
+    * timestamp : string (ISO 8601)
+    --
+    .. event = "pickup" ..
+      photo_urls : string[]
+      client_signature_url : string
+    .. event = "return" ..
+      damage_photo_urls : string[]
+}
+
+entity "reviews" as reviews <<collection>> {
+    * **_id** : ObjectId <<PK>>
+    --
+    schemat luźny —
+    używana w agregacjach
+    średnich ocen pojazdów
+    (vehicle_service.py)
+}
+
+' ===== Encje "cienie" z Postgresa (do pokazania referencji) =====
+
+entity "users (PG)" as pg_users <<external>> #EEE {
+    id : uuid
+}
+
+entity "rentals (PG)" as pg_rentals <<external>> #EEE {
+    id : uuid
+}
+
+entity "reservations (PG)" as pg_reservations <<external>> #EEE {
+    id : uuid
+}
+
+entity "vehicles (PG)" as pg_vehicles <<external>> #EEE {
+    id : uuid
+}
+
+' ===== Referencje (przerywane = soft ref, brak FK) =====
+
+pg_rentals      ||..o{ rental_logs : "rental_id"
+pg_reservations ||..o{ rental_logs : "reservation_id"
+pg_users        ||..o{ rental_logs : "employee_id"
+pg_vehicles     ||..o{ reviews     : "(prawdopodobnie\nvehicle_id w dokumencie)"
+
+note bottom of rental_logs
+    Wstawiane przez rental_service.log_pickup()
+    i rental_service.log_return().
+    Jedna kolekcja na 2 typy zdarzeń —
+    rozróżnienie po polu **event**.
+end note
+
+note bottom of reviews
+    Schemat nie jest definiowany w aplikacji —
+    kolekcja tylko czytana (agregacje $avg).
+    Pewnie wypełniana seedem lub zewnętrznym
+    procesem.
+end note
+
+@enduml

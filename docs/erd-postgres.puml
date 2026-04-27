@@ -1,0 +1,127 @@
+@startuml ERD-Postgres
+!theme plain
+title Car Rental — PostgreSQL ERD
+
+hide circle
+skinparam linetype ortho
+skinparam roundcorner 6
+skinparam shadowing false
+skinparam class {
+    BackgroundColor #FDFDFD
+    BorderColor #555555
+    ArrowColor #444444
+}
+
+' ===== Legenda =====
+legend top right
+    PK = Primary Key
+    FK = Foreign Key
+    UK = Unique Key
+    CK = Check Constraint
+endlegend
+
+' ===== Tabele =====
+
+entity "users" as users {
+    * **id** : uuid <<PK>>
+    --
+    * email : varchar(255) <<UK>>
+    * hashed_password : text
+    * first_name : varchar(100)
+    * last_name : varchar(100)
+    * role : enum [customer|employee|technician|admin]
+    * is_active : bool
+    * is_verified : bool
+      phone : varchar(20)
+      avatar_url : text
+    * risk_score : numeric(5,2) <<CK 0..100>>
+      last_login_at : timestamptz
+    * created_at : timestamptz
+    * updated_at : timestamptz
+}
+
+entity "categories" as categories {
+    * **id** : uuid <<PK>>
+    --
+    * name : enum [economy|comfort|premium|suv|van] <<UK>>
+      description : text
+    * price_multiplier : numeric(5,3)
+    * created_at : timestamptz
+    * updated_at : timestamptz
+}
+
+entity "vehicles" as vehicles {
+    * **id** : uuid <<PK>>
+    --
+    * category_id : uuid <<FK>>
+    * brand : varchar(100)
+    * model : varchar(100)
+    * year : int
+    * license_plate : varchar(20) <<UK>>
+    * vin : varchar(17) <<UK>>
+    * engine_type : enum [petrol|diesel|electric|hybrid]
+    * horsepower : int <<CK > 0>>
+    * seats : int <<CK > 0>>
+    * trunk_capacity : int <<CK >= 0>>
+    * daily_base_price : numeric(10,2)
+    * color : varchar(50)
+    * mileage : int <<CK >= 0>>
+      image_url : text
+    * status : enum [available|rented|maintenance|out_of_service]
+    * is_active : bool
+    * created_at : timestamptz
+    * updated_at : timestamptz
+}
+
+entity "reservations" as reservations {
+    * **id** : uuid <<PK>>
+    --
+    * user_id : uuid <<FK>>
+    * vehicle_id : uuid <<FK>>
+    * start_date : timestamptz
+    * end_date : timestamptz
+    * status : enum [pending|confirmed|active|completed|cancelled]
+    * total_price : numeric(10,2)
+    * created_at : timestamptz
+    * updated_at : timestamptz
+}
+
+entity "rentals" as rentals {
+    * **id** : uuid <<PK>>
+    --
+    * reservation_id : uuid <<FK,UK>>
+    * employee_id : uuid <<FK>>
+    * pickup_date : timestamptz
+      return_date : timestamptz <<CK > pickup_date>>
+    * mileage_start : int <<CK >= 0>>
+      mileage_end : int <<CK >= mileage_start>>
+    * fuel_level_start : numeric(5,2) <<CK 0..100>>
+      fuel_level_end : numeric(5,2) <<CK 0..100>>
+      damage_notes : text
+    * created_at : timestamptz
+    * updated_at : timestamptz
+}
+
+entity "rental_price_breakdowns" as price_breakdowns {
+    * **id** : uuid <<PK>>
+    --
+    * rental_id : uuid <<FK,UK>>
+    * base_price : numeric(10,2) <<CK >= 0>>
+    * fuel_surcharge : numeric(10,2) <<CK >= 0>>
+    * risk_multiplier : numeric(6,4) <<CK >= 1>>
+    * final_price : numeric(10,2) <<CK >= 0>>
+    * calculated_at : timestamptz
+    * created_at : timestamptz
+    * updated_at : timestamptz
+}
+
+' ===== Relacje =====
+
+categories ||--o{ vehicles : "kategoryzuje"
+users ||--o{ reservations : "składa"
+vehicles ||--o{ reservations : "dotyczy"
+reservations ||--o| rentals : "realizowana przez"
+users ||--o{ rentals : "obsługuje\n(employee_id)"
+rentals ||--o| price_breakdowns : "rozbicie ceny"
+
+@enduml
