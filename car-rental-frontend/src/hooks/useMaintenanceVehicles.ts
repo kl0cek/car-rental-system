@@ -2,7 +2,12 @@
 
 import useSWR from 'swr';
 import { useCallback, useMemo, useState } from 'react';
-import { mapVehicle, type PaginatedVehiclesApi, type Vehicle, type VehicleStatus } from '@/types/vehicle';
+import {
+  mapVehicle,
+  type PaginatedVehiclesApi,
+  type Vehicle,
+  type VehicleStatus,
+} from '@/types/vehicle';
 import type { MaintenancePeriod } from './useUpdateVehicleStatus';
 
 const fetcher = (url: string) =>
