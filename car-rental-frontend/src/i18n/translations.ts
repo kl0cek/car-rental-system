@@ -180,6 +180,20 @@ export const translations = {
     'status.completed': 'Completed',
     'status.cancelled': 'Cancelled',
 
+    // Vehicle colors
+    'color.white': 'White',
+    'color.black': 'Black',
+    'color.grey': 'Grey',
+    'color.silver': 'Silver',
+    'color.blue': 'Blue',
+    'color.red': 'Red',
+    'color.green': 'Green',
+    'color.yellow': 'Yellow',
+    'color.orange': 'Orange',
+    'color.brown': 'Brown',
+    'color.beige': 'Beige',
+    'color.other': 'Other',
+
     // New booking wizard
     'newBooking.title': 'New Booking',
     'newBooking.subtitle': 'Reserve a vehicle in a few steps',
@@ -538,6 +552,20 @@ export const translations = {
     'status.active': 'Aktywna',
     'status.completed': 'Zakończona',
     'status.cancelled': 'Anulowana',
+
+    // Vehicle colors
+    'color.white': 'Biały',
+    'color.black': 'Czarny',
+    'color.grey': 'Szary',
+    'color.silver': 'Srebrny',
+    'color.blue': 'Niebieski',
+    'color.red': 'Czerwony',
+    'color.green': 'Zielony',
+    'color.yellow': 'Żółty',
+    'color.orange': 'Pomarańczowy',
+    'color.brown': 'Brązowy',
+    'color.beige': 'Beżowy',
+    'color.other': 'Inny',
 
     // New booking wizard
     'newBooking.title': 'Nowa rezerwacja',

@@ -1,14 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import type { CategoryName, EngineType } from '@/types/vehicle';
+import type { CategoryName, EngineType, VehicleColor } from '@/types/vehicle';
 
 export interface CreateVehicleInput {
   brand: string;
   model: string;
   year: number;
   licensePlate: string;
-  color: string;
+  color: VehicleColor;
   category: CategoryName;
   engineType: EngineType;
   horsepower: number;

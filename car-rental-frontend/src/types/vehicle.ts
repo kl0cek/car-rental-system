@@ -1,6 +1,19 @@
 export type EngineType = 'petrol' | 'diesel' | 'electric' | 'hybrid';
 export type VehicleStatus = 'available' | 'rented' | 'maintenance' | 'out_of_service';
 export type CategoryName = 'economy' | 'comfort' | 'premium' | 'suv' | 'van';
+export type VehicleColor =
+  | 'white'
+  | 'black'
+  | 'grey'
+  | 'silver'
+  | 'blue'
+  | 'red'
+  | 'green'
+  | 'yellow'
+  | 'orange'
+  | 'brown'
+  | 'beige'
+  | 'other';
 export type SortableField =
   | 'brand'
   | 'model'
@@ -36,7 +49,7 @@ export interface VehicleApi {
   seats: number;
   trunk_capacity: number;
   daily_base_price: string;
-  color: string;
+  color: VehicleColor;
   mileage: number;
   image_url: string | null;
   status: VehicleStatus;
@@ -63,7 +76,7 @@ export interface Vehicle {
   seats: number;
   trunkCapacity: number;
   dailyBasePrice: number;
-  color: string;
+  color: VehicleColor;
   mileage: number;
   imageUrl: string | null;
   status: VehicleStatus;

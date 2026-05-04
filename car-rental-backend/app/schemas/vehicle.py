@@ -13,13 +13,12 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.models.category import CategoryName
-from app.models.vehicle import EngineType, VehicleStatus
+from app.models.vehicle import EngineType, VehicleColor, VehicleStatus
 
 VIN_LENGTH = 17
 LICENSE_PLATE_MAX = 20
 BRAND_MAX = 100
 MODEL_MAX = 100
-COLOR_MAX = 50
 MIN_YEAR = 1900
 
 SortableField = Literal[
@@ -78,7 +77,7 @@ class VehicleListItem(BaseModel):
     seats: int
     trunk_capacity: int
     daily_base_price: Decimal
-    color: str
+    color: VehicleColor
     mileage: int
     image_url: str | None
     status: VehicleStatus
@@ -109,7 +108,7 @@ class VehicleDetailResponse(BaseModel):
     seats: int
     trunk_capacity: int
     daily_base_price: Decimal
-    color: str
+    color: VehicleColor
     mileage: int
     image_url: str | None
     status: VehicleStatus
@@ -154,7 +153,7 @@ class VehicleCreate(BaseModel):
     seats: int = Field(gt=0)
     trunk_capacity: int = Field(ge=0)
     daily_base_price: Decimal = Field(gt=0, le=Decimal("99999999.99"))
-    color: str = Field(min_length=1, max_length=COLOR_MAX)
+    color: VehicleColor
     category_id: uuid.UUID
     mileage: int = Field(default=0, ge=0)
     status: VehicleStatus = VehicleStatus.AVAILABLE
@@ -194,7 +193,7 @@ class VehicleUpdate(BaseModel):
     seats: int | None = Field(default=None, gt=0)
     trunk_capacity: int | None = Field(default=None, ge=0)
     daily_base_price: Decimal | None = Field(default=None, gt=0, le=Decimal("99999999.99"))
-    color: str | None = Field(default=None, min_length=1, max_length=COLOR_MAX)
+    color: VehicleColor | None = None
     category_id: uuid.UUID | None = None
     mileage: int | None = Field(default=None, ge=0)
     status: VehicleStatus | None = None

@@ -48,6 +48,21 @@ class VehicleStatus(enum.StrEnum):
     OUT_OF_SERVICE = "out_of_service"
 
 
+class VehicleColor(enum.StrEnum):
+    WHITE = "white"
+    BLACK = "black"
+    GREY = "grey"
+    SILVER = "silver"
+    BLUE = "blue"
+    RED = "red"
+    GREEN = "green"
+    YELLOW = "yellow"
+    ORANGE = "orange"
+    BROWN = "brown"
+    BEIGE = "beige"
+    OTHER = "other"
+
+
 class Vehicle(Base):
     __tablename__ = "vehicles"
     __table_args__ = (
@@ -79,7 +94,7 @@ class Vehicle(Base):
     seats: Mapped[int] = mapped_column(Integer)
     trunk_capacity: Mapped[int] = mapped_column(Integer)
     daily_base_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), index=True)
-    color: Mapped[str] = mapped_column(String(50))
+    color: Mapped[VehicleColor] = mapped_column(Enum(VehicleColor, native_enum=False), index=True)
     mileage: Mapped[int] = mapped_column(Integer, default=0)
     image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[VehicleStatus] = mapped_column(

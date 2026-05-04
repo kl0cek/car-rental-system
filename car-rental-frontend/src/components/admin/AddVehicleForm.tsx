@@ -16,8 +16,8 @@ import {
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/translations';
 import { useCreateVehicle, type CreateVehicleInput } from '@/hooks/useCreateVehicle';
-import { CATEGORIES, ENGINE_TYPES } from '@/data/vehicles/constants';
-import type { CategoryName, EngineType } from '@/types/vehicle';
+import { CATEGORIES, ENGINE_TYPES, VEHICLE_COLORS } from '@/data/vehicles/constants';
+import type { CategoryName, EngineType, VehicleColor } from '@/types/vehicle';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -26,7 +26,7 @@ const INITIAL: CreateVehicleInput = {
   model: '',
   year: CURRENT_YEAR,
   licensePlate: '',
-  color: '',
+  color: 'white',
   category: 'economy',
   engineType: 'petrol',
   horsepower: 100,
@@ -114,8 +114,22 @@ export function AddVehicleForm({ onSuccess }: AddVehicleFormProps) {
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="color">{t('addVehicle.color')}</Label>
-          <Input id="color" value={form.color} onChange={(e) => update('color', e.target.value)} required />
+          <Label>{t('addVehicle.color')}</Label>
+          <Select
+            value={form.color}
+            onValueChange={(v: string) => update('color', v as VehicleColor)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {VEHICLE_COLORS.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {t(`color.${c}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-1.5">
           <Label>{t('addVehicle.category')}</Label>

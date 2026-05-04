@@ -13,6 +13,8 @@ import { AvailabilityCalendar } from './AvailabilityCalendar';
 import { PriceCalculator } from './PriceCalculator';
 import { useVehicleAvailability } from '@/hooks/useVehicleAvailability';
 import { useCreateReservation } from '@/hooks/useCreateReservation';
+import { useTranslation } from '@/i18n/useTranslation';
+import type { TranslationKey } from '@/i18n/translations';
 
 interface VehicleDetailPanelProps {
   vehicle: Vehicle;
@@ -20,6 +22,7 @@ interface VehicleDetailPanelProps {
 }
 
 export function VehicleDetailPanel({ vehicle, onClose }: VehicleDetailPanelProps) {
+  const { t } = useTranslation();
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [reserved, setReserved] = useState(false);
@@ -127,7 +130,7 @@ export function VehicleDetailPanel({ vehicle, onClose }: VehicleDetailPanelProps
               {vehicle.brand} {vehicle.model}
             </h2>
             <p className="text-muted-foreground">
-              {vehicle.year} · {vehicle.color}
+              {vehicle.year} · {t(`color.${vehicle.color}` as TranslationKey)}
             </p>
           </div>
 

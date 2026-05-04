@@ -10,9 +10,12 @@ import {
 import { TableCell, TableRow } from '@/components/ui/table';
 import { STATUS_CONFIG, ENGINE_CONFIG, CATEGORY_LABELS } from '@/data/vehicles/constants';
 import type { Vehicle } from '@/types/vehicle';
+import { useTranslation } from '@/i18n/useTranslation';
+import type { TranslationKey } from '@/i18n/translations';
 import Image from 'next/image';
 
 export function VehicleRow({ vehicle: v }: { vehicle: Vehicle }) {
+  const { t } = useTranslation();
   const status = STATUS_CONFIG[v.status];
   const engine = ENGINE_CONFIG[v.engineType];
   const EngineIcon = engine.Icon;
@@ -34,7 +37,7 @@ export function VehicleRow({ vehicle: v }: { vehicle: Vehicle }) {
           {v.brand} {v.model}
         </p>
         <p className="text-xs text-muted-foreground">
-          {v.color} · {v.seats} seats
+          {t(`color.${v.color}` as TranslationKey)} · {v.seats} seats
         </p>
       </TableCell>
 

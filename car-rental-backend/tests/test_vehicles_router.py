@@ -4,7 +4,7 @@ from decimal import Decimal
 from unittest.mock import AsyncMock, patch
 
 from app.models.category import CategoryName
-from app.models.vehicle import EngineType, VehicleStatus
+from app.models.vehicle import EngineType, VehicleColor, VehicleStatus
 from app.schemas.vehicle import (
     AvailabilityResponse,
     BookedDateRange,
@@ -35,7 +35,7 @@ def _make_vehicle_list_item() -> VehicleListItem:
         seats=5,
         trunk_capacity=361,
         daily_base_price=Decimal("150.00"),
-        color="White",
+        color=VehicleColor.WHITE,
         mileage=25000,
         image_url=None,
         status=VehicleStatus.AVAILABLE,
@@ -54,7 +54,7 @@ def _make_vehicle_detail(vehicle_id: uuid.UUID | None = None) -> VehicleDetailRe
         seats=5,
         trunk_capacity=361,
         daily_base_price=Decimal("150.00"),
-        color="White",
+        color=VehicleColor.WHITE,
         mileage=25000,
         image_url=None,
         status=VehicleStatus.AVAILABLE,
