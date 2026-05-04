@@ -1,3 +1,10 @@
+"""Repozytorium wynajmów (rentals) i rozbicia ceny.
+
+Tworzenie rekordu wynajmu przy odbiorze pojazdu, aktualizacja przy
+zwrocie oraz pobranie danych do raportów (z dołączoną rezerwacją
+i breakdownem ceny).
+"""
+
 import uuid
 from datetime import datetime
 from decimal import Decimal

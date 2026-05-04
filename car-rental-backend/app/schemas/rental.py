@@ -1,3 +1,9 @@
+"""Schematy DTO dla wynajmu (odbiór i zwrot pojazdu).
+
+Walidują dane wprowadzane przez pracownika w panelu — przebieg, poziom
+paliwa, ewentualne uwagi o uszkodzeniach.
+"""
+
 import uuid
 from datetime import datetime
 from decimal import Decimal

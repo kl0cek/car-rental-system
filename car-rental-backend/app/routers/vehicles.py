@@ -1,3 +1,9 @@
+"""Router publicznego katalogu pojazdów (`/vehicles`).
+
+Endpointy bez autoryzacji — listing z paginacją i filtrami,
+sprawdzanie dostępności w zakresie dat oraz szczegóły pojazdu.
+"""
+
 import uuid
 from datetime import date
 from decimal import Decimal

@@ -1,3 +1,10 @@
+"""Serwis profilu użytkownika.
+
+Aktualizacja danych osobowych, zmiana hasła, przesyłanie i kasowanie
+awatara (z normalizacją obrazu przez Pillow), unieważnianie cache
+po każdej modyfikacji oraz panel admina (zmiana roli, soft-delete).
+"""
+
 import asyncio
 import secrets
 import uuid
@@ -54,6 +61,7 @@ async def update_profile(
         if existing is not None and existing.id != db_user.id:
             raise EmailAlreadyRegisteredError(body.email)
         db_user.email = body.email
+        # Zmiana maila resetuje weryfikację — użytkownik musi potwierdzić nowy adres
         db_user.is_verified = False
 
         verification_token = secrets.token_urlsafe(32)

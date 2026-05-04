@@ -1,3 +1,10 @@
+"""Blacklista tokenów JWT trzymana w Redisie.
+
+Po wylogowaniu lub zmianie hasła hash tokena trafia do Redisa z TTL
+równym pozostałemu czasowi ważności tokena, dzięki czemu można go
+odrzucić mimo że wciąż jest poprawny kryptograficznie.
+"""
+
 import hashlib
 
 from redis.asyncio import Redis

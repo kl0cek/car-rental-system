@@ -1,3 +1,11 @@
+"""Współdzielone zależności FastAPI (Depends).
+
+Obsługuje uwierzytelnianie po tokenie JWT (z nagłówka Authorization lub
+ciasteczka httpOnly), sprawdza blacklistę tokenów w Redisie, pobiera
+zalogowanego użytkownika (z cache lub bazy) i wystawia helper
+`require_roles` do autoryzacji opartej o role.
+"""
+
 import uuid
 from collections.abc import Awaitable, Callable
 from typing import Annotated
@@ -83,6 +91,8 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    # Najpierw cache w Redisie, dopiero potem Postgres — chroni hot-path
+    # przed uderzeniem w bazę przy każdym żądaniu uwierzytelnionym
     user = await get_cached_user_model(redis, user_id)
     if user is None:
         user = await user_repository.get_by_id(db, user_id)

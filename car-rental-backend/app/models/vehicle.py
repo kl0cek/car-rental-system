@@ -1,3 +1,10 @@
+"""Model pojazdu wraz z wyliczeniami typu silnika i statusu.
+
+Unikalność VIN i tablicy rejestracyjnej jest wymuszana przez częściowy
+indeks `WHERE is_active = true` — soft-delete nie blokuje ponownego
+wprowadzenia tego samego pojazdu fizycznego.
+"""
+
 from __future__ import annotations
 
 import enum
@@ -10,11 +17,13 @@ from sqlalchemy import (
     CheckConstraint,
     Enum,
     ForeignKey,
+    Index,
     Integer,
     Numeric,
     String,
     Text,
     Uuid,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -46,13 +55,25 @@ class Vehicle(Base):
         CheckConstraint("seats > 0", name="ck_vehicle_seats_positive"),
         CheckConstraint("trunk_capacity >= 0", name="ck_vehicle_trunk_capacity_non_negative"),
         CheckConstraint("mileage >= 0", name="ck_vehicle_mileage_non_negative"),
+        Index(
+            "uq_vehicles_vin_active",
+            "vin",
+            unique=True,
+            postgresql_where=text("is_active = true"),
+        ),
+        Index(
+            "uq_vehicles_license_plate_active",
+            "license_plate",
+            unique=True,
+            postgresql_where=text("is_active = true"),
+        ),
     )
 
     brand: Mapped[str] = mapped_column(String(100), index=True)
     model: Mapped[str] = mapped_column(String(100))
     year: Mapped[int] = mapped_column(Integer)
-    license_plate: Mapped[str] = mapped_column(String(20), unique=True)
-    vin: Mapped[str] = mapped_column(String(17), unique=True)
+    license_plate: Mapped[str] = mapped_column(String(20))
+    vin: Mapped[str] = mapped_column(String(17))
     engine_type: Mapped[EngineType] = mapped_column(Enum(EngineType, native_enum=False), index=True)
     horsepower: Mapped[int] = mapped_column(Integer)
     seats: Mapped[int] = mapped_column(Integer)

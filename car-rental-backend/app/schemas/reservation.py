@@ -1,3 +1,9 @@
+"""Schematy DTO dla rezerwacji.
+
+Tworzenie rezerwacji przez klienta, zmiana statusu, zwracane
+podsumowania (z danymi pojazdu i wyliczoną ceną).
+"""
+
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, date, datetime

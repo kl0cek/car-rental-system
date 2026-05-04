@@ -1,3 +1,10 @@
+"""Repozytorium użytkowników — wszystkie zapytania SQL dotyczące tabeli `users`.
+
+Warstwa repozytorium izoluje serwisy od SQLAlchemy: zwraca obiekty
+modeli i przyjmuje proste argumenty, dzięki czemu logika biznesowa
+nie wie nic o sposobie persystencji.
+"""
+
 import uuid
 from datetime import datetime
 from decimal import Decimal

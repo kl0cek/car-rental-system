@@ -1,3 +1,9 @@
+"""Repozytorium rezerwacji — zapytania o `reservations` z eager-load pojazdu.
+
+Obsługuje listing rezerwacji per użytkownik, paginację oraz wyszukiwanie
+po statusach (np. aktywne / nadchodzące).
+"""
+
 import uuid
 from datetime import datetime
 from decimal import Decimal

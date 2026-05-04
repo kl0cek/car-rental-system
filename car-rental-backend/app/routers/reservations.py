@@ -1,3 +1,10 @@
+"""Router rezerwacji (`/reservations`).
+
+Klient tworzy rezerwację, anuluje własną, listuje swoje rezerwacje;
+pracownik / admin potwierdza lub anuluje cudze. Mail z potwierdzeniem
+wysyłany jest po commicie w background tasku.
+"""
+
 import uuid
 from typing import Annotated
 

@@ -1,3 +1,9 @@
+"""Klient Redisa trzymany jako singleton aplikacyjny.
+
+Redis służy do: cache'u sesji użytkowników, blacklisty tokenów JWT,
+rate-limitingu, kolejki maili i krótkotrwałych cache'y dostępności.
+"""
+
 from redis.asyncio import Redis
 
 from app.config import settings

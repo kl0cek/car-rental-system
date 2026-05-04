@@ -1,3 +1,11 @@
+"""Serwis wynajmu (pickup / return).
+
+Pracownik potwierdza odbiór pojazdu (powstaje rekord `Rental` ze stanem
+licznika i paliwa) oraz zwrot. Przy zwrocie wyliczana jest finalna cena
+(z dopłatą paliwową) i zapisywana w `RentalPriceBreakdown`. Historia
+trafia także do MongoDB.
+"""
+
 import uuid
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -98,6 +106,10 @@ async def return_rental(
         return_date=datetime.now(tz=UTC),
     )
 
+    # Wyliczenie ceny finalnej:
+    # - base_price: pierwotna cena z rezerwacji + dopłaty (np. szkody, czyszczenie)
+    # - fuel_surcharge: dopłata za każdy "brakujący" % paliwa (tylko gdy auto wraca z mniejszym)
+    # - risk_multiplier: zarezerwowane na przyszłość pod cennik zależny od historii klienta
     reservation = rental.reservation
     base_price = (reservation.total_price + body.extra_charges).quantize(Decimal("0.01"))
     fuel_diff = rental.fuel_level_start - body.fuel_level_end

@@ -1,3 +1,9 @@
+"""Funkcje kryptograficzne i obsługa tokenów JWT.
+
+Hashowanie i weryfikacja haseł (bcrypt) oraz generowanie/dekodowanie
+tokenów dostępowych i odświeżających na podstawie ustawień z `settings`.
+"""
+
 from datetime import UTC, datetime, timedelta
 
 from jose import JWTError, jwt

@@ -1,3 +1,10 @@
+"""Wyjątki domenowe rzucane przez warstwę serwisów.
+
+Routery mapują je na właściwe odpowiedzi HTTP — dzięki temu serwisy
+nie zależą od FastAPI i pozostają testowalne w izolacji.
+"""
+
+
 class EmailAlreadyRegisteredError(Exception):
     def __init__(self, email: str) -> None:
         self.email = email

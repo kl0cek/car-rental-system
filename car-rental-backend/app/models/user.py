@@ -1,3 +1,9 @@
+"""Model użytkownika i wyliczenie ról.
+
+Obejmuje dane logowania, dane profilowe oraz `risk_score` używany przy
+dynamicznym wyliczaniu ceny wynajmu na podstawie historii.
+"""
+
 from __future__ import annotations
 
 import enum

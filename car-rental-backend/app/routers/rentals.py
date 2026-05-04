@@ -1,3 +1,10 @@
+"""Router wynajmu (`/rentals`) — pickup i return.
+
+Endpointy używane przez pracownika punktu obsługi: rejestrowanie
+odbioru pojazdu (tworzy `Rental`) oraz zwrotu (uzupełnia stan końcowy
+i wylicza cenę). Wpisy logowane są też do MongoDB.
+"""
+
 import uuid
 from typing import Annotated, Any
 

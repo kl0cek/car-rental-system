@@ -1,3 +1,9 @@
+"""Schematy DTO dla operacji na profilu użytkownika i widoku panelu admina.
+
+Obejmuje aktualizację danych, zmianę hasła, listę rezerwacji
+zalogowanego użytkownika i wystawione filtry/odpowiedzi dla admina.
+"""
+
 import uuid
 from datetime import datetime
 from decimal import Decimal

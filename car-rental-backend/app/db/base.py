@@ -1,3 +1,9 @@
+"""Bazowa klasa modeli SQLAlchemy.
+
+Definiuje wspólne kolumny (`id`, `created_at`, `updated_at`) dziedziczone
+przez wszystkie tabele relacyjne.
+"""
+
 import uuid
 from datetime import datetime
 

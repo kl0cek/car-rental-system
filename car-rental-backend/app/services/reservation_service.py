@@ -1,3 +1,10 @@
+"""Serwis rezerwacji.
+
+Tworzenie rezerwacji z walidacją dostępności pojazdu, wyliczeniem
+ceny (kategoria + risk_score), zmiana statusu (potwierdzenie /
+anulowanie) i wysyłka maili powiadomień przy potwierdzeniu.
+"""
+
 import uuid
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -25,6 +32,8 @@ async def create_reservation(
     current_user: User,
     body: CreateReservationRequest,
 ) -> Reservation:
+    # SELECT ... FOR UPDATE — blokujemy wiersz pojazdu na czas transakcji,
+    # żeby dwóch klientów nie zarezerwowało tego samego auta jednocześnie
     vehicle = await vehicle_repository.get_by_id_for_update(db, body.vehicle_id)
     if vehicle is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vehicle not found")
@@ -87,6 +96,7 @@ async def cancel_reservation(
             detail=f"Cannot cancel a reservation with status '{reservation.status}'",
         )
 
+    # Reguła biznesowa: anulować można najpóźniej 24h przed rozpoczęciem rezerwacji
     now = datetime.now(tz=UTC)
     min_cancel_time = reservation.start_date - timedelta(hours=24)
     if now > min_cancel_time:

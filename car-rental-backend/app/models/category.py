@@ -1,3 +1,9 @@
+"""Model kategorii pojazdu (ekonomiczna, komfort, premium, SUV, van).
+
+`price_multiplier` to mnożnik bazowej ceny dziennej pojazdu zależny
+od kategorii.
+"""
+
 from __future__ import annotations
 
 import enum

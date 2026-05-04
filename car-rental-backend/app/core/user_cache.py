@@ -1,3 +1,11 @@
+"""Cache zalogowanego użytkownika w Redisie.
+
+Pozwala unikać uderzania w Postgresa przy każdym żądaniu chronionym
+JWT — dane są serializowane do JSON i przechowywane przez
+USER_CACHE_TTL_SECONDS. Hasło nigdy nie trafia do cache.
+Cache jest unieważniany po zmianach profilu/uprawnień.
+"""
+
 import json
 import logging
 import uuid

@@ -1,3 +1,10 @@
+"""Repozytorium pojazdów — zapytania o katalog, dostępność, panel admina.
+
+Wspiera filtrowanie po kategorii/silniku/cenie, sprawdzanie kolizji
+rezerwacji w zadanym przedziale dat oraz operacje CRUD wykorzystywane
+przez serwis pojazdów.
+"""
+
 import uuid
 from datetime import UTC, date, datetime, time
 from decimal import Decimal
@@ -148,6 +155,8 @@ async def count_conflicting_reservations(
     start_date: date,
     end_date: date,
 ) -> int:
+    # Klasyczny wzorzec na nakładające się przedziały:
+    # rezerwacje kolidują gdy A.start < B.end AND A.end > B.start
     stmt = select(func.count()).where(
         Reservation.vehicle_id == vehicle_id,
         Reservation.status.in_(BLOCKING_STATUSES),
@@ -156,6 +165,42 @@ async def count_conflicting_reservations(
     )
     result = await db.execute(stmt)
     return result.scalar_one()
+
+
+async def has_blocking_reservations(
+    db: AsyncSession,
+    vehicle_id: uuid.UUID,
+) -> bool:
+    """Return True if vehicle has any pending/confirmed/active reservation."""
+    stmt = (
+        select(Reservation.id)
+        .where(
+            Reservation.vehicle_id == vehicle_id,
+            Reservation.status.in_(BLOCKING_STATUSES),
+        )
+        .limit(1)
+    )
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none() is not None
+
+
+async def create(db: AsyncSession, vehicle: Vehicle) -> Vehicle:
+    db.add(vehicle)
+    await db.flush()
+    await db.refresh(vehicle)
+    return vehicle
+
+
+async def update(db: AsyncSession, vehicle: Vehicle) -> Vehicle:
+    await db.flush()
+    await db.refresh(vehicle)
+    return vehicle
+
+
+async def soft_delete(db: AsyncSession, vehicle: Vehicle) -> Vehicle:
+    vehicle.is_active = False
+    await db.flush()
+    return vehicle
 
 
 async def get_booked_dates(

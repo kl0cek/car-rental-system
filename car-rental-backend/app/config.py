@@ -1,3 +1,9 @@
+"""Konfiguracja aplikacji wczytywana z plików .env i zmiennych środowiskowych.
+
+Zawiera ustawienia połączeń (PostgreSQL, MongoDB, Redis), parametry JWT,
+SMTP, CORS oraz stałe biznesowe (np. dopłata za paliwo).
+"""
+
 from decimal import Decimal
 
 from pydantic_settings import BaseSettings
