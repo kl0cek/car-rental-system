@@ -6,7 +6,7 @@ ceną dzienną.
 """
 
 import uuid
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Literal
 
@@ -138,7 +138,7 @@ class AvailabilityResponse(BaseModel):
 
 
 def _current_year() -> int:
-    return datetime.now(timezone.utc).year
+    return datetime.now(UTC).year
 
 
 class VehicleCreate(BaseModel):

@@ -41,8 +41,9 @@ from app.services.auth_service import (
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# Tokeny trzymamy w ciasteczkach httpOnly+SameSite=lax — JS nie ma do nich dostępu (chroni przed XSS),
-# a samesite=lax blokuje typowe ataki CSRF. `secure` wyłączamy tylko w trybie DEBUG (lokalny http).
+# Tokeny trzymamy w ciasteczkach httpOnly+SameSite=lax —
+# JS nie ma do nich dostępu (chroni przed XSS), a samesite=lax blokuje
+# typowe ataki CSRF. `secure` wyłączamy tylko w trybie DEBUG (lokalny http).
 COOKIE_OPTS: dict[str, Any] = {
     "httponly": True,
     "samesite": "lax",
