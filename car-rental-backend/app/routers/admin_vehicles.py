@@ -28,9 +28,7 @@ AdminUser = Annotated[User, Depends(require_roles(UserRole.ADMIN))]
 def _validation_error_to_http(exc: ValidationError) -> HTTPException:
     return HTTPException(
         status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY,
-        detail=[
-            {"loc": list(e["loc"]), "msg": e["msg"], "type": e["type"]} for e in exc.errors()
-        ],
+        detail=[{"loc": list(e["loc"]), "msg": e["msg"], "type": e["type"]} for e in exc.errors()],
     )
 
 

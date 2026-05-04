@@ -226,9 +226,7 @@ def _integrity_error_to_http(exc: IntegrityError) -> HTTPException:
     )
 
 
-async def _build_detail_response(
-    db: AsyncSession, vehicle: Vehicle
-) -> VehicleDetailResponse:
+async def _build_detail_response(db: AsyncSession, vehicle: Vehicle) -> VehicleDetailResponse:
     booked_dates = await vehicle_repository.get_booked_dates(db, vehicle.id)
     average_rating, review_count = await _get_review_stats(vehicle.id)
     return VehicleDetailResponse(
@@ -299,11 +297,7 @@ async def create_vehicle(
         raise _integrity_error_to_http(exc)
 
     # Eager-load category for response
-    stmt = (
-        select(Vehicle)
-        .options(joinedload(Vehicle.category))
-        .where(Vehicle.id == vehicle.id)
-    )
+    stmt = select(Vehicle).options(joinedload(Vehicle.category)).where(Vehicle.id == vehicle.id)
     vehicle = (await db.execute(stmt)).scalar_one()
     return await _build_detail_response(db, vehicle)
 
@@ -347,11 +341,7 @@ async def update_vehicle(
         _schedule_image_unlink(db, previous_image_url)
 
     # Re-fetch with category eager-loaded for response
-    stmt = (
-        select(Vehicle)
-        .options(joinedload(Vehicle.category))
-        .where(Vehicle.id == vehicle.id)
-    )
+    stmt = select(Vehicle).options(joinedload(Vehicle.category)).where(Vehicle.id == vehicle.id)
     vehicle = (await db.execute(stmt)).scalar_one()
     return await _build_detail_response(db, vehicle)
 
