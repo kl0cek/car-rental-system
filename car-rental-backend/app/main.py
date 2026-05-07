@@ -19,7 +19,17 @@ from app.db.engine import async_engine
 from app.db.mongodb import close_mongo, connect_mongo
 from app.db.redis import close_redis, connect_redis
 from app.db.session import DbSession
-from app.routers import admin, admin_vehicles, auth, rentals, reservations, users, vehicles
+from app.routers import (
+    admin,
+    admin_customers,
+    admin_vehicles,
+    auth,
+    categories,
+    rentals,
+    reservations,
+    users,
+    vehicles,
+)
 from app.services.user_service import AVATAR_UPLOAD_DIR
 from app.services.vehicle_service import VEHICLE_IMAGE_UPLOAD_DIR
 
@@ -69,12 +79,14 @@ app.mount(
 )
 
 app.include_router(auth.router)
+app.include_router(categories.router)
 app.include_router(vehicles.router)
 app.include_router(reservations.router)
 app.include_router(rentals.router)
 app.include_router(users.router)
 app.include_router(admin.router)
 app.include_router(admin_vehicles.router)
+app.include_router(admin_customers.router)
 
 
 @app.get("/")

@@ -1,8 +1,9 @@
 """Router panelu admina dla pojazdów (`/admin/vehicles`).
 
-CRUD pojazdów, upload/usuwanie zdjęcia. Wymaga roli ADMIN. Body
-multipart jest parsowane ręcznie przez Pydantic, bo FastAPI nie
-zintegruje formularza z zagnieżdżonymi typami w jednej funkcji.
+CRUD pojazdów, zarządzanie galerią zdjęć (upload/usuwanie/reorder/primary)
+oraz zbiorcza zmiana statusu floty. Wymaga roli ADMIN. Body multipart
+jest parsowane ręcznie przez Pydantic, bo FastAPI nie zintegruje formularza
+z zagnieżdżonymi typami w jednej funkcji.
 """
 
 import uuid
@@ -17,7 +18,13 @@ from app.core.deps import require_roles
 from app.db.session import DbSession
 from app.models.user import User, UserRole
 from app.models.vehicle import EngineType, VehicleStatus
-from app.schemas.vehicle import VehicleCreate, VehicleDetailResponse, VehicleUpdate
+from app.schemas.vehicle import (
+    VehicleBulkStatusResponse,
+    VehicleBulkStatusUpdate,
+    VehicleCreate,
+    VehicleDetailResponse,
+    VehicleUpdate,
+)
 from app.services import vehicle_service
 
 router = APIRouter(prefix="/admin/vehicles", tags=["admin", "vehicles"])
@@ -55,7 +62,7 @@ async def create_vehicle(
     category_id: Annotated[uuid.UUID, Form()],
     mileage: Annotated[int, Form()] = 0,
     status: Annotated[VehicleStatus, Form()] = VehicleStatus.AVAILABLE,
-    image: Annotated[UploadFile | None, File()] = None,
+    images: Annotated[list[UploadFile] | None, File()] = None,
 ) -> VehicleDetailResponse:
     try:
         body = VehicleCreate(
@@ -77,13 +84,13 @@ async def create_vehicle(
     except ValidationError as exc:
         raise _validation_error_to_http(exc)
 
-    return await vehicle_service.create_vehicle(db, body, image)
+    return await vehicle_service.create_vehicle(db, body, images)
 
 
 @router.put(
     "/{vehicle_id}",
     response_model=VehicleDetailResponse,
-    summary="Update an existing vehicle (admin only)",
+    summary="Update vehicle scalar fields (admin only). Images managed via dedicated endpoints.",
 )
 async def update_vehicle(
     vehicle_id: uuid.UUID,
@@ -103,7 +110,6 @@ async def update_vehicle(
     category_id: Annotated[uuid.UUID | None, Form()] = None,
     mileage: Annotated[int | None, Form()] = None,
     status: Annotated[VehicleStatus | None, Form()] = None,
-    image: Annotated[UploadFile | None, File()] = None,
 ) -> VehicleDetailResponse:
     raw_fields = {
         "brand": brand,
@@ -128,7 +134,7 @@ async def update_vehicle(
     except ValidationError as exc:
         raise _validation_error_to_http(exc)
 
-    result = await vehicle_service.update_vehicle(db, vehicle_id, body, image)
+    result = await vehicle_service.update_vehicle(db, vehicle_id, body)
     if result is None:
         raise HTTPException(
             status_code=http_status.HTTP_404_NOT_FOUND,
@@ -154,3 +160,98 @@ async def delete_vehicle(
             detail="Vehicle not found",
         )
     return Response(status_code=http_status.HTTP_204_NO_CONTENT)
+
+
+@router.patch(
+    "/bulk-status",
+    response_model=VehicleBulkStatusResponse,
+    summary="Bulk-update status across many vehicles (admin only)",
+)
+async def bulk_update_status(
+    body: VehicleBulkStatusUpdate,
+    db: DbSession,
+    _: AdminUser,
+) -> VehicleBulkStatusResponse:
+    return await vehicle_service.bulk_update_status(db, body.ids, body.status)
+
+
+@router.post(
+    "/{vehicle_id}/images",
+    response_model=VehicleDetailResponse,
+    status_code=http_status.HTTP_201_CREATED,
+    summary="Upload an additional image for a vehicle (admin only)",
+)
+async def upload_vehicle_image(
+    vehicle_id: uuid.UUID,
+    db: DbSession,
+    _: AdminUser,
+    image: Annotated[UploadFile, File()],
+    is_primary: Annotated[bool, Form()] = False,
+) -> VehicleDetailResponse:
+    result = await vehicle_service.add_vehicle_image(db, vehicle_id, image, is_primary)
+    if result is None:
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="Vehicle not found",
+        )
+    return result
+
+
+@router.delete(
+    "/{vehicle_id}/images/{image_id}",
+    response_model=VehicleDetailResponse,
+    summary="Delete a vehicle image (admin only)",
+)
+async def delete_vehicle_image(
+    vehicle_id: uuid.UUID,
+    image_id: uuid.UUID,
+    db: DbSession,
+    _: AdminUser,
+) -> VehicleDetailResponse:
+    result = await vehicle_service.delete_vehicle_image(db, vehicle_id, image_id)
+    if result is None:
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="Image not found",
+        )
+    return result
+
+
+@router.post(
+    "/{vehicle_id}/images/{image_id}/primary",
+    response_model=VehicleDetailResponse,
+    summary="Mark a vehicle image as the primary one (admin only)",
+)
+async def set_vehicle_primary_image(
+    vehicle_id: uuid.UUID,
+    image_id: uuid.UUID,
+    db: DbSession,
+    _: AdminUser,
+) -> VehicleDetailResponse:
+    result = await vehicle_service.set_vehicle_primary_image(db, vehicle_id, image_id)
+    if result is None:
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="Image not found",
+        )
+    return result
+
+
+@router.put(
+    "/{vehicle_id}/images/order",
+    response_model=VehicleDetailResponse,
+    summary="Reorder vehicle images (admin only)",
+)
+async def reorder_vehicle_images(
+    vehicle_id: uuid.UUID,
+    db: DbSession,
+    _: AdminUser,
+    ordered_ids: list[uuid.UUID],
+) -> VehicleDetailResponse:
+    result = await vehicle_service.reorder_vehicle_images(db, vehicle_id, ordered_ids)
+    if result is None:
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="Vehicle not found",
+        )
+    return result

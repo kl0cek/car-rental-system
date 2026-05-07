@@ -43,6 +43,7 @@ class VehicleListParams(BaseModel):
     status: VehicleStatus | None = None
     available_from: date | None = None
     available_to: date | None = None
+    search: str | None = Field(default=None, max_length=100)
 
     @model_validator(mode="after")
     def validate_ranges(self) -> "VehicleListParams":
@@ -67,11 +68,21 @@ class CategoryResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class VehicleImageResponse(BaseModel):
+    id: uuid.UUID
+    url: str
+    position: int
+    is_primary: bool
+
+    model_config = {"from_attributes": True}
+
+
 class VehicleListItem(BaseModel):
     id: uuid.UUID
     brand: str
     model: str
     year: int
+    license_plate: str
     engine_type: EngineType
     horsepower: int
     seats: int
@@ -79,7 +90,8 @@ class VehicleListItem(BaseModel):
     daily_base_price: Decimal
     color: VehicleColor
     mileage: int
-    image_url: str | None
+    image_url: str | None  # convenience: URL of primary image, computed by service
+    images: list[VehicleImageResponse]
     status: VehicleStatus
     category: CategoryResponse
 
@@ -103,6 +115,8 @@ class VehicleDetailResponse(BaseModel):
     brand: str
     model: str
     year: int
+    license_plate: str
+    vin: str
     engine_type: EngineType
     horsepower: int
     seats: int
@@ -110,7 +124,8 @@ class VehicleDetailResponse(BaseModel):
     daily_base_price: Decimal
     color: VehicleColor
     mileage: int
-    image_url: str | None
+    image_url: str | None  # convenience: URL of primary image
+    images: list[VehicleImageResponse]
     status: VehicleStatus
     is_active: bool
     category: CategoryResponse
@@ -224,3 +239,16 @@ class VehicleUpdate(BaseModel):
         if value is None:
             return value
         return value.strip().upper()
+
+
+class VehicleBulkStatusUpdate(BaseModel):
+    """Atomically change ``status`` on a batch of vehicles."""
+
+    ids: list[uuid.UUID] = Field(min_length=1, max_length=200)
+    status: VehicleStatus
+
+
+class VehicleBulkStatusResponse(BaseModel):
+    updated: int
+    not_found: list[uuid.UUID]
+

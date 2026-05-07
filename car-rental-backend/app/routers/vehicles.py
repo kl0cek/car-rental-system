@@ -45,6 +45,7 @@ async def list_vehicles(
     status: VehicleStatus | None = Query(default=None),
     available_from: date | None = Query(default=None),
     available_to: date | None = Query(default=None),
+    search: str | None = Query(default=None, max_length=100),
 ) -> PaginatedVehicleResponse:
     try:
         params = VehicleListParams(
@@ -62,6 +63,7 @@ async def list_vehicles(
             status=status,
             available_from=available_from,
             available_to=available_to,
+            search=search,
         )
     except ValidationError as exc:
         raise HTTPException(

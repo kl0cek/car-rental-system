@@ -17,19 +17,22 @@ from PIL import Image, UnidentifiedImageError
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from app.db.mongodb import get_mongo_db
 from app.db.session import schedule_post_commit
 from app.models.category import Category
-from app.models.vehicle import Vehicle
+from app.models.vehicle import Vehicle, VehicleStatus
+from app.models.vehicle_image import VehicleImage
 from app.repositories import vehicle_repository
 from app.schemas.vehicle import (
     AvailabilityRequest,
     AvailabilityResponse,
     PaginatedVehicleResponse,
+    VehicleBulkStatusResponse,
     VehicleCreate,
     VehicleDetailResponse,
+    VehicleImageResponse,
     VehicleListItem,
     VehicleListParams,
     VehicleUpdate,
@@ -41,6 +44,42 @@ VEHICLE_IMAGE_FORMAT_EXTENSIONS = {"JPEG": ".jpg", "PNG": ".png", "WEBP": ".webp
 MAX_VEHICLE_IMAGE_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
 VEHICLE_IMAGE_READ_CHUNK_BYTES = 64 * 1024
 VEHICLE_IMAGE_PUBLIC_PREFIX = "/static/vehicles/"
+
+
+def _primary_image_url(images: list[VehicleImage]) -> str | None:
+    for img in images:
+        if img.is_primary:
+            return img.url
+    # Defensive fallback — vehicles without a primary flag still want a thumbnail
+    if images:
+        return min(images, key=lambda i: i.position).url
+    return None
+
+
+def _serialize_images(images: list[VehicleImage]) -> list[VehicleImageResponse]:
+    ordered = sorted(images, key=lambda i: i.position)
+    return [VehicleImageResponse.model_validate(img) for img in ordered]
+
+
+def _build_list_item(vehicle: Vehicle) -> VehicleListItem:
+    return VehicleListItem(
+        id=vehicle.id,
+        brand=vehicle.brand,
+        model=vehicle.model,
+        year=vehicle.year,
+        license_plate=vehicle.license_plate,
+        engine_type=vehicle.engine_type,
+        horsepower=vehicle.horsepower,
+        seats=vehicle.seats,
+        trunk_capacity=vehicle.trunk_capacity,
+        daily_base_price=vehicle.daily_base_price,
+        color=vehicle.color,
+        mileage=vehicle.mileage,
+        image_url=_primary_image_url(vehicle.images),
+        images=_serialize_images(vehicle.images),
+        status=vehicle.status,
+        category=vehicle.category,
+    )
 
 
 async def list_vehicles(
@@ -63,10 +102,11 @@ async def list_vehicles(
         status=params.status,
         available_from=params.available_from,
         available_to=params.available_to,
+        search=params.search,
     )
 
     return PaginatedVehicleResponse(
-        items=[VehicleListItem.model_validate(v) for v in vehicles],
+        items=[_build_list_item(v) for v in vehicles],
         total=total,
         offset=params.offset,
         limit=params.limit,
@@ -234,6 +274,8 @@ async def _build_detail_response(db: AsyncSession, vehicle: Vehicle) -> VehicleD
         brand=vehicle.brand,
         model=vehicle.model,
         year=vehicle.year,
+        license_plate=vehicle.license_plate,
+        vin=vehicle.vin,
         engine_type=vehicle.engine_type,
         horsepower=vehicle.horsepower,
         seats=vehicle.seats,
@@ -241,7 +283,8 @@ async def _build_detail_response(db: AsyncSession, vehicle: Vehicle) -> VehicleD
         daily_base_price=vehicle.daily_base_price,
         color=vehicle.color,
         mileage=vehicle.mileage,
-        image_url=vehicle.image_url,
+        image_url=_primary_image_url(vehicle.images),
+        images=_serialize_images(vehicle.images),
         status=vehicle.status,
         is_active=vehicle.is_active,
         category=vehicle.category,
@@ -256,7 +299,7 @@ async def _build_detail_response(db: AsyncSession, vehicle: Vehicle) -> VehicleD
 async def create_vehicle(
     db: AsyncSession,
     body: VehicleCreate,
-    image: UploadFile | None,
+    images: list[UploadFile] | None,
 ) -> VehicleDetailResponse:
     await _ensure_category_exists(db, body.category_id)
 
@@ -278,26 +321,41 @@ async def create_vehicle(
         is_active=True,
     )
 
-    image_url: str | None = None
-    if image is not None and image.filename:
-        # Generujemy ID z góry — bez tego nazwa pliku byłaby znana dopiero
-        # po flush, co zmusiłoby do dwóch zapisów do bazy
-        if vehicle.id is None:
-            vehicle.id = uuid.uuid4()
-        image_url = await _persist_vehicle_image(image, vehicle.id)
-        vehicle.image_url = image_url
+    # Reserve the id up front so image filenames can be computed before the row
+    # exists — keeps everything in one transaction.
+    if vehicle.id is None:
+        vehicle.id = uuid.uuid4()
+
+    persisted_urls: list[str] = []
+    files = [f for f in (images or []) if f is not None and f.filename]
+    try:
+        for upload in files:
+            url = await _persist_vehicle_image(upload, vehicle.id)
+            persisted_urls.append(url)
+    except Exception:
+        # Validation/size failure on file N: clean up files 0..N-1 we already wrote
+        for url in persisted_urls:
+            await _unlink_image_now(url)
+        raise
 
     try:
         vehicle = await vehicle_repository.create(db, vehicle)
+
+        for index, url in enumerate(persisted_urls):
+            await vehicle_repository.add_image(
+                db, vehicle.id, url, is_primary=(index == 0)
+            )
     except IntegrityError as exc:
         await db.rollback()
-        # Clean up the orphan file we wrote — rollback already happened, so unlink now.
-        if image_url is not None:
-            await _unlink_image_now(image_url)
+        for url in persisted_urls:
+            await _unlink_image_now(url)
         raise _integrity_error_to_http(exc)
 
-    # Eager-load category for response
-    stmt = select(Vehicle).options(joinedload(Vehicle.category)).where(Vehicle.id == vehicle.id)
+    stmt = (
+        select(Vehicle)
+        .options(joinedload(Vehicle.category), selectinload(Vehicle.images))
+        .where(Vehicle.id == vehicle.id)
+    )
     vehicle = (await db.execute(stmt)).scalar_one()
     return await _build_detail_response(db, vehicle)
 
@@ -306,7 +364,6 @@ async def update_vehicle(
     db: AsyncSession,
     vehicle_id: uuid.UUID,
     body: VehicleUpdate,
-    image: UploadFile | None,
 ) -> VehicleDetailResponse | None:
     vehicle = await vehicle_repository.get_by_id(db, vehicle_id)
     if vehicle is None:
@@ -320,30 +377,97 @@ async def update_vehicle(
     for field, value in update_data.items():
         setattr(vehicle, field, value)
 
-    previous_image_url = vehicle.image_url
-    new_image_url: str | None = None
-    if image is not None and image.filename:
-        new_image_url = await _persist_vehicle_image(image, vehicle.id)
-        vehicle.image_url = new_image_url
-
     try:
         vehicle = await vehicle_repository.update(db, vehicle)
     except IntegrityError as exc:
         await db.rollback()
-        if new_image_url is not None:
-            await _unlink_image_now(new_image_url)
         raise _integrity_error_to_http(exc)
 
-    # If the image was successfully replaced, defer unlinking the previous file
-    # until after the request transaction commits — otherwise a later error in
-    # this request would roll back the DB but leave the filesystem changed.
-    if new_image_url is not None and previous_image_url != new_image_url:
-        _schedule_image_unlink(db, previous_image_url)
-
-    # Re-fetch with category eager-loaded for response
-    stmt = select(Vehicle).options(joinedload(Vehicle.category)).where(Vehicle.id == vehicle.id)
+    stmt = (
+        select(Vehicle)
+        .options(joinedload(Vehicle.category), selectinload(Vehicle.images))
+        .where(Vehicle.id == vehicle.id)
+    )
     vehicle = (await db.execute(stmt)).scalar_one()
     return await _build_detail_response(db, vehicle)
+
+
+async def add_vehicle_image(
+    db: AsyncSession,
+    vehicle_id: uuid.UUID,
+    image: UploadFile,
+    is_primary: bool,
+) -> VehicleDetailResponse | None:
+    vehicle = await vehicle_repository.get_by_id(db, vehicle_id)
+    if vehicle is None:
+        return None
+
+    url = await _persist_vehicle_image(image, vehicle_id)
+    try:
+        await vehicle_repository.add_image(db, vehicle_id, url, is_primary=is_primary)
+    except IntegrityError as exc:
+        await db.rollback()
+        await _unlink_image_now(url)
+        raise _integrity_error_to_http(exc)
+
+    return await get_vehicle_detail(vehicle_id, db)
+
+
+async def delete_vehicle_image(
+    db: AsyncSession,
+    vehicle_id: uuid.UUID,
+    image_id: uuid.UUID,
+) -> VehicleDetailResponse | None:
+    image = await vehicle_repository.get_image(db, image_id)
+    if image is None or image.vehicle_id != vehicle_id:
+        return None
+
+    url = image.url
+    await vehicle_repository.delete_image(db, image)
+    _schedule_image_unlink(db, url)
+    return await get_vehicle_detail(vehicle_id, db)
+
+
+async def set_vehicle_primary_image(
+    db: AsyncSession,
+    vehicle_id: uuid.UUID,
+    image_id: uuid.UUID,
+) -> VehicleDetailResponse | None:
+    image = await vehicle_repository.get_image(db, image_id)
+    if image is None or image.vehicle_id != vehicle_id:
+        return None
+
+    await vehicle_repository.set_primary_image(db, image)
+    return await get_vehicle_detail(vehicle_id, db)
+
+
+async def reorder_vehicle_images(
+    db: AsyncSession,
+    vehicle_id: uuid.UUID,
+    ordered_ids: list[uuid.UUID],
+) -> VehicleDetailResponse | None:
+    vehicle = await vehicle_repository.get_by_id(db, vehicle_id)
+    if vehicle is None:
+        return None
+
+    valid_ids = {img.id for img in vehicle.images}
+    for img_id in ordered_ids:
+        if img_id not in valid_ids:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Image {img_id} does not belong to vehicle {vehicle_id}",
+            )
+    await vehicle_repository.reorder_images(db, vehicle_id, ordered_ids)
+    return await get_vehicle_detail(vehicle_id, db)
+
+
+async def bulk_update_status(
+    db: AsyncSession,
+    ids: list[uuid.UUID],
+    new_status: VehicleStatus,
+) -> VehicleBulkStatusResponse:
+    updated, missing = await vehicle_repository.bulk_update_status(db, ids, new_status)
+    return VehicleBulkStatusResponse(updated=updated, not_found=missing)
 
 
 async def delete_vehicle(db: AsyncSession, vehicle_id: uuid.UUID) -> bool:

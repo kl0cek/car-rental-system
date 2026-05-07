@@ -10,9 +10,10 @@ from decimal import Decimal
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from app.models.rental import Reservation, ReservationStatus
+from app.models.vehicle import Vehicle
 
 SORTABLE_COLUMNS = {
     "created_at": Reservation.created_at,
@@ -25,7 +26,10 @@ SORTABLE_COLUMNS = {
 async def get_by_id(db: AsyncSession, reservation_id: uuid.UUID) -> Reservation | None:
     stmt = (
         select(Reservation)
-        .options(joinedload(Reservation.vehicle), joinedload(Reservation.user))
+        .options(
+            joinedload(Reservation.vehicle).selectinload(Vehicle.images),
+            joinedload(Reservation.user),
+        )
         .where(Reservation.id == reservation_id)
     )
     result = await db.execute(stmt)
@@ -35,7 +39,10 @@ async def get_by_id(db: AsyncSession, reservation_id: uuid.UUID) -> Reservation 
 async def get_by_id_for_update(db: AsyncSession, reservation_id: uuid.UUID) -> Reservation | None:
     stmt = (
         select(Reservation)
-        .options(joinedload(Reservation.vehicle), joinedload(Reservation.user))
+        .options(
+            joinedload(Reservation.vehicle).selectinload(Vehicle.images),
+            joinedload(Reservation.user),
+        )
         .where(Reservation.id == reservation_id)
         .with_for_update()
     )
@@ -54,7 +61,7 @@ async def get_list_by_user(
     count_stmt = select(func.count(Reservation.id)).where(Reservation.user_id == user_id)
     data_stmt = (
         select(Reservation)
-        .options(joinedload(Reservation.vehicle))
+        .options(joinedload(Reservation.vehicle).selectinload(Vehicle.images))
         .where(Reservation.user_id == user_id)
     )
     if status is not None:
@@ -101,7 +108,10 @@ async def get_admin_list(
     order = sort_col.asc() if sort_order == "asc" else sort_col.desc()
 
     stmt = (
-        base.options(joinedload(Reservation.user), joinedload(Reservation.vehicle))
+        base.options(
+            joinedload(Reservation.user),
+            joinedload(Reservation.vehicle).selectinload(Vehicle.images),
+        )
         .order_by(order)
         .offset(offset)
         .limit(limit)
@@ -129,8 +139,14 @@ async def create(
     )
     db.add(reservation)
     await db.flush()
-    await db.refresh(reservation, ["vehicle"])
-    return reservation
+    # Re-fetch with vehicle.images eager-loaded so callers building response DTOs
+    # don't trigger an implicit lazy load (which fails under async sessions).
+    stmt = (
+        select(Reservation)
+        .options(joinedload(Reservation.vehicle).selectinload(Vehicle.images))
+        .where(Reservation.id == reservation.id)
+    )
+    return (await db.execute(stmt)).scalar_one()
 
 
 async def update_status(

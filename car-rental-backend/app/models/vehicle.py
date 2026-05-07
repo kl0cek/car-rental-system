@@ -21,7 +21,6 @@ from sqlalchemy import (
     Integer,
     Numeric,
     String,
-    Text,
     Uuid,
     text,
 )
@@ -32,6 +31,7 @@ from app.db.base import Base
 if TYPE_CHECKING:
     from app.models.category import Category
     from app.models.rental import Reservation
+    from app.models.vehicle_image import VehicleImage
 
 
 class EngineType(enum.StrEnum):
@@ -96,7 +96,6 @@ class Vehicle(Base):
     daily_base_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), index=True)
     color: Mapped[VehicleColor] = mapped_column(Enum(VehicleColor, native_enum=False), index=True)
     mileage: Mapped[int] = mapped_column(Integer, default=0)
-    image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[VehicleStatus] = mapped_column(
         Enum(VehicleStatus, native_enum=False), default=VehicleStatus.AVAILABLE, index=True
     )
@@ -106,3 +105,9 @@ class Vehicle(Base):
 
     category: Mapped[Category] = relationship(back_populates="vehicles")
     reservations: Mapped[list[Reservation]] = relationship(back_populates="vehicle")
+    images: Mapped[list[VehicleImage]] = relationship(
+        back_populates="vehicle",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="VehicleImage.position",
+    )

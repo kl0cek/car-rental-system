@@ -23,12 +23,30 @@ from app.schemas.rental import PickupRequest, ReturnRequest
 from app.schemas.user import UserRentalItem, UserRentalVehicleInfo
 
 
+def _vehicle_primary_image_url(vehicle: Any) -> str | None:
+    images = getattr(vehicle, "images", None) or []
+    for img in images:
+        if img.is_primary:
+            return img.url
+    if images:
+        return min(images, key=lambda i: i.position).url
+    return None
+
+
 def build_user_rental_item(rental: Rental) -> UserRentalItem:
     reservation = rental.reservation
+    vehicle = reservation.vehicle
     return UserRentalItem(
         id=rental.id,
         reservation_id=rental.reservation_id,
-        vehicle=UserRentalVehicleInfo.model_validate(reservation.vehicle),
+        vehicle=UserRentalVehicleInfo(
+            id=vehicle.id,
+            brand=vehicle.brand,
+            model=vehicle.model,
+            year=vehicle.year,
+            license_plate=vehicle.license_plate,
+            image_url=_vehicle_primary_image_url(vehicle),
+        ),
         pickup_date=rental.pickup_date,
         return_date=rental.return_date,
         status=reservation.status,

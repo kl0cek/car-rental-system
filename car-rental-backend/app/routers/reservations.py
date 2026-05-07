@@ -19,6 +19,7 @@ from app.schemas.reservation import (
     PaginatedReservationResponse,
     ReservationListParams,
     ReservationResponse,
+    build_reservation_response,
 )
 from app.services import reservation_service
 
@@ -34,7 +35,7 @@ async def create_reservation(
     current_user: CurrentUser,
 ) -> ReservationResponse:
     reservation = await reservation_service.create_reservation(db, current_user, body)
-    return ReservationResponse.model_validate(reservation)
+    return build_reservation_response(reservation)
 
 
 @router.get("")
@@ -45,7 +46,7 @@ async def list_reservations(
 ) -> PaginatedReservationResponse:
     reservations, total = await reservation_service.list_user_reservations(db, current_user, params)
     return PaginatedReservationResponse(
-        items=[ReservationResponse.model_validate(r) for r in reservations],
+        items=[build_reservation_response(r) for r in reservations],
         total=total,
         offset=params.offset,
         limit=params.limit,
@@ -59,7 +60,7 @@ async def cancel_reservation(
     current_user: CurrentUser,
 ) -> ReservationResponse:
     reservation = await reservation_service.cancel_reservation(db, current_user, reservation_id)
-    return ReservationResponse.model_validate(reservation)
+    return build_reservation_response(reservation)
 
 
 @router.put("/{reservation_id}/confirm")
@@ -79,4 +80,4 @@ async def confirm_reservation(
         end_date=email_data.end_date,
         total_price=email_data.total_price,
     )
-    return ReservationResponse.model_validate(reservation)
+    return build_reservation_response(reservation)

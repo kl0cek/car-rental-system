@@ -43,6 +43,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
     from app.models.rental import Rental, RentalPriceBreakdown, Reservation, ReservationStatus
     from app.models.user import User, UserRole
     from app.models.vehicle import EngineType, Vehicle, VehicleColor, VehicleStatus
+    from app.models.vehicle_image import VehicleImage
 
     if drop:
         async with async_engine.begin() as conn:
@@ -170,7 +171,6 @@ async def seed_postgres(*, drop: bool = False) -> None:
             daily_base_price=Decimal("150.00"),
             color=VehicleColor.WHITE,
             mileage=25000,
-            image_url="https://images.unsplash.com/photo-1623869675781-80aa31012a5a?w=800&q=80",
             status=VehicleStatus.AVAILABLE,
             category_id=CATEGORY_IDS[1],
         ),
@@ -188,7 +188,6 @@ async def seed_postgres(*, drop: bool = False) -> None:
             daily_base_price=Decimal("170.00"),
             color=VehicleColor.GREY,
             mileage=45000,
-            image_url="https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=800&q=80",
             status=VehicleStatus.RENTED,
             category_id=CATEGORY_IDS[1],
         ),
@@ -206,7 +205,6 @@ async def seed_postgres(*, drop: bool = False) -> None:
             daily_base_price=Decimal("350.00"),
             color=VehicleColor.BLACK,
             mileage=8000,
-            image_url="https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=800&q=80",
             status=VehicleStatus.AVAILABLE,
             category_id=CATEGORY_IDS[2],
         ),
@@ -224,7 +222,6 @@ async def seed_postgres(*, drop: bool = False) -> None:
             daily_base_price=Decimal("280.00"),
             color=VehicleColor.GREEN,
             mileage=18000,
-            image_url="https://images.unsplash.com/photo-1568844293986-8d0400b5d25f?w=800&q=80",
             status=VehicleStatus.AVAILABLE,
             category_id=CATEGORY_IDS[3],
         ),
@@ -242,7 +239,6 @@ async def seed_postgres(*, drop: bool = False) -> None:
             daily_base_price=Decimal("140.00"),
             color=VehicleColor.BLUE,
             mileage=72000,
-            image_url="https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&q=80",
             status=VehicleStatus.MAINTENANCE,
             category_id=CATEGORY_IDS[1],
         ),
@@ -260,7 +256,6 @@ async def seed_postgres(*, drop: bool = False) -> None:
             daily_base_price=Decimal("320.00"),
             color=VehicleColor.BLACK,
             mileage=5000,
-            image_url="https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&q=80",
             status=VehicleStatus.AVAILABLE,
             category_id=CATEGORY_IDS[2],
         ),
@@ -278,7 +273,6 @@ async def seed_postgres(*, drop: bool = False) -> None:
             daily_base_price=Decimal("250.00"),
             color=VehicleColor.WHITE,
             mileage=12000,
-            image_url="https://images.unsplash.com/photo-1593941707874-ef25b8b4a92b?w=800&q=80",
             status=VehicleStatus.AVAILABLE,
             category_id=CATEGORY_IDS[1],
         ),
@@ -296,7 +290,6 @@ async def seed_postgres(*, drop: bool = False) -> None:
             daily_base_price=Decimal("120.00"),
             color=VehicleColor.RED,
             mileage=95000,
-            image_url="https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
             status=VehicleStatus.OUT_OF_SERVICE,
             category_id=CATEGORY_IDS[0],
         ),
@@ -545,6 +538,27 @@ async def seed_postgres(*, drop: bool = False) -> None:
         ),
     ]
 
+    # --- Vehicle images (one primary per vehicle, mapping VEHICLE_IDS -> URL) ---
+    vehicle_image_urls = [
+        "https://images.unsplash.com/photo-1623869675781-80aa31012a5a?w=800&q=80",
+        "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=800&q=80",
+        "https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=800&q=80",
+        "https://images.unsplash.com/photo-1568844293986-8d0400b5d25f?w=800&q=80",
+        "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&q=80",
+        "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&q=80",
+        "https://images.unsplash.com/photo-1593941707874-ef25b8b4a92b?w=800&q=80",
+        "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
+    ]
+    vehicle_images = [
+        VehicleImage(
+            vehicle_id=VEHICLE_IDS[i],
+            url=url,
+            position=0,
+            is_primary=True,
+        )
+        for i, url in enumerate(vehicle_image_urls)
+    ]
+
     async with async_session_factory() as session:
         # Check if data already exists
         result = await session.execute(text("SELECT count(*) FROM users"))
@@ -559,6 +573,8 @@ async def seed_postgres(*, drop: bool = False) -> None:
         await session.flush()
         session.add_all(vehicles)
         await session.flush()
+        session.add_all(vehicle_images)
+        await session.flush()
         session.add_all(reservations)
         await session.flush()
         session.add_all(active_rentals)
@@ -568,7 +584,8 @@ async def seed_postgres(*, drop: bool = False) -> None:
 
     print(
         f"[PG] Seeded: {len(users)} users, {len(categories)} categories, "
-        f"{len(vehicles)} vehicles, {len(reservations)} reservations, "
+        f"{len(vehicles)} vehicles, {len(vehicle_images)} vehicle images, "
+        f"{len(reservations)} reservations, "
         f"{len(active_rentals)} active rentals, {len(price_breakdowns)} price breakdowns"
     )
 
