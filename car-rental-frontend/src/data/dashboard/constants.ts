@@ -28,6 +28,7 @@ export function getFilteredNavigation(role?: UserRole): NavItem[] {
   return navigation.filter((item) => {
     if (item.roles && (!role || !item.roles.includes(role))) return false;
     if (item.staffOnly && !staff) return false;
+    if (item.hideForStaff && staff) return false;
     return true;
   });
 }
@@ -35,7 +36,8 @@ export function getFilteredNavigation(role?: UserRole): NavItem[] {
 export const navigation: NavItem[] = [
   { name: 'nav.dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'nav.bookings', href: '/dashboard/bookings', icon: CalendarDays },
-  { name: 'nav.vehicles', href: '/dashboard/vehicles', icon: LayoutGrid },
+  // Public catalogue stays for customers; staff manage the fleet from the Fleet page instead.
+  { name: 'nav.vehicles', href: '/dashboard/vehicles', icon: LayoutGrid, hideForStaff: true },
   { name: 'nav.fleet', href: '/dashboard/fleet', icon: Car, staffOnly: true },
   { name: 'nav.customers', href: '/dashboard/customers', icon: Users, staffOnly: true },
   {

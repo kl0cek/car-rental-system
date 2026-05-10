@@ -1,5 +1,5 @@
 import useSWR from 'swr';
-import type { PaginatedVehiclesApi, VehicleStatus, SortableField } from '@/types/vehicle';
+import type { PaginatedVehiclesApi, VehicleStatus, SortableField, EngineType, CategoryName } from '@/types/vehicle';
 import { mapVehicle } from '@/types/vehicle';
 
 const FLEET_PAGE_SIZE = 15;
@@ -9,6 +9,9 @@ export interface FleetParams {
   page: number;
   sortBy: SortableField;
   sortOrder: 'asc' | 'desc';
+  search?: string;
+  engineType?: EngineType | null;
+  category?: CategoryName | null;
 }
 
 function buildQuery(params: FleetParams): string {
@@ -18,6 +21,9 @@ function buildQuery(params: FleetParams): string {
   p.set('sort_by', params.sortBy);
   p.set('sort_order', params.sortOrder);
   if (params.status) p.set('status', params.status);
+  if (params.search) p.set('search', params.search);
+  if (params.engineType) p.set('engine_type', params.engineType);
+  if (params.category) p.set('category', params.category);
   return p.toString();
 }
 
@@ -28,7 +34,7 @@ const fetcher = (url: string) =>
   });
 
 export function useFleetVehicles(params: FleetParams) {
-  const { data, isLoading } = useSWR(`/api/vehicles?${buildQuery(params)}`, fetcher, {
+  const { data, isLoading, mutate } = useSWR(`/api/vehicles?${buildQuery(params)}`, fetcher, {
     keepPreviousData: true,
   });
 
@@ -37,6 +43,7 @@ export function useFleetVehicles(params: FleetParams) {
     total: data?.total ?? 0,
     totalPages: Math.max(1, Math.ceil((data?.total ?? 0) / FLEET_PAGE_SIZE)),
     isLoading,
+    refresh: mutate,
   };
 }
 

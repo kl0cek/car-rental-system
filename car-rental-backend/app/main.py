@@ -1,3 +1,10 @@
+"""Punkt wejścia aplikacji FastAPI.
+
+Tworzy instancję FastAPI, konfiguruje CORS, montuje katalogi statyczne
+(awatary, zdjęcia pojazdów), rejestruje routery oraz zarządza cyklem życia
+połączeń do MongoDB, Redisa i puli SQLAlchemy.
+"""
+
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -12,12 +19,25 @@ from app.db.engine import async_engine
 from app.db.mongodb import close_mongo, connect_mongo
 from app.db.redis import close_redis, connect_redis
 from app.db.session import DbSession
-from app.routers import admin, auth, rentals, reservations, users, vehicles
+from app.routers import (
+    admin,
+    admin_customers,
+    admin_vehicles,
+    auth,
+    categories,
+    rentals,
+    reservations,
+    users,
+    vehicles,
+)
 from app.services.user_service import AVATAR_UPLOAD_DIR
+from app.services.vehicle_service import VEHICLE_IMAGE_UPLOAD_DIR
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    # Połączenia do Mongo/Redisa/Postgresa otwieramy raz na start procesu
+    # i zwalniamy przy shutdownie — pula SQLAlchemy żyje tyle co aplikacja
     await connect_mongo()
     await connect_redis()
     yield
@@ -26,6 +46,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await async_engine.dispose()
 
 
+# root_path="/api" bo nginx montuje backend pod tym prefiksem —
+# dzięki temu OpenAPI generuje poprawne URL-e w /docs
 app = FastAPI(
     title=settings.APP_NAME,
     root_path="/api",
@@ -49,12 +71,22 @@ app.mount(
     name="avatars",
 )
 
+VEHICLE_IMAGE_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+app.mount(
+    "/static/vehicles",
+    StaticFiles(directory=Path(VEHICLE_IMAGE_UPLOAD_DIR)),
+    name="vehicle_images",
+)
+
 app.include_router(auth.router)
+app.include_router(categories.router)
 app.include_router(vehicles.router)
 app.include_router(reservations.router)
 app.include_router(rentals.router)
 app.include_router(users.router)
 app.include_router(admin.router)
+app.include_router(admin_vehicles.router)
+app.include_router(admin_customers.router)
 
 
 @app.get("/")

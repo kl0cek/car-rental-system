@@ -10,6 +10,8 @@ const defaults: FiltersState = {
   minSeats: null,
   availableFrom: '',
   availableTo: '',
+  sortBy: 'created_at',
+  sortOrder: 'desc',
 };
 
 describe('isDefaultFilters', () => {

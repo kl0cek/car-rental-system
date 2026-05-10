@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import type { Vehicle } from '@/types/vehicle';
 import { STATUS_CONFIG, ENGINE_CONFIG, CATEGORY_LABELS } from '@/data/vehicles/constants';
+import { useTranslation } from '@/i18n/useTranslation';
+import type { TranslationKey } from '@/i18n/translations';
 import Image from 'next/image';
 
 export function VehicleCard({
@@ -15,6 +17,7 @@ export function VehicleCard({
   vehicle: Vehicle;
   onSelect?: (vehicle: Vehicle) => void;
 }) {
+  const { t } = useTranslation();
   const status = STATUS_CONFIG[vehicle.status];
   const engine = ENGINE_CONFIG[vehicle.engineType];
   const EngineIcon = engine.Icon;
@@ -59,7 +62,7 @@ export function VehicleCard({
             {vehicle.brand} {vehicle.model}
           </h3>
           <p className="text-sm text-muted-foreground">
-            {vehicle.year} · {vehicle.color}
+            {vehicle.year} · {t(`color.${vehicle.color}` as TranslationKey)}
           </p>
         </div>
 

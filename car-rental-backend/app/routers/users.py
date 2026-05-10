@@ -1,3 +1,9 @@
+"""Router profilu zalogowanego użytkownika (`/users/me`).
+
+Pobranie i aktualizacja własnych danych, zmiana hasła, zarządzanie
+awatarem oraz lista własnych rezerwacji.
+"""
+
 from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, UploadFile, status

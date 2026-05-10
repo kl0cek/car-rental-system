@@ -1,3 +1,9 @@
+"""Pydantic-owe schematy żądań i odpowiedzi dla flow logowania/rejestracji.
+
+Walidują dane wejściowe i kształtują payloady (rejestracja, login,
+weryfikacja maila, reset hasła, refresh tokenu).
+"""
+
 import uuid
 from datetime import datetime
 

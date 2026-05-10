@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Save } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,25 +17,43 @@ import {
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/translations';
 import { useCreateVehicle, type CreateVehicleInput } from '@/hooks/useCreateVehicle';
-import { CATEGORIES, ENGINE_TYPES } from '@/data/vehicles/constants';
-import type { CategoryName, EngineType } from '@/types/vehicle';
+import { useCategories } from '@/hooks/useCategories';
+import { ENGINE_TYPES, VEHICLE_COLORS } from '@/data/vehicles/constants';
+import type { CategoryName, EngineType, VehicleColor } from '@/types/vehicle';
+import { MultiImageUpload, type PendingImage } from './MultiImageUpload';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
-const INITIAL: CreateVehicleInput = {
+interface FormState {
+  brand: string;
+  model: string;
+  year: number;
+  licensePlate: string;
+  vin: string;
+  color: VehicleColor;
+  categoryId: string;
+  engineType: EngineType;
+  horsepower: number;
+  seats: number;
+  trunkCapacity: number;
+  mileage: number;
+  dailyBasePrice: number;
+}
+
+const INITIAL: FormState = {
   brand: '',
   model: '',
   year: CURRENT_YEAR,
   licensePlate: '',
-  color: '',
-  category: 'economy',
+  vin: '',
+  color: 'white',
+  categoryId: '',
   engineType: 'petrol',
   horsepower: 100,
   seats: 5,
   trunkCapacity: 400,
   mileage: 0,
   dailyBasePrice: 200,
-  imageUrl: null,
 };
 
 interface SectionProps {
@@ -60,24 +79,71 @@ interface AddVehicleFormProps {
 
 export function AddVehicleForm({ onSuccess }: AddVehicleFormProps) {
   const { t } = useTranslation();
+  const router = useRouter();
   const { createVehicle, isLoading, error } = useCreateVehicle();
-  const [form, setForm] = useState<CreateVehicleInput>(INITIAL);
+  const { categories, isLoading: categoriesLoading } = useCategories();
+  const [form, setForm] = useState<FormState>(INITIAL);
+  const [pending, setPending] = useState<PendingImage[]>([]);
+  const [primaryIndex, setPrimaryIndex] = useState(-1);
   const [success, setSuccess] = useState(false);
 
-  function update<K extends keyof CreateVehicleInput>(key: K, value: CreateVehicleInput[K]) {
+  // Auto-pick the first category once it loads — saves the user a click and
+  // keeps the form valid by construction (categoryId is required).
+  const effectiveCategoryId = useMemo(() => {
+    if (form.categoryId) return form.categoryId;
+    return categories[0]?.id ?? '';
+  }, [form.categoryId, categories]);
+
+  function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
     setSuccess(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!effectiveCategoryId) return;
+
+    // Reorder uploads so the chosen primary file is sent first — backend
+    // marks the first uploaded image as primary by convention.
+    const orderedFiles = pending.map((p) => p.file);
+    if (primaryIndex > 0 && primaryIndex < orderedFiles.length) {
+      const [primary] = orderedFiles.splice(primaryIndex, 1);
+      orderedFiles.unshift(primary);
+    }
+
+    const payload: CreateVehicleInput = {
+      brand: form.brand,
+      model: form.model,
+      year: form.year,
+      licensePlate: form.licensePlate,
+      vin: form.vin,
+      color: form.color,
+      categoryId: effectiveCategoryId,
+      // Resolve the human-readable category name for backwards compatibility
+      // with the older hook signature; not used by the request itself.
+      category:
+        (categories.find((c) => c.id === effectiveCategoryId)?.name as CategoryName) ?? 'economy',
+      engineType: form.engineType,
+      horsepower: form.horsepower,
+      seats: form.seats,
+      trunkCapacity: form.trunkCapacity,
+      mileage: form.mileage,
+      dailyBasePrice: form.dailyBasePrice,
+      images: orderedFiles,
+    };
+
     try {
-      await createVehicle(form);
+      const created = await createVehicle(payload);
       setSuccess(true);
       setForm(INITIAL);
+      setPending([]);
+      setPrimaryIndex(-1);
       onSuccess?.();
+      // After a successful create take the operator to the edit page so they
+      // can fine-tune the gallery / spec without re-loading from the list.
+      router.push(`/dashboard/admin/vehicles/${created.id}/edit`);
     } catch {
-      // error captured in hook
+      // hook captures the message; nothing else to do here
     }
   }
 
@@ -124,27 +190,39 @@ export function AddVehicleForm({ onSuccess }: AddVehicleFormProps) {
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="color">{t('addVehicle.color')}</Label>
-          <Input
-            id="color"
-            value={form.color}
-            onChange={(e) => update('color', e.target.value)}
-            required
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label>{t('addVehicle.category')}</Label>
+          <Label>{t('addVehicle.color')}</Label>
           <Select
-            value={form.category}
-            onValueChange={(v: string) => update('category', v as CategoryName)}
+            value={form.color}
+            onValueChange={(v: string) => update('color', v as VehicleColor)}
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {CATEGORIES.map((c) => (
-                <SelectItem key={c.value} value={c.value}>
-                  {c.label}
+              {VEHICLE_COLORS.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {t(`color.${c}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label>{t('addVehicle.category')}</Label>
+          <Select
+            value={effectiveCategoryId || undefined}
+            onValueChange={(v: string) => update('categoryId', v)}
+            disabled={categoriesLoading || categories.length === 0}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue
+                placeholder={categoriesLoading ? t('common.loading') : t('filters.any')}
+              />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -159,7 +237,7 @@ export function AddVehicleForm({ onSuccess }: AddVehicleFormProps) {
             value={form.engineType}
             onValueChange={(v: string) => update('engineType', v as EngineType)}
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -219,7 +297,7 @@ export function AddVehicleForm({ onSuccess }: AddVehicleFormProps) {
       </Section>
 
       <Section titleKey="addVehicle.section.pricing">
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="price">{t('addVehicle.dailyPrice')}</Label>
           <Input
             id="price"
@@ -231,24 +309,31 @@ export function AddVehicleForm({ onSuccess }: AddVehicleFormProps) {
             required
           />
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="image">{t('addVehicle.imageUrl')}</Label>
-          <Input
-            id="image"
-            type="url"
-            value={form.imageUrl ?? ''}
-            onChange={(e) => update('imageUrl', e.target.value || null)}
-            placeholder="https://…"
-          />
-          <p className="text-xs text-muted-foreground">{t('addVehicle.imageUrlHint')}</p>
-        </div>
       </Section>
+
+      <Card>
+        <CardHeader className="border-b pb-4">
+          <CardTitle className="text-base">{t('addVehicle.section.images')}</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <MultiImageUpload
+            pending={pending}
+            onChange={setPending}
+            primaryIndex={primaryIndex}
+            onPrimaryChange={setPrimaryIndex}
+          />
+        </CardContent>
+      </Card>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
       {success && <p className="text-sm text-green-600">{t('addVehicle.success')}</p>}
 
       <div className="flex justify-end">
-        <Button type="submit" disabled={isLoading} className="gap-2">
+        <Button
+          type="submit"
+          disabled={isLoading || !effectiveCategoryId}
+          className="gap-2"
+        >
           <Save className="w-4 h-4" />
           {isLoading ? t('addVehicle.submitting') : t('addVehicle.submit')}
         </Button>

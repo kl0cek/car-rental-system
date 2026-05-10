@@ -2,19 +2,22 @@
 
 import type { Vehicle } from '@/types/vehicle';
 import { ENGINE_CONFIG, CATEGORY_LABELS } from '@/data/vehicles/constants';
+import { useTranslation } from '@/i18n/useTranslation';
+import type { TranslationKey } from '@/i18n/translations';
 
 interface VehicleSpecsProps {
   vehicle: Vehicle;
 }
 
 export function VehicleSpecs({ vehicle }: VehicleSpecsProps) {
+  const { t } = useTranslation();
   const engine = ENGINE_CONFIG[vehicle.engineType];
 
   const specs = [
     { label: 'Marka', value: vehicle.brand },
     { label: 'Model', value: vehicle.model },
     { label: 'Rok', value: vehicle.year },
-    { label: 'Kolor', value: vehicle.color },
+    { label: 'Kolor', value: t(`color.${vehicle.color}` as TranslationKey) },
     { label: 'Silnik', value: engine.label },
     { label: 'Moc', value: `${vehicle.horsepower} KM` },
     { label: 'Liczba miejsc', value: vehicle.seats },

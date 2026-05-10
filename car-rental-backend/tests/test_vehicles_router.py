@@ -4,7 +4,7 @@ from decimal import Decimal
 from unittest.mock import AsyncMock, patch
 
 from app.models.category import CategoryName
-from app.models.vehicle import EngineType, VehicleStatus
+from app.models.vehicle import EngineType, VehicleColor, VehicleStatus
 from app.schemas.vehicle import (
     AvailabilityResponse,
     BookedDateRange,
@@ -35,15 +35,18 @@ def _make_vehicle_list_item() -> VehicleListItem:
         seats=5,
         trunk_capacity=361,
         daily_base_price=Decimal("150.00"),
-        color="White",
+        color=VehicleColor.WHITE,
         mileage=25000,
         image_url=None,
+        images=[],
         status=VehicleStatus.AVAILABLE,
         category=_make_category(),
     )
 
 
 def _make_vehicle_detail(vehicle_id: uuid.UUID | None = None) -> VehicleDetailResponse:
+    # Note: VIN and license_plate intentionally omitted — they are admin-only
+    # and live on VehicleAdminDetailResponse, not on the public schema.
     return VehicleDetailResponse(
         id=vehicle_id or uuid.uuid4(),
         brand="Toyota",
@@ -54,9 +57,10 @@ def _make_vehicle_detail(vehicle_id: uuid.UUID | None = None) -> VehicleDetailRe
         seats=5,
         trunk_capacity=361,
         daily_base_price=Decimal("150.00"),
-        color="White",
+        color=VehicleColor.WHITE,
         mileage=25000,
         image_url=None,
+        images=[],
         status=VehicleStatus.AVAILABLE,
         is_active=True,
         category=_make_category(),

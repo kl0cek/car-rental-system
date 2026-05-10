@@ -29,7 +29,7 @@ def _make_vehicle() -> MagicMock:
     v.model = "Corolla"
     v.year = 2023
     v.license_plate = "ABC1234"
-    v.image_url = None
+    v.images = []
     return v
 
 

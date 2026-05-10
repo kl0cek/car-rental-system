@@ -1,3 +1,10 @@
+"""Router panelu admina dla użytkowników i rezerwacji (`/admin`).
+
+Wymaga roli ADMIN; pozwala wyszukiwać/filtrować użytkowników, zmieniać
+ich role i dezaktywować konta oraz przeglądać rezerwacje wszystkich
+klientów.
+"""
+
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query

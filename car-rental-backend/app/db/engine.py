@@ -1,3 +1,9 @@
+"""Asynchroniczny silnik SQLAlchemy i fabryka sesji.
+
+Pula połączeń konfigurowana przez `settings`; `pool_pre_ping` chroni
+przed zamkniętymi przez serwer połączeniami.
+"""
+
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.config import settings

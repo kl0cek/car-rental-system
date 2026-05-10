@@ -1,3 +1,9 @@
+"""Klient MongoDB (Motor) trzymany jako singleton aplikacyjny.
+
+Mongo przechowuje dane nie-relacyjne: logi wynajmów, recenzje, historię
+zmian cen, incydenty oraz preferencje UI użytkowników.
+"""
+
 from typing import Any
 
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase

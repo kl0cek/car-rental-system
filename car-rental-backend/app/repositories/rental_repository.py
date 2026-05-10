@@ -1,3 +1,10 @@
+"""Repozytorium wynajmów (rentals) i rozbicia ceny.
+
+Tworzenie rekordu wynajmu przy odbiorze pojazdu, aktualizacja przy
+zwrocie oraz pobranie danych do raportów (z dołączoną rezerwacją
+i breakdownem ceny).
+"""
+
 import uuid
 from datetime import datetime
 from decimal import Decimal
@@ -7,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import contains_eager, joinedload
 
 from app.models.rental import Rental, RentalPriceBreakdown, Reservation, ReservationStatus
+from app.models.vehicle import Vehicle
 
 SORTABLE_COLUMNS = {
     "pickup_date": Rental.pickup_date,
@@ -20,7 +28,9 @@ async def get_by_id(db: AsyncSession, rental_id: uuid.UUID) -> Rental | None:
         select(Rental)
         .options(
             joinedload(Rental.price_breakdown),
-            joinedload(Rental.reservation),
+            joinedload(Rental.reservation)
+            .joinedload(Reservation.vehicle)
+            .selectinload(Vehicle.images),
         )
         .where(Rental.id == rental_id)
     )
@@ -103,7 +113,9 @@ async def get_list_by_user(
 
     stmt = (
         base.options(
-            contains_eager(Rental.reservation).joinedload(Reservation.vehicle),
+            contains_eager(Rental.reservation)
+            .joinedload(Reservation.vehicle)
+            .selectinload(Vehicle.images),
             joinedload(Rental.price_breakdown),
         )
         .order_by(order)

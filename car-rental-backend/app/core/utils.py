@@ -1,3 +1,5 @@
+"""Drobne funkcje pomocnicze używane w wielu miejscach (np. konwersje dat)."""
+
 from datetime import UTC, date, datetime, time
 
 

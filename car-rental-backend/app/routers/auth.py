@@ -1,3 +1,10 @@
+"""Router endpointów autoryzacji (`/auth`).
+
+Rejestracja, logowanie, wylogowanie, weryfikacja maila, reset hasła
+i odświeżanie tokenów. Mapuje wyjątki domenowe na odpowiednie
+statusy HTTP i zarządza ciasteczkami httpOnly z tokenami.
+"""
+
 from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Request, Response, status
@@ -34,6 +41,9 @@ from app.services.auth_service import (
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+# Tokeny trzymamy w ciasteczkach httpOnly+SameSite=lax —
+# JS nie ma do nich dostępu (chroni przed XSS), a samesite=lax blokuje
+# typowe ataki CSRF. `secure` wyłączamy tylko w trybie DEBUG (lokalny http).
 COOKIE_OPTS: dict[str, Any] = {
     "httponly": True,
     "samesite": "lax",
@@ -170,6 +180,7 @@ async def forgot_password_endpoint(
     token = await forgot_password(body, db)
     if token is not None:
         background_tasks.add_task(send_password_reset_email, body.email, token)
+    # Zawsze ten sam komunikat — nie zdradzamy czy konto z tym mailem istnieje (anti-enumeration)
     return MessageResponse(
         message="If an account with that email exists, a password reset link has been sent."
     )

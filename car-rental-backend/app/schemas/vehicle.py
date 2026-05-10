@@ -1,12 +1,25 @@
+"""Schematy DTO dla katalogu pojazdów i panelu admina pojazdów.
+
+Walidacja parametrów filtrowania (zakres dat, kategoria, typ silnika),
+schemat tworzenia/aktualizacji oraz odpowiedzi z wyliczoną
+ceną dzienną.
+"""
+
 import uuid
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.models.category import CategoryName
-from app.models.vehicle import EngineType, VehicleStatus
+from app.models.vehicle import EngineType, VehicleColor, VehicleStatus
+
+VIN_LENGTH = 17
+LICENSE_PLATE_MAX = 20
+BRAND_MAX = 100
+MODEL_MAX = 100
+MIN_YEAR = 1900
 
 SortableField = Literal[
     "brand", "model", "year", "daily_base_price", "created_at", "mileage", "horsepower"
@@ -30,6 +43,7 @@ class VehicleListParams(BaseModel):
     status: VehicleStatus | None = None
     available_from: date | None = None
     available_to: date | None = None
+    search: str | None = Field(default=None, max_length=100)
 
     @model_validator(mode="after")
     def validate_ranges(self) -> "VehicleListParams":
@@ -54,6 +68,15 @@ class CategoryResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class VehicleImageResponse(BaseModel):
+    id: uuid.UUID
+    url: str
+    position: int
+    is_primary: bool
+
+    model_config = {"from_attributes": True}
+
+
 class VehicleListItem(BaseModel):
     id: uuid.UUID
     brand: str
@@ -64,9 +87,10 @@ class VehicleListItem(BaseModel):
     seats: int
     trunk_capacity: int
     daily_base_price: Decimal
-    color: str
+    color: VehicleColor
     mileage: int
-    image_url: str | None
+    image_url: str | None  # convenience: URL of primary image, computed by service
+    images: list[VehicleImageResponse] = Field(default_factory=list)
     status: VehicleStatus
     category: CategoryResponse
 
@@ -86,6 +110,13 @@ class BookedDateRange(BaseModel):
 
 
 class VehicleDetailResponse(BaseModel):
+    """Public vehicle detail — does NOT expose VIN or license plate.
+
+    VIN and license plate are operational/admin data and should not be visible
+    to anonymous catalog visitors. Use ``VehicleAdminDetailResponse`` for the
+    admin views that need them.
+    """
+
     id: uuid.UUID
     brand: str
     model: str
@@ -95,9 +126,10 @@ class VehicleDetailResponse(BaseModel):
     seats: int
     trunk_capacity: int
     daily_base_price: Decimal
-    color: str
+    color: VehicleColor
     mileage: int
-    image_url: str | None
+    image_url: str | None  # convenience: URL of primary image
+    images: list[VehicleImageResponse] = Field(default_factory=list)
     status: VehicleStatus
     is_active: bool
     category: CategoryResponse
@@ -106,6 +138,20 @@ class VehicleDetailResponse(BaseModel):
     booked_dates: list[BookedDateRange]
     created_at: datetime
     updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class VehicleAdminDetailResponse(VehicleDetailResponse):
+    """Admin variant of vehicle detail — adds VIN and license plate.
+
+    Returned by admin-only endpoints in ``admin_vehicles`` router. Inherits
+    from the public schema so the field set stays in sync; the admin-only
+    fields are appended at the end of the payload.
+    """
+
+    license_plate: str
+    vin: str
 
     model_config = {"from_attributes": True}
 
@@ -121,3 +167,105 @@ class AvailabilityResponse(BaseModel):
     start_date: date
     end_date: date
     conflicting_rentals: int = 0
+
+
+def _current_year() -> int:
+    return datetime.now(UTC).year
+
+
+class VehicleCreate(BaseModel):
+    """Schema for creating a vehicle. Image is handled separately via multipart upload."""
+
+    brand: str = Field(min_length=1, max_length=BRAND_MAX)
+    model: str = Field(min_length=1, max_length=MODEL_MAX)
+    year: int = Field(ge=MIN_YEAR)
+    license_plate: str = Field(min_length=1, max_length=LICENSE_PLATE_MAX)
+    vin: str = Field(min_length=VIN_LENGTH, max_length=VIN_LENGTH)
+    engine_type: EngineType
+    horsepower: int = Field(gt=0)
+    seats: int = Field(gt=0)
+    trunk_capacity: int = Field(ge=0)
+    daily_base_price: Decimal = Field(gt=0, le=Decimal("99999999.99"))
+    color: VehicleColor
+    category_id: uuid.UUID
+    mileage: int = Field(default=0, ge=0)
+    status: VehicleStatus = VehicleStatus.AVAILABLE
+
+    @field_validator("year")
+    @classmethod
+    def _validate_year(cls, value: int) -> int:
+        max_year = _current_year() + 1
+        if value > max_year:
+            raise ValueError(f"year must be at most {max_year}")
+        return value
+
+    @field_validator("vin")
+    @classmethod
+    def _normalize_vin(cls, value: str) -> str:
+        v = value.strip().upper()
+        if len(v) != VIN_LENGTH:
+            raise ValueError("VIN must be exactly 17 characters")
+        return v
+
+    @field_validator("license_plate")
+    @classmethod
+    def _normalize_license_plate(cls, value: str) -> str:
+        return value.strip().upper()
+
+
+class VehicleUpdate(BaseModel):
+    """Partial update — all fields optional. Image handled separately."""
+
+    brand: str | None = Field(default=None, min_length=1, max_length=BRAND_MAX)
+    model: str | None = Field(default=None, min_length=1, max_length=MODEL_MAX)
+    year: int | None = Field(default=None, ge=MIN_YEAR)
+    license_plate: str | None = Field(default=None, min_length=1, max_length=LICENSE_PLATE_MAX)
+    vin: str | None = Field(default=None, min_length=VIN_LENGTH, max_length=VIN_LENGTH)
+    engine_type: EngineType | None = None
+    horsepower: int | None = Field(default=None, gt=0)
+    seats: int | None = Field(default=None, gt=0)
+    trunk_capacity: int | None = Field(default=None, ge=0)
+    daily_base_price: Decimal | None = Field(default=None, gt=0, le=Decimal("99999999.99"))
+    color: VehicleColor | None = None
+    category_id: uuid.UUID | None = None
+    mileage: int | None = Field(default=None, ge=0)
+    status: VehicleStatus | None = None
+
+    @field_validator("year")
+    @classmethod
+    def _validate_year(cls, value: int | None) -> int | None:
+        if value is None:
+            return value
+        max_year = _current_year() + 1
+        if value > max_year:
+            raise ValueError(f"year must be at most {max_year}")
+        return value
+
+    @field_validator("vin")
+    @classmethod
+    def _normalize_vin(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        v = value.strip().upper()
+        if len(v) != VIN_LENGTH:
+            raise ValueError("VIN must be exactly 17 characters")
+        return v
+
+    @field_validator("license_plate")
+    @classmethod
+    def _normalize_license_plate(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        return value.strip().upper()
+
+
+class VehicleBulkStatusUpdate(BaseModel):
+    """Atomically change ``status`` on a batch of vehicles."""
+
+    ids: list[uuid.UUID] = Field(min_length=1, max_length=200)
+    status: VehicleStatus
+
+
+class VehicleBulkStatusResponse(BaseModel):
+    updated: int
+    not_found: list[uuid.UUID]

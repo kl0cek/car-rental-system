@@ -1,4 +1,10 @@
-import type { CategoryName, EngineType, SortableField, VehicleStatus } from '@/types/vehicle';
+import type {
+  CategoryName,
+  EngineType,
+  SortableField,
+  VehicleColor,
+  VehicleStatus,
+} from '@/types/vehicle';
 import { Zap, Fuel, Leaf, type LucideIcon } from 'lucide-react';
 
 export const CATEGORIES: { value: CategoryName; label: string }[] = [
@@ -12,6 +18,21 @@ export const CATEGORIES: { value: CategoryName; label: string }[] = [
 export const CATEGORY_LABELS = Object.fromEntries(
   CATEGORIES.map((c) => [c.value, c.label])
 ) as Record<CategoryName, string>;
+
+export const VEHICLE_COLORS: VehicleColor[] = [
+  'white',
+  'black',
+  'grey',
+  'silver',
+  'blue',
+  'red',
+  'green',
+  'yellow',
+  'orange',
+  'brown',
+  'beige',
+  'other',
+];
 
 export const ENGINE_TYPES: { value: EngineType; label: string; Icon: LucideIcon }[] = [
   { value: 'petrol', label: 'Petrol', Icon: Fuel },

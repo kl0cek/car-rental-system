@@ -1,3 +1,10 @@
+"""Serwis uwierzytelniania.
+
+Obsługuje rejestrację, logowanie, weryfikację maila, reset hasła i
+odświeżanie tokenów. Mailingi schedulowane są jako zadania w tle aby
+nie blokować odpowiedzi HTTP.
+"""
+
 import secrets
 import uuid
 from asyncio import get_running_loop
@@ -38,6 +45,7 @@ async def register_user(body: RegisterRequest, db: AsyncSession) -> tuple[User, 
     if existing is not None:
         raise EmailAlreadyRegisteredError(body.email)
 
+    # bcrypt jest CPU-bound — odpalamy w threadpoolu, żeby nie blokować pętli asyncio
     loop = get_running_loop()
     hashed = await loop.run_in_executor(None, hash_password, body.password)
 
@@ -50,6 +58,7 @@ async def register_user(body: RegisterRequest, db: AsyncSession) -> tuple[User, 
     )
     user = await user_repository.create(db, user)
 
+    # Token weryfikacyjny trzymamy w Redisie z TTL — wygaśnie sam, nie ma potrzeby czyszczenia w DB
     token = secrets.token_urlsafe(32)
     redis = get_redis()
     await redis.set(
@@ -103,6 +112,8 @@ async def refresh_tokens(body: RefreshRequest, db: AsyncSession) -> tuple[TokenR
     if await is_token_blacklisted(redis, body.refresh_token):
         raise InvalidTokenError("Refresh token has been revoked")
 
+    # Rotacja: stary refresh token natychmiast trafia na blacklistę,
+    # więc nie da się go użyć ponownie nawet jeśli wyciekł
     refresh_ttl = int(timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS).total_seconds())
     await blacklist_token(redis, body.refresh_token, refresh_ttl)
 
@@ -129,6 +140,7 @@ async def logout_user_tokens(access_token: str | None, refresh_token: str | None
 
 
 async def verify_email(token: str, db: AsyncSession) -> None:
+    # getdel jest atomowe — token można wykorzystać tylko raz, nawet przy współbieżnych żądaniach
     redis = get_redis()
     user_id_raw = await redis.getdel(f"verify:{token}")
     if user_id_raw is None:
@@ -153,11 +165,13 @@ async def forgot_password(body: ForgotPasswordRequest, db: AsyncSession) -> str 
     """
     user = await user_repository.get_by_email(db, body.email)
     if user is None:
+        # Cicho zwracamy None — router i tak odpowie 200, żeby nie zdradzać czy email istnieje
         return None
 
     redis = get_redis()
     cooldown_key = f"reset_cooldown:{user.id}"
     if await redis.exists(cooldown_key):
+        # 60-sekundowy throttling per-user — chroni przed zalewem maili z resetem
         return None
 
     token = secrets.token_urlsafe(32)

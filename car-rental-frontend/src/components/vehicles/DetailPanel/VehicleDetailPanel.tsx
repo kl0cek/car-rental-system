@@ -13,13 +13,28 @@ import { AvailabilityCalendar } from './AvailabilityCalendar';
 import { PriceCalculator } from './PriceCalculator';
 import { useVehicleAvailability } from '@/hooks/useVehicleAvailability';
 import { useCreateReservation } from '@/hooks/useCreateReservation';
+import { useTranslation } from '@/i18n/useTranslation';
+import type { TranslationKey } from '@/i18n/translations';
+
+export type DetailPanelMode = 'customer' | 'staff';
 
 interface VehicleDetailPanelProps {
   vehicle: Vehicle;
   onClose: () => void;
+  /**
+   * "customer" (default) shows the price calculator + reserve action.
+   * "staff" hides reservation controls — used when the operator opens
+   * the panel from Fleet just to inspect specs and the booking calendar.
+   */
+  mode?: DetailPanelMode;
 }
 
-export function VehicleDetailPanel({ vehicle, onClose }: VehicleDetailPanelProps) {
+export function VehicleDetailPanel({
+  vehicle,
+  onClose,
+  mode = 'customer',
+}: VehicleDetailPanelProps) {
+  const { t } = useTranslation();
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [reserved, setReserved] = useState(false);
@@ -122,12 +137,18 @@ export function VehicleDetailPanel({ vehicle, onClose }: VehicleDetailPanelProps
                 <EngineIcon className="w-3 h-3" />
                 {engine.label}
               </Badge>
+              {mode === 'staff' && (
+                <Badge variant="outline" className="font-mono text-xs">
+                  {vehicle.licensePlate}
+                </Badge>
+              )}
+              <Badge className={status.className}>{status.label}</Badge>
             </div>
             <h2 className="text-2xl font-bold text-foreground">
               {vehicle.brand} {vehicle.model}
             </h2>
             <p className="text-muted-foreground">
-              {vehicle.year} · {vehicle.color}
+              {vehicle.year} · {t(`color.${vehicle.color}` as TranslationKey)}
             </p>
           </div>
 
@@ -146,24 +167,28 @@ export function VehicleDetailPanel({ vehicle, onClose }: VehicleDetailPanelProps
             availabilityLoading={availabilityLoading}
           />
 
-          <Separator />
+          {mode === 'customer' && (
+            <>
+              <Separator />
 
-          <PriceCalculator
-            vehicle={vehicle}
-            dateFrom={dateFrom}
-            dateTo={dateTo}
-            onDateFromChange={setDateFrom}
-            onDateToChange={setDateTo}
-          />
+              <PriceCalculator
+                vehicle={vehicle}
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+                onDateFromChange={setDateFrom}
+                onDateToChange={setDateTo}
+              />
 
-          {reservationError && (
-            <p className="text-sm text-red-600 dark:text-red-400">{reservationError}</p>
+              {reservationError && (
+                <p className="text-sm text-red-600 dark:text-red-400">{reservationError}</p>
+              )}
+
+              <Button className="w-full" size="lg" disabled={!canReserve} onClick={handleReserve}>
+                {reserving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                {buttonLabel()}
+              </Button>
+            </>
           )}
-
-          <Button className="w-full" size="lg" disabled={!canReserve} onClick={handleReserve}>
-            {reserving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            {buttonLabel()}
-          </Button>
         </div>
       </div>
     </div>

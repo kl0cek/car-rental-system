@@ -1,3 +1,11 @@
+"""Modele rezerwacji, wynajmu i rozbicia ceny.
+
+`Reservation` to zamówienie klienta, `Rental` to faktyczne wydanie
+pojazdu (powstaje gdy pracownik potwierdzi odbiór), a
+`RentalPriceBreakdown` przechowuje składniki ostatecznej ceny
+(cena bazowa, dopłata paliwowa, mnożnik ryzyka).
+"""
+
 from __future__ import annotations
 
 import enum

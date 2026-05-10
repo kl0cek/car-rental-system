@@ -42,7 +42,8 @@ async def seed_postgres(*, drop: bool = False) -> None:
     from app.models.category import Category, CategoryName
     from app.models.rental import Rental, RentalPriceBreakdown, Reservation, ReservationStatus
     from app.models.user import User, UserRole
-    from app.models.vehicle import EngineType, Vehicle, VehicleStatus
+    from app.models.vehicle import EngineType, Vehicle, VehicleColor, VehicleStatus
+    from app.models.vehicle_image import VehicleImage
 
     if drop:
         async with async_engine.begin() as conn:
@@ -68,6 +69,8 @@ async def seed_postgres(*, drop: bool = False) -> None:
             role=UserRole.CUSTOMER,
             phone="+48600100200",
             is_verified=True,
+            # Low-risk customer — no risk premium on price.
+            risk_score=Decimal("0.00"),
         ),
         User(
             id=USER_IDS[1],
@@ -78,6 +81,8 @@ async def seed_postgres(*, drop: bool = False) -> None:
             role=UserRole.CUSTOMER,
             phone="+48601200300",
             is_verified=True,
+            # Moderate-risk customer — falls into the 25-50 bucket → +5% multiplier.
+            risk_score=Decimal("35.00"),
         ),
         User(
             id=USER_IDS[2],
@@ -87,6 +92,8 @@ async def seed_postgres(*, drop: bool = False) -> None:
             last_name="Wiśniewski",
             role=UserRole.CUSTOMER,
             is_verified=True,
+            # Higher-risk customer — 50-75 bucket → +15% multiplier.
+            risk_score=Decimal("60.00"),
         ),
         User(
             id=USER_IDS[3],
@@ -168,9 +175,8 @@ async def seed_postgres(*, drop: bool = False) -> None:
             seats=5,
             trunk_capacity=361,
             daily_base_price=Decimal("150.00"),
-            color="Biały",
+            color=VehicleColor.WHITE,
             mileage=25000,
-            image_url="https://images.unsplash.com/photo-1623869675781-80aa31012a5a?w=800&q=80",
             status=VehicleStatus.AVAILABLE,
             category_id=CATEGORY_IDS[1],
         ),
@@ -186,9 +192,8 @@ async def seed_postgres(*, drop: bool = False) -> None:
             seats=5,
             trunk_capacity=381,
             daily_base_price=Decimal("170.00"),
-            color="Szary",
+            color=VehicleColor.GREY,
             mileage=45000,
-            image_url="https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=800&q=80",
             status=VehicleStatus.RENTED,
             category_id=CATEGORY_IDS[1],
         ),
@@ -204,9 +209,8 @@ async def seed_postgres(*, drop: bool = False) -> None:
             seats=5,
             trunk_capacity=425,
             daily_base_price=Decimal("350.00"),
-            color="Czarny",
+            color=VehicleColor.BLACK,
             mileage=8000,
-            image_url="https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=800&q=80",
             status=VehicleStatus.AVAILABLE,
             category_id=CATEGORY_IDS[2],
         ),
@@ -222,9 +226,8 @@ async def seed_postgres(*, drop: bool = False) -> None:
             seats=5,
             trunk_capacity=580,
             daily_base_price=Decimal("280.00"),
-            color="Zielony",
+            color=VehicleColor.GREEN,
             mileage=18000,
-            image_url="https://images.unsplash.com/photo-1568844293986-8d0400b5d25f?w=800&q=80",
             status=VehicleStatus.AVAILABLE,
             category_id=CATEGORY_IDS[3],
         ),
@@ -240,9 +243,8 @@ async def seed_postgres(*, drop: bool = False) -> None:
             seats=5,
             trunk_capacity=600,
             daily_base_price=Decimal("140.00"),
-            color="Niebieski",
+            color=VehicleColor.BLUE,
             mileage=72000,
-            image_url="https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&q=80",
             status=VehicleStatus.MAINTENANCE,
             category_id=CATEGORY_IDS[1],
         ),
@@ -258,9 +260,8 @@ async def seed_postgres(*, drop: bool = False) -> None:
             seats=5,
             trunk_capacity=480,
             daily_base_price=Decimal("320.00"),
-            color="Czarny",
+            color=VehicleColor.BLACK,
             mileage=5000,
-            image_url="https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&q=80",
             status=VehicleStatus.AVAILABLE,
             category_id=CATEGORY_IDS[2],
         ),
@@ -276,9 +277,8 @@ async def seed_postgres(*, drop: bool = False) -> None:
             seats=5,
             trunk_capacity=332,
             daily_base_price=Decimal("250.00"),
-            color="Biały",
+            color=VehicleColor.WHITE,
             mileage=12000,
-            image_url="https://images.unsplash.com/photo-1593941707874-ef25b8b4a92b?w=800&q=80",
             status=VehicleStatus.AVAILABLE,
             category_id=CATEGORY_IDS[1],
         ),
@@ -294,9 +294,8 @@ async def seed_postgres(*, drop: bool = False) -> None:
             seats=5,
             trunk_capacity=375,
             daily_base_price=Decimal("120.00"),
-            color="Czerwony",
+            color=VehicleColor.RED,
             mileage=95000,
-            image_url="https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
             status=VehicleStatus.OUT_OF_SERVICE,
             category_id=CATEGORY_IDS[0],
         ),
@@ -493,56 +492,66 @@ async def seed_postgres(*, drop: bool = False) -> None:
     ]
 
     # --- Rental Price Breakdowns (for all completed/active rentals) ---
-    price_breakdowns = [
-        RentalPriceBreakdown(
-            rental_id=ACTIVE_RENTAL_IDS[0],
-            base_price=Decimal("750.00"),
-            fuel_surcharge=Decimal("15.00"),
-            risk_multiplier=Decimal("1.0000"),
-            final_price=Decimal("750.00"),
-        ),
-        RentalPriceBreakdown(
-            rental_id=ACTIVE_RENTAL_IDS[1],
-            base_price=Decimal("1050.00"),
-            fuel_surcharge=Decimal("0.00"),
-            risk_multiplier=Decimal("1.0000"),
-            final_price=Decimal("1050.00"),
-        ),
-        RentalPriceBreakdown(
-            rental_id=ACTIVE_RENTAL_IDS[2],
-            base_price=Decimal("1190.00"),
-            fuel_surcharge=Decimal("28.00"),
-            risk_multiplier=Decimal("1.0000"),
-            final_price=Decimal("1190.00"),
-        ),
-        RentalPriceBreakdown(
-            rental_id=ACTIVE_RENTAL_IDS[3],
-            base_price=Decimal("1260.00"),
-            fuel_surcharge=Decimal("0.00"),
-            risk_multiplier=Decimal("1.1111"),
-            final_price=Decimal("1400.00"),
-        ),
-        RentalPriceBreakdown(
-            rental_id=ACTIVE_RENTAL_IDS[4],
-            base_price=Decimal("750.00"),
-            fuel_surcharge=Decimal("12.00"),
-            risk_multiplier=Decimal("1.0000"),
-            final_price=Decimal("750.00"),
-        ),
-        RentalPriceBreakdown(
-            rental_id=ACTIVE_RENTAL_IDS[5],
-            base_price=Decimal("450.00"),
-            fuel_surcharge=Decimal("10.00"),
-            risk_multiplier=Decimal("1.0000"),
-            final_price=Decimal("450.00"),
-        ),
-        RentalPriceBreakdown(
-            rental_id=ACTIVE_RENTAL_IDS[6],
-            base_price=Decimal("840.00"),
-            fuel_surcharge=Decimal("22.00"),
-            risk_multiplier=Decimal("1.1667"),
-            final_price=Decimal("980.00"),
-        ),
+    # Use the production helper so seeded final_price values respect the
+    # invariant enforced by rental_service.return_rental:
+    #   final_price == (base_price + fuel_surcharge) * risk_multiplier
+    # Importing here (not at module top) keeps the script's imports lazy.
+    from app.services.rental_service import compute_risk_multiplier
+
+    risk_by_user = {
+        USER_IDS[0]: compute_risk_multiplier(Decimal("0.00")),
+        USER_IDS[1]: compute_risk_multiplier(Decimal("35.00")),
+        USER_IDS[2]: compute_risk_multiplier(Decimal("60.00")),
+    }
+    reservation_by_id = {r.id: r for r in reservations}
+
+    # Per-rental fuel surcharges (rough domain values; not derived from fuel diff
+    # in seed because we want to exercise cases with and without surcharge).
+    fuel_surcharges: dict[uuid.UUID, Decimal] = {
+        ACTIVE_RENTAL_IDS[0]: Decimal("15.00"),
+        ACTIVE_RENTAL_IDS[1]: Decimal("0.00"),
+        ACTIVE_RENTAL_IDS[2]: Decimal("28.00"),
+        ACTIVE_RENTAL_IDS[3]: Decimal("0.00"),
+        ACTIVE_RENTAL_IDS[4]: Decimal("12.00"),
+        ACTIVE_RENTAL_IDS[5]: Decimal("10.00"),
+        ACTIVE_RENTAL_IDS[6]: Decimal("22.00"),
+    }
+
+    def _make_breakdown(rental: Rental) -> RentalPriceBreakdown:
+        reservation = reservation_by_id[rental.reservation_id]
+        base_price = reservation.total_price.quantize(Decimal("0.01"))
+        fuel_surcharge = fuel_surcharges[rental.id]
+        risk_multiplier = risk_by_user[reservation.user_id]
+        final_price = ((base_price + fuel_surcharge) * risk_multiplier).quantize(Decimal("0.01"))
+        return RentalPriceBreakdown(
+            rental_id=rental.id,
+            base_price=base_price,
+            fuel_surcharge=fuel_surcharge,
+            risk_multiplier=risk_multiplier,
+            final_price=final_price,
+        )
+
+    price_breakdowns = [_make_breakdown(r) for r in active_rentals]
+
+    # --- Vehicle images (one primary per vehicle, mapping VEHICLE_IDS -> URL) ---
+    vehicle_image_urls = [
+        "https://images.unsplash.com/photo-1623869675781-80aa31012a5a?w=800&q=80",
+        "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=800&q=80",
+        "https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=800&q=80",
+        "https://images.unsplash.com/photo-1568844293986-8d0400b5d25f?w=800&q=80",
+        "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&q=80",
+        "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&q=80",
+        "https://images.unsplash.com/photo-1593941707874-ef25b8b4a92b?w=800&q=80",
+        "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
+    ]
+    vehicle_images = [
+        VehicleImage(
+            vehicle_id=VEHICLE_IDS[i],
+            url=url,
+            position=0,
+            is_primary=True,
+        )
+        for i, url in enumerate(vehicle_image_urls)
     ]
 
     async with async_session_factory() as session:
@@ -559,6 +568,8 @@ async def seed_postgres(*, drop: bool = False) -> None:
         await session.flush()
         session.add_all(vehicles)
         await session.flush()
+        session.add_all(vehicle_images)
+        await session.flush()
         session.add_all(reservations)
         await session.flush()
         session.add_all(active_rentals)
@@ -568,7 +579,8 @@ async def seed_postgres(*, drop: bool = False) -> None:
 
     print(
         f"[PG] Seeded: {len(users)} users, {len(categories)} categories, "
-        f"{len(vehicles)} vehicles, {len(reservations)} reservations, "
+        f"{len(vehicles)} vehicles, {len(vehicle_images)} vehicle images, "
+        f"{len(reservations)} reservations, "
         f"{len(active_rentals)} active rentals, {len(price_breakdowns)} price breakdowns"
     )
 

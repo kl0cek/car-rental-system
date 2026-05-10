@@ -1,3 +1,10 @@
+"""Wysyłka maili transakcyjnych przez SMTP.
+
+Buduje treści wiadomości (weryfikacja maila, reset hasła, potwierdzenie
+rezerwacji) i wysyła je przez serwer skonfigurowany w `settings`.
+Błędy są logowane, ale nie przerywają obsługi żądania.
+"""
+
 import logging
 import smtplib
 from datetime import date
