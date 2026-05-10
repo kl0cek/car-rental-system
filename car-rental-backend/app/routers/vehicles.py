@@ -14,7 +14,7 @@ from pydantic import ValidationError
 
 from app.db.session import DbSession
 from app.models.category import CategoryName
-from app.models.vehicle import EngineType, VehicleStatus
+from app.models.vehicle import EngineType
 from app.schemas.vehicle import (
     AvailabilityRequest,
     AvailabilityResponse,
@@ -42,11 +42,12 @@ async def list_vehicles(
     min_year: int | None = Query(default=None, ge=1900),
     max_year: int | None = Query(default=None, le=2100),
     min_seats: int | None = Query(default=None, ge=1),
-    status: VehicleStatus | None = Query(default=None),
     available_from: date | None = Query(default=None),
     available_to: date | None = Query(default=None),
     search: str | None = Query(default=None, max_length=100),
 ) -> PaginatedVehicleResponse:
+    # Public catalog does not expose a `status` filter — visibility policy is
+    # enforced inside the service (see PUBLIC_CATALOG_STATUSES).
     try:
         params = VehicleListParams(
             offset=offset,
@@ -60,7 +61,6 @@ async def list_vehicles(
             min_year=min_year,
             max_year=max_year,
             min_seats=min_seats,
-            status=status,
             available_from=available_from,
             available_to=available_to,
             search=search,

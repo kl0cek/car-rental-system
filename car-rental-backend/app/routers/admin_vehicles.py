@@ -17,12 +17,12 @@ from pydantic import ValidationError
 from app.core.deps import require_roles
 from app.db.session import DbSession
 from app.models.user import User, UserRole
-from app.models.vehicle import EngineType, VehicleStatus
+from app.models.vehicle import EngineType, VehicleColor, VehicleStatus
 from app.schemas.vehicle import (
+    VehicleAdminDetailResponse,
     VehicleBulkStatusResponse,
     VehicleBulkStatusUpdate,
     VehicleCreate,
-    VehicleDetailResponse,
     VehicleUpdate,
 )
 from app.services import vehicle_service
@@ -41,7 +41,7 @@ def _validation_error_to_http(exc: ValidationError) -> HTTPException:
 
 @router.post(
     "",
-    response_model=VehicleDetailResponse,
+    response_model=VehicleAdminDetailResponse,
     status_code=http_status.HTTP_201_CREATED,
     summary="Create a new vehicle (admin only)",
 )
@@ -58,12 +58,12 @@ async def create_vehicle(
     seats: Annotated[int, Form()],
     trunk_capacity: Annotated[int, Form()],
     daily_base_price: Annotated[Decimal, Form()],
-    color: Annotated[str, Form()],
+    color: Annotated[VehicleColor, Form()],
     category_id: Annotated[uuid.UUID, Form()],
     mileage: Annotated[int, Form()] = 0,
     status: Annotated[VehicleStatus, Form()] = VehicleStatus.AVAILABLE,
     images: Annotated[list[UploadFile] | None, File()] = None,
-) -> VehicleDetailResponse:
+) -> VehicleAdminDetailResponse:
     try:
         body = VehicleCreate(
             brand=brand,
@@ -89,7 +89,7 @@ async def create_vehicle(
 
 @router.put(
     "/{vehicle_id}",
-    response_model=VehicleDetailResponse,
+    response_model=VehicleAdminDetailResponse,
     summary="Update vehicle scalar fields (admin only). Images managed via dedicated endpoints.",
 )
 async def update_vehicle(
@@ -106,11 +106,11 @@ async def update_vehicle(
     seats: Annotated[int | None, Form()] = None,
     trunk_capacity: Annotated[int | None, Form()] = None,
     daily_base_price: Annotated[Decimal | None, Form()] = None,
-    color: Annotated[str | None, Form()] = None,
+    color: Annotated[VehicleColor | None, Form()] = None,
     category_id: Annotated[uuid.UUID | None, Form()] = None,
     mileage: Annotated[int | None, Form()] = None,
     status: Annotated[VehicleStatus | None, Form()] = None,
-) -> VehicleDetailResponse:
+) -> VehicleAdminDetailResponse:
     raw_fields = {
         "brand": brand,
         "model": model,
@@ -177,7 +177,7 @@ async def bulk_update_status(
 
 @router.post(
     "/{vehicle_id}/images",
-    response_model=VehicleDetailResponse,
+    response_model=VehicleAdminDetailResponse,
     status_code=http_status.HTTP_201_CREATED,
     summary="Upload an additional image for a vehicle (admin only)",
 )
@@ -187,7 +187,7 @@ async def upload_vehicle_image(
     _: AdminUser,
     image: Annotated[UploadFile, File()],
     is_primary: Annotated[bool, Form()] = False,
-) -> VehicleDetailResponse:
+) -> VehicleAdminDetailResponse:
     result = await vehicle_service.add_vehicle_image(db, vehicle_id, image, is_primary)
     if result is None:
         raise HTTPException(
@@ -199,7 +199,7 @@ async def upload_vehicle_image(
 
 @router.delete(
     "/{vehicle_id}/images/{image_id}",
-    response_model=VehicleDetailResponse,
+    response_model=VehicleAdminDetailResponse,
     summary="Delete a vehicle image (admin only)",
 )
 async def delete_vehicle_image(
@@ -207,7 +207,7 @@ async def delete_vehicle_image(
     image_id: uuid.UUID,
     db: DbSession,
     _: AdminUser,
-) -> VehicleDetailResponse:
+) -> VehicleAdminDetailResponse:
     result = await vehicle_service.delete_vehicle_image(db, vehicle_id, image_id)
     if result is None:
         raise HTTPException(
@@ -219,7 +219,7 @@ async def delete_vehicle_image(
 
 @router.post(
     "/{vehicle_id}/images/{image_id}/primary",
-    response_model=VehicleDetailResponse,
+    response_model=VehicleAdminDetailResponse,
     summary="Mark a vehicle image as the primary one (admin only)",
 )
 async def set_vehicle_primary_image(
@@ -227,7 +227,7 @@ async def set_vehicle_primary_image(
     image_id: uuid.UUID,
     db: DbSession,
     _: AdminUser,
-) -> VehicleDetailResponse:
+) -> VehicleAdminDetailResponse:
     result = await vehicle_service.set_vehicle_primary_image(db, vehicle_id, image_id)
     if result is None:
         raise HTTPException(
@@ -239,7 +239,7 @@ async def set_vehicle_primary_image(
 
 @router.put(
     "/{vehicle_id}/images/order",
-    response_model=VehicleDetailResponse,
+    response_model=VehicleAdminDetailResponse,
     summary="Reorder vehicle images (admin only)",
 )
 async def reorder_vehicle_images(
@@ -247,7 +247,7 @@ async def reorder_vehicle_images(
     db: DbSession,
     _: AdminUser,
     ordered_ids: list[uuid.UUID],
-) -> VehicleDetailResponse:
+) -> VehicleAdminDetailResponse:
     result = await vehicle_service.reorder_vehicle_images(db, vehicle_id, ordered_ids)
     if result is None:
         raise HTTPException(

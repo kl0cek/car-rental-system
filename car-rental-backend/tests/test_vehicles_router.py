@@ -38,12 +38,15 @@ def _make_vehicle_list_item() -> VehicleListItem:
         color=VehicleColor.WHITE,
         mileage=25000,
         image_url=None,
+        images=[],
         status=VehicleStatus.AVAILABLE,
         category=_make_category(),
     )
 
 
 def _make_vehicle_detail(vehicle_id: uuid.UUID | None = None) -> VehicleDetailResponse:
+    # Note: VIN and license_plate intentionally omitted — they are admin-only
+    # and live on VehicleAdminDetailResponse, not on the public schema.
     return VehicleDetailResponse(
         id=vehicle_id or uuid.uuid4(),
         brand="Toyota",
@@ -57,6 +60,7 @@ def _make_vehicle_detail(vehicle_id: uuid.UUID | None = None) -> VehicleDetailRe
         color=VehicleColor.WHITE,
         mileage=25000,
         image_url=None,
+        images=[],
         status=VehicleStatus.AVAILABLE,
         is_active=True,
         category=_make_category(),

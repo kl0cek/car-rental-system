@@ -2,7 +2,8 @@
 
 Pracownik / admin może obejrzeć szczegóły klienta (profil, wynajmy,
 incydenty, notatki) oraz dodawać/usuwać incydenty i CRUD-ować notatki
-wewnętrzne. Wymaga roli EMPLOYEE lub ADMIN.
+wewnętrzne. Wymaga roli EMPLOYEE lub ADMIN — technicy serwisowi nie
+widzą danych finansowych ani notatek wewnętrznych klienta.
 """
 
 import uuid
@@ -25,9 +26,12 @@ from app.services import customer_service
 
 router = APIRouter(prefix="/admin/customers", tags=["admin", "customers"])
 
-StaffUser = Annotated[
+# Customer panel exposes internal notes and financial totals — only employees
+# and admins should see it. Technicians are intentionally excluded; they keep
+# their separate workshop endpoints.
+EmployeeOrAdminUser = Annotated[
     User,
-    Depends(require_roles(UserRole.EMPLOYEE, UserRole.TECHNICIAN, UserRole.ADMIN)),
+    Depends(require_roles(UserRole.EMPLOYEE, UserRole.ADMIN)),
 ]
 
 
@@ -35,7 +39,7 @@ StaffUser = Annotated[
 async def get_customer_detail(
     customer_id: uuid.UUID,
     db: DbSession,
-    _: StaffUser,
+    _: EmployeeOrAdminUser,
 ) -> CustomerDetailResponse:
     return await customer_service.get_customer_detail(db, customer_id)
 
@@ -49,7 +53,7 @@ async def create_customer_incident(
     customer_id: uuid.UUID,
     body: IncidentCreate,
     db: DbSession,
-    current_user: StaffUser,
+    current_user: EmployeeOrAdminUser,
 ) -> IncidentResponse:
     return await customer_service.create_incident(db, customer_id, current_user, body)
 
@@ -62,7 +66,7 @@ async def delete_customer_incident(
     customer_id: uuid.UUID,
     incident_id: uuid.UUID,
     db: DbSession,
-    _: StaffUser,
+    _: EmployeeOrAdminUser,
 ) -> Response:
     await customer_service.delete_incident(db, customer_id, incident_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -77,7 +81,7 @@ async def create_customer_note(
     customer_id: uuid.UUID,
     body: CustomerNoteCreate,
     db: DbSession,
-    current_user: StaffUser,
+    current_user: EmployeeOrAdminUser,
 ) -> CustomerNoteResponse:
     return await customer_service.create_note(db, customer_id, current_user, body)
 
@@ -91,7 +95,7 @@ async def update_customer_note(
     note_id: uuid.UUID,
     body: CustomerNoteUpdate,
     db: DbSession,
-    _: StaffUser,
+    _: EmployeeOrAdminUser,
 ) -> CustomerNoteResponse:
     return await customer_service.update_note(db, customer_id, note_id, body)
 
@@ -104,7 +108,7 @@ async def delete_customer_note(
     customer_id: uuid.UUID,
     note_id: uuid.UUID,
     db: DbSession,
-    _: StaffUser,
+    _: EmployeeOrAdminUser,
 ) -> Response:
     await customer_service.delete_note(db, customer_id, note_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

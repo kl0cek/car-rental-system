@@ -48,6 +48,7 @@ def _apply_filters(
     max_year: int | None = None,
     min_seats: int | None = None,
     status: VehicleStatus | None = None,
+    status_in: list[VehicleStatus] | None = None,
     search: str | None = None,
 ) -> Select[Any]:
     if category is not None:
@@ -66,6 +67,10 @@ def _apply_filters(
         stmt = stmt.where(Vehicle.seats >= min_seats)
     if status is not None:
         stmt = stmt.where(Vehicle.status == status)
+    if status_in is not None:
+        # Used by the public catalog to hide statuses that aren't customer-facing
+        # (MAINTENANCE / OUT_OF_SERVICE) without baking that policy into the model.
+        stmt = stmt.where(Vehicle.status.in_(status_in))
     if search:
         # Free-text search across the operator-relevant identifiers
         like = f"%{search.strip()}%"
@@ -99,6 +104,7 @@ async def get_list(
     max_year: int | None = None,
     min_seats: int | None = None,
     status: VehicleStatus | None = None,
+    status_in: list[VehicleStatus] | None = None,
     available_from: date | None = None,
     available_to: date | None = None,
     search: str | None = None,
@@ -114,6 +120,7 @@ async def get_list(
         max_year=max_year,
         min_seats=min_seats,
         status=status,
+        status_in=status_in,
         search=search,
     )
 
@@ -256,12 +263,23 @@ async def bulk_update_status(
     return len(existing), missing
 
 
+async def _lock_vehicle_row(db: AsyncSession, vehicle_id: uuid.UUID) -> None:
+    """Take a FOR UPDATE lock on the parent vehicle row.
+
+    Used by image mutation paths so the "exactly one primary image per vehicle"
+    invariant is serialized against concurrent writers. The lock is released
+    automatically when the surrounding transaction commits or rolls back.
+    """
+    await db.execute(select(Vehicle.id).where(Vehicle.id == vehicle_id).with_for_update())
+
+
 async def add_image(
     db: AsyncSession,
     vehicle_id: uuid.UUID,
     url: str,
     is_primary: bool,
 ) -> VehicleImage:
+    await _lock_vehicle_row(db, vehicle_id)
     # Append to the end — position computed inside the same transaction so a
     # racing parallel upload would just produce equal positions, not gaps.
     next_position_stmt = select(func.coalesce(func.max(VehicleImage.position) + 1, 0)).where(
@@ -296,6 +314,7 @@ async def get_image(db: AsyncSession, image_id: uuid.UUID) -> VehicleImage | Non
 async def delete_image(db: AsyncSession, image: VehicleImage) -> None:
     was_primary = image.is_primary
     vehicle_id = image.vehicle_id
+    await _lock_vehicle_row(db, vehicle_id)
     await db.delete(image)
     await db.flush()
 
@@ -317,6 +336,7 @@ async def delete_image(db: AsyncSession, image: VehicleImage) -> None:
 async def set_primary_image(db: AsyncSession, image: VehicleImage) -> None:
     if image.is_primary:
         return
+    await _lock_vehicle_row(db, image.vehicle_id)
     await db.execute(
         sa_update(VehicleImage)
         .where(VehicleImage.vehicle_id == image.vehicle_id, VehicleImage.is_primary.is_(True))

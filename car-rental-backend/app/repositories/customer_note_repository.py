@@ -37,12 +37,20 @@ async def get_by_id(
 async def create(db: AsyncSession, note: CustomerNote) -> CustomerNote:
     db.add(note)
     await db.flush()
-    return await get_by_id(db, note.id)  # type: ignore[return-value]
+    # Re-fetch with author eager-loaded for the response DTO. The row was just
+    # inserted in this transaction so get_by_id cannot legitimately return None.
+    refreshed = await get_by_id(db, note.id)
+    assert refreshed is not None, "freshly-inserted note vanished mid-transaction"
+    return refreshed
 
 
 async def update(db: AsyncSession, note: CustomerNote) -> CustomerNote:
     await db.flush()
-    return await get_by_id(db, note.id)  # type: ignore[return-value]
+    # Re-fetch with author eager-loaded; the note must still exist because the
+    # caller passed in a managed instance from this very transaction.
+    refreshed = await get_by_id(db, note.id)
+    assert refreshed is not None, "managed note vanished mid-transaction"
+    return refreshed
 
 
 async def delete(db: AsyncSession, note: CustomerNote) -> None:

@@ -29,6 +29,7 @@ from app.schemas.vehicle import (
     AvailabilityRequest,
     AvailabilityResponse,
     PaginatedVehicleResponse,
+    VehicleAdminDetailResponse,
     VehicleBulkStatusResponse,
     VehicleCreate,
     VehicleDetailResponse,
@@ -67,7 +68,6 @@ def _build_list_item(vehicle: Vehicle) -> VehicleListItem:
         brand=vehicle.brand,
         model=vehicle.model,
         year=vehicle.year,
-        license_plate=vehicle.license_plate,
         engine_type=vehicle.engine_type,
         horsepower=vehicle.horsepower,
         seats=vehicle.seats,
@@ -82,10 +82,20 @@ def _build_list_item(vehicle: Vehicle) -> VehicleListItem:
     )
 
 
+PUBLIC_CATALOG_STATUSES: list[VehicleStatus] = [
+    VehicleStatus.AVAILABLE,
+    VehicleStatus.RENTED,
+]
+
+
 async def list_vehicles(
     params: VehicleListParams,
     db: AsyncSession,
 ) -> PaginatedVehicleResponse:
+    # Public catalog must never surface MAINTENANCE / OUT_OF_SERVICE vehicles —
+    # whitelist the visible statuses here so the router doesn't have to know
+    # the policy. ``params.status`` is no longer set by the public router but
+    # is still honoured if set (future admin caller could reuse this service).
     vehicles, total = await vehicle_repository.get_list(
         db,
         offset=params.offset,
@@ -100,6 +110,7 @@ async def list_vehicles(
         max_year=params.max_year,
         min_seats=params.min_seats,
         status=params.status,
+        status_in=PUBLIC_CATALOG_STATUSES,
         available_from=params.available_from,
         available_to=params.available_to,
         search=params.search,
@@ -121,6 +132,16 @@ async def get_vehicle_detail(
     if vehicle is None:
         return None
     return await _build_detail_response(db, vehicle)
+
+
+async def get_vehicle_admin_detail(
+    vehicle_id: uuid.UUID,
+    db: AsyncSession,
+) -> VehicleAdminDetailResponse | None:
+    vehicle = await vehicle_repository.get_by_id(db, vehicle_id)
+    if vehicle is None:
+        return None
+    return await _build_admin_detail_response(db, vehicle)
 
 
 async def check_availability(
@@ -243,8 +264,63 @@ async def _ensure_category_exists(db: AsyncSession, category_id: uuid.UUID) -> N
         )
 
 
+# Map of asyncpg constraint names -> response. Source of truth: ``Vehicle``
+# table definition + Alembic migrations.
+_VEHICLE_CONSTRAINT_RESPONSES: dict[str, tuple[int, str]] = {
+    "uq_vehicles_vin_active": (
+        status.HTTP_409_CONFLICT,
+        "A vehicle with this VIN already exists",
+    ),
+    "uq_vehicles_license_plate_active": (
+        status.HTTP_409_CONFLICT,
+        "A vehicle with this license plate already exists",
+    ),
+    "fk_vehicles_category_id": (
+        status.HTTP_422_UNPROCESSABLE_ENTITY,
+        "Invalid category_id: category does not exist",
+    ),
+}
+
+
 def _integrity_error_to_http(exc: IntegrityError) -> HTTPException:
-    msg = str(getattr(exc, "orig", exc)).lower()
+    """Translate a DB integrity violation into the right HTTP error.
+
+    Prefer the asyncpg constraint name (which is stable) over substring
+    matching against the rendered SQL message (which can change between
+    PostgreSQL versions or locales). Fall back to substring matching so the
+    handler still does something sensible against other DB drivers or when
+    asyncpg's diag isn't populated.
+    """
+    orig = getattr(exc, "orig", None)
+
+    # asyncpg surfaces the original UniqueViolationError/ForeignKeyViolationError
+    # as the chained ``__cause__`` of the DBAPI wrapper; older versions store
+    # it directly on ``orig``. Walk both.
+    constraint_name: str | None = None
+    for candidate in (orig, getattr(orig, "__cause__", None)):
+        if candidate is None:
+            continue
+        # asyncpg PostgresError exposes constraint_name directly
+        name = getattr(candidate, "constraint_name", None)
+        if isinstance(name, str) and name:
+            constraint_name = name
+            break
+        # Some drivers expose it under .diag.constraint_name
+        diag = getattr(candidate, "diag", None)
+        diag_name = getattr(diag, "constraint_name", None) if diag is not None else None
+        if isinstance(diag_name, str) and diag_name:
+            constraint_name = diag_name
+            break
+
+    if constraint_name is not None:
+        mapped = _VEHICLE_CONSTRAINT_RESPONSES.get(constraint_name)
+        if mapped is not None:
+            status_code, detail = mapped
+            return HTTPException(status_code=status_code, detail=detail)
+
+    # Resilience fallback: substring match. Useful for non-asyncpg drivers
+    # (e.g. sqlite in tests) where constraint_name may be unavailable.
+    msg = str(orig if orig is not None else exc).lower()
     if "vin" in msg:
         return HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -266,41 +342,54 @@ def _integrity_error_to_http(exc: IntegrityError) -> HTTPException:
     )
 
 
-async def _build_detail_response(db: AsyncSession, vehicle: Vehicle) -> VehicleDetailResponse:
+async def _detail_payload(db: AsyncSession, vehicle: Vehicle) -> dict[str, Any]:
+    """Shared field bag for both public and admin detail responses."""
     booked_dates = await vehicle_repository.get_booked_dates(db, vehicle.id)
     average_rating, review_count = await _get_review_stats(vehicle.id)
-    return VehicleDetailResponse(
-        id=vehicle.id,
-        brand=vehicle.brand,
-        model=vehicle.model,
-        year=vehicle.year,
-        license_plate=vehicle.license_plate,
-        vin=vehicle.vin,
-        engine_type=vehicle.engine_type,
-        horsepower=vehicle.horsepower,
-        seats=vehicle.seats,
-        trunk_capacity=vehicle.trunk_capacity,
-        daily_base_price=vehicle.daily_base_price,
-        color=vehicle.color,
-        mileage=vehicle.mileage,
-        image_url=_primary_image_url(vehicle.images),
-        images=_serialize_images(vehicle.images),
-        status=vehicle.status,
-        is_active=vehicle.is_active,
-        category=vehicle.category,
-        average_rating=average_rating,
-        review_count=review_count,
-        booked_dates=booked_dates,
-        created_at=vehicle.created_at,
-        updated_at=vehicle.updated_at,
-    )
+    return {
+        "id": vehicle.id,
+        "brand": vehicle.brand,
+        "model": vehicle.model,
+        "year": vehicle.year,
+        "engine_type": vehicle.engine_type,
+        "horsepower": vehicle.horsepower,
+        "seats": vehicle.seats,
+        "trunk_capacity": vehicle.trunk_capacity,
+        "daily_base_price": vehicle.daily_base_price,
+        "color": vehicle.color,
+        "mileage": vehicle.mileage,
+        "image_url": _primary_image_url(vehicle.images),
+        "images": _serialize_images(vehicle.images),
+        "status": vehicle.status,
+        "is_active": vehicle.is_active,
+        "category": vehicle.category,
+        "average_rating": average_rating,
+        "review_count": review_count,
+        "booked_dates": booked_dates,
+        "created_at": vehicle.created_at,
+        "updated_at": vehicle.updated_at,
+    }
+
+
+async def _build_detail_response(db: AsyncSession, vehicle: Vehicle) -> VehicleDetailResponse:
+    # Public response — VIN and license plate intentionally excluded.
+    return VehicleDetailResponse.model_validate(await _detail_payload(db, vehicle))
+
+
+async def _build_admin_detail_response(
+    db: AsyncSession, vehicle: Vehicle
+) -> VehicleAdminDetailResponse:
+    payload = await _detail_payload(db, vehicle)
+    payload["license_plate"] = vehicle.license_plate
+    payload["vin"] = vehicle.vin
+    return VehicleAdminDetailResponse.model_validate(payload)
 
 
 async def create_vehicle(
     db: AsyncSession,
     body: VehicleCreate,
     images: list[UploadFile] | None,
-) -> VehicleDetailResponse:
+) -> VehicleAdminDetailResponse:
     await _ensure_category_exists(db, body.category_id)
 
     vehicle = Vehicle(
@@ -357,14 +446,14 @@ async def create_vehicle(
         .where(Vehicle.id == vehicle.id)
     )
     vehicle = (await db.execute(stmt)).scalar_one()
-    return await _build_detail_response(db, vehicle)
+    return await _build_admin_detail_response(db, vehicle)
 
 
 async def update_vehicle(
     db: AsyncSession,
     vehicle_id: uuid.UUID,
     body: VehicleUpdate,
-) -> VehicleDetailResponse | None:
+) -> VehicleAdminDetailResponse | None:
     vehicle = await vehicle_repository.get_by_id(db, vehicle_id)
     if vehicle is None:
         return None
@@ -389,7 +478,7 @@ async def update_vehicle(
         .where(Vehicle.id == vehicle.id)
     )
     vehicle = (await db.execute(stmt)).scalar_one()
-    return await _build_detail_response(db, vehicle)
+    return await _build_admin_detail_response(db, vehicle)
 
 
 async def add_vehicle_image(
@@ -397,7 +486,7 @@ async def add_vehicle_image(
     vehicle_id: uuid.UUID,
     image: UploadFile,
     is_primary: bool,
-) -> VehicleDetailResponse | None:
+) -> VehicleAdminDetailResponse | None:
     vehicle = await vehicle_repository.get_by_id(db, vehicle_id)
     if vehicle is None:
         return None
@@ -410,14 +499,14 @@ async def add_vehicle_image(
         await _unlink_image_now(url)
         raise _integrity_error_to_http(exc)
 
-    return await get_vehicle_detail(vehicle_id, db)
+    return await get_vehicle_admin_detail(vehicle_id, db)
 
 
 async def delete_vehicle_image(
     db: AsyncSession,
     vehicle_id: uuid.UUID,
     image_id: uuid.UUID,
-) -> VehicleDetailResponse | None:
+) -> VehicleAdminDetailResponse | None:
     image = await vehicle_repository.get_image(db, image_id)
     if image is None or image.vehicle_id != vehicle_id:
         return None
@@ -425,27 +514,27 @@ async def delete_vehicle_image(
     url = image.url
     await vehicle_repository.delete_image(db, image)
     _schedule_image_unlink(db, url)
-    return await get_vehicle_detail(vehicle_id, db)
+    return await get_vehicle_admin_detail(vehicle_id, db)
 
 
 async def set_vehicle_primary_image(
     db: AsyncSession,
     vehicle_id: uuid.UUID,
     image_id: uuid.UUID,
-) -> VehicleDetailResponse | None:
+) -> VehicleAdminDetailResponse | None:
     image = await vehicle_repository.get_image(db, image_id)
     if image is None or image.vehicle_id != vehicle_id:
         return None
 
     await vehicle_repository.set_primary_image(db, image)
-    return await get_vehicle_detail(vehicle_id, db)
+    return await get_vehicle_admin_detail(vehicle_id, db)
 
 
 async def reorder_vehicle_images(
     db: AsyncSession,
     vehicle_id: uuid.UUID,
     ordered_ids: list[uuid.UUID],
-) -> VehicleDetailResponse | None:
+) -> VehicleAdminDetailResponse | None:
     vehicle = await vehicle_repository.get_by_id(db, vehicle_id)
     if vehicle is None:
         return None
@@ -458,7 +547,7 @@ async def reorder_vehicle_images(
                 detail=f"Image {img_id} does not belong to vehicle {vehicle_id}",
             )
     await vehicle_repository.reorder_images(db, vehicle_id, ordered_ids)
-    return await get_vehicle_detail(vehicle_id, db)
+    return await get_vehicle_admin_detail(vehicle_id, db)
 
 
 async def bulk_update_status(

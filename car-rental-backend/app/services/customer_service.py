@@ -11,7 +11,7 @@ from decimal import Decimal
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import contains_eager, joinedload
 
 from app.models.customer_note import CustomerNote
 from app.models.incident import Incident
@@ -56,7 +56,9 @@ async def _load_rental_history(
         select(Rental)
         .join(Rental.reservation)
         .options(
-            joinedload(Rental.reservation).joinedload(Reservation.vehicle),
+            # contains_eager reuses the explicit .join() above instead of issuing
+            # a second join through joinedload.
+            contains_eager(Rental.reservation).joinedload(Reservation.vehicle),
             joinedload(Rental.price_breakdown),
         )
         .where(Reservation.user_id == customer_id)

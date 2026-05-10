@@ -45,8 +45,12 @@ async def count_for_customer(
 async def create(db: AsyncSession, incident: Incident) -> Incident:
     db.add(incident)
     await db.flush()
-    # Re-fetch with reported_by eager-loaded for the response DTO
-    return await get_by_id(db, incident.id)  # type: ignore[return-value]
+    # Re-fetch with reported_by eager-loaded for the response DTO.
+    # The row was just inserted in this transaction, so get_by_id cannot return
+    # None — assert narrows the type and would only fire on a real bug.
+    refreshed = await get_by_id(db, incident.id)
+    assert refreshed is not None, "freshly-inserted incident vanished mid-transaction"
+    return refreshed
 
 
 async def delete(db: AsyncSession, incident: Incident) -> None:

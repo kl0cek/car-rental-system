@@ -82,7 +82,6 @@ class VehicleListItem(BaseModel):
     brand: str
     model: str
     year: int
-    license_plate: str
     engine_type: EngineType
     horsepower: int
     seats: int
@@ -91,7 +90,7 @@ class VehicleListItem(BaseModel):
     color: VehicleColor
     mileage: int
     image_url: str | None  # convenience: URL of primary image, computed by service
-    images: list[VehicleImageResponse]
+    images: list[VehicleImageResponse] = Field(default_factory=list)
     status: VehicleStatus
     category: CategoryResponse
 
@@ -111,12 +110,17 @@ class BookedDateRange(BaseModel):
 
 
 class VehicleDetailResponse(BaseModel):
+    """Public vehicle detail — does NOT expose VIN or license plate.
+
+    VIN and license plate are operational/admin data and should not be visible
+    to anonymous catalog visitors. Use ``VehicleAdminDetailResponse`` for the
+    admin views that need them.
+    """
+
     id: uuid.UUID
     brand: str
     model: str
     year: int
-    license_plate: str
-    vin: str
     engine_type: EngineType
     horsepower: int
     seats: int
@@ -125,7 +129,7 @@ class VehicleDetailResponse(BaseModel):
     color: VehicleColor
     mileage: int
     image_url: str | None  # convenience: URL of primary image
-    images: list[VehicleImageResponse]
+    images: list[VehicleImageResponse] = Field(default_factory=list)
     status: VehicleStatus
     is_active: bool
     category: CategoryResponse
@@ -134,6 +138,20 @@ class VehicleDetailResponse(BaseModel):
     booked_dates: list[BookedDateRange]
     created_at: datetime
     updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class VehicleAdminDetailResponse(VehicleDetailResponse):
+    """Admin variant of vehicle detail — adds VIN and license plate.
+
+    Returned by admin-only endpoints in ``admin_vehicles`` router. Inherits
+    from the public schema so the field set stays in sync; the admin-only
+    fields are appended at the end of the payload.
+    """
+
+    license_plate: str
+    vin: str
 
     model_config = {"from_attributes": True}
 

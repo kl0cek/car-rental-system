@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.models.rental import Rental, ReservationStatus
 from app.models.user import User
-from app.repositories import rental_repository, reservation_repository
+from app.repositories import rental_repository, reservation_repository, user_repository
 from app.schemas.rental import PickupRequest, ReturnRequest
 from app.schemas.user import UserRentalItem, UserRentalVehicleInfo
 
@@ -31,6 +31,28 @@ def _vehicle_primary_image_url(vehicle: Any) -> str | None:
     if images:
         return min(images, key=lambda i: i.position).url
     return None
+
+
+def compute_risk_multiplier(user_risk_score: Decimal | None) -> Decimal:
+    """Map a user's risk score (0..100) to a rental price multiplier.
+
+    Buckets are intentionally coarse to keep behavior predictable:
+
+    * ``None`` or ``< 25`` → ``1.0000`` (no risk premium)
+    * ``[25, 50)``        → ``1.0500`` (+5%)
+    * ``[50, 75)``        → ``1.1500`` (+15%)
+    * ``>= 75``           → ``1.3000`` (+30%)
+
+    Called by both ``return_rental`` and the seed script — keep them aligned by
+    importing this helper rather than copying thresholds.
+    """
+    if user_risk_score is None or user_risk_score < Decimal("25"):
+        return Decimal("1.0000")
+    if user_risk_score < Decimal("50"):
+        return Decimal("1.0500")
+    if user_risk_score < Decimal("75"):
+        return Decimal("1.1500")
+    return Decimal("1.3000")
 
 
 def build_user_rental_item(rental: Rental) -> UserRentalItem:
@@ -127,14 +149,16 @@ async def return_rental(
     # Wyliczenie ceny finalnej:
     # - base_price: pierwotna cena z rezerwacji + dopłaty (np. szkody, czyszczenie)
     # - fuel_surcharge: dopłata za każdy "brakujący" % paliwa (tylko gdy auto wraca z mniejszym)
-    # - risk_multiplier: zarezerwowane na przyszłość pod cennik zależny od historii klienta
+    # - risk_multiplier: pochodzi z risk_score klienta — mnoży końcową kwotę,
+    #   żeby klienci z wyższym ryzykiem płacili więcej (patrz compute_risk_multiplier)
     reservation = rental.reservation
     base_price = (reservation.total_price + body.extra_charges).quantize(Decimal("0.01"))
     fuel_diff = rental.fuel_level_start - body.fuel_level_end
     fuel_surcharge = (
         max(fuel_diff, Decimal("0")) * settings.fuel_surcharge_rate_per_percent
     ).quantize(Decimal("0.01"))
-    risk_multiplier = Decimal("1.0000")
+    customer = await user_repository.get_by_id(db, reservation.user_id)
+    risk_multiplier = compute_risk_multiplier(customer.risk_score if customer else None)
     final_price = ((base_price + fuel_surcharge) * risk_multiplier).quantize(Decimal("0.01"))
 
     breakdown = await rental_repository.create_price_breakdown(
