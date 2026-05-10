@@ -10,7 +10,9 @@ from datetime import UTC, date, datetime, time
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import Select, func, or_ as sa_or, select, update as sa_update
+from sqlalchemy import Select, func, select
+from sqlalchemy import or_ as sa_or
+from sqlalchemy import update as sa_update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import contains_eager, joinedload, selectinload
 

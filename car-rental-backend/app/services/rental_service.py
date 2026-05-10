@@ -18,13 +18,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.models.rental import Rental, ReservationStatus
 from app.models.user import User
+from app.models.vehicle import Vehicle
 from app.repositories import rental_repository, reservation_repository, user_repository
 from app.schemas.rental import PickupRequest, ReturnRequest
 from app.schemas.user import UserRentalItem, UserRentalVehicleInfo
 
 
-def _vehicle_primary_image_url(vehicle: Any) -> str | None:
-    images = getattr(vehicle, "images", None) or []
+def _vehicle_primary_image_url(vehicle: Vehicle) -> str | None:
+    images = list(vehicle.images or [])
     for img in images:
         if img.is_primary:
             return img.url

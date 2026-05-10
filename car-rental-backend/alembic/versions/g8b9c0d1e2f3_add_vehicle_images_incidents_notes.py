@@ -72,7 +72,8 @@ def upgrade() -> None:
     op.execute(
         sa.text(
             """
-            INSERT INTO vehicle_images (id, created_at, updated_at, vehicle_id, url, position, is_primary)
+            INSERT INTO vehicle_images
+                (id, created_at, updated_at, vehicle_id, url, position, is_primary)
             SELECT gen_random_uuid(), NOW(), NOW(), id, image_url, 0, true
             FROM vehicles
             WHERE image_url IS NOT NULL AND image_url <> ''

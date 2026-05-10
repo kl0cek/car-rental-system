@@ -10,7 +10,7 @@ from decimal import Decimal
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import joinedload
 
 from app.models.rental import Reservation, ReservationStatus
 from app.models.vehicle import Vehicle

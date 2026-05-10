@@ -11,7 +11,7 @@ from decimal import Decimal
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import contains_eager, joinedload, selectinload
+from sqlalchemy.orm import contains_eager, joinedload
 
 from app.models.rental import Rental, RentalPriceBreakdown, Reservation, ReservationStatus
 from app.models.vehicle import Vehicle
