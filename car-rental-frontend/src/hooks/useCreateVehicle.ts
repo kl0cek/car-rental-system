@@ -1,61 +1,77 @@
 'use client';
 
 import { useState } from 'react';
-import type { CategoryName, EngineType, VehicleColor } from '@/types/vehicle';
+import type {
+  CategoryName,
+  EngineType,
+  VehicleColor,
+  VehicleDetail,
+  VehicleDetailApi,
+  VehicleStatus,
+} from '@/types/vehicle';
+import { mapVehicleDetail } from '@/types/vehicle';
 
 export interface CreateVehicleInput {
   brand: string;
   model: string;
   year: number;
   licensePlate: string;
+  vin: string;
   color: VehicleColor;
-  category: CategoryName;
+  categoryId: string;
+  category: CategoryName; // kept for parity with existing form code; not sent
   engineType: EngineType;
   horsepower: number;
   seats: number;
   trunkCapacity: number;
   mileage: number;
   dailyBasePrice: number;
-  imageUrl: string | null;
+  status?: VehicleStatus;
+  images: File[];
 }
 
-/**
- * Placeholder mutation — backend has no admin vehicle-create endpoint.
- * Once `POST /api/admin/vehicles` is added, swap the simulated delay for
- * a real fetch. The hook contract stays the same.
- */
+function appendField(form: FormData, key: string, value: string | number | undefined): void {
+  if (value === undefined || value === null || value === '') return;
+  form.append(key, String(value));
+}
+
 export function useCreateVehicle() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function createVehicle(input: CreateVehicleInput): Promise<void> {
+  async function createVehicle(input: CreateVehicleInput): Promise<VehicleDetail> {
     setIsLoading(true);
     setError(null);
     try {
-      // TODO: replace with real call once backend exposes the endpoint
-      // const res = await fetch('/api/admin/vehicles', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   credentials: 'include',
-      //   body: JSON.stringify({
-      //     brand: input.brand,
-      //     model: input.model,
-      //     year: input.year,
-      //     license_plate: input.licensePlate,
-      //     color: input.color,
-      //     category: input.category,
-      //     engine_type: input.engineType,
-      //     horsepower: input.horsepower,
-      //     seats: input.seats,
-      //     trunk_capacity: input.trunkCapacity,
-      //     mileage: input.mileage,
-      //     daily_base_price: input.dailyBasePrice,
-      //     image_url: input.imageUrl,
-      //   }),
-      // });
-      // if (!res.ok) throw new Error('Failed to create vehicle');
-      console.info('[placeholder] createVehicle', input);
-      await new Promise((resolve) => setTimeout(resolve, 600));
+      const form = new FormData();
+      appendField(form, 'brand', input.brand);
+      appendField(form, 'model', input.model);
+      appendField(form, 'year', input.year);
+      appendField(form, 'license_plate', input.licensePlate);
+      appendField(form, 'vin', input.vin);
+      appendField(form, 'engine_type', input.engineType);
+      appendField(form, 'horsepower', input.horsepower);
+      appendField(form, 'seats', input.seats);
+      appendField(form, 'trunk_capacity', input.trunkCapacity);
+      appendField(form, 'daily_base_price', input.dailyBasePrice);
+      appendField(form, 'color', input.color);
+      appendField(form, 'category_id', input.categoryId);
+      appendField(form, 'mileage', input.mileage);
+      if (input.status) appendField(form, 'status', input.status);
+      for (const file of input.images) {
+        form.append('images', file);
+      }
+
+      const res = await fetch('/api/admin/vehicles', {
+        method: 'POST',
+        credentials: 'include',
+        body: form,
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Create vehicle failed (${res.status}): ${text}`);
+      }
+      return mapVehicleDetail((await res.json()) as VehicleDetailApi);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create vehicle';
       setError(message);

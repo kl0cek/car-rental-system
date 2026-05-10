@@ -74,5 +74,11 @@ export interface NavItem {
   href: string;
   icon: LucideIcon;
   staffOnly?: boolean;
+  /**
+   * Hide this entry from staff (employee/technician/admin). Use it for
+   * customer-only catalogue views that staff would never click into,
+   * since they have a richer staff-side equivalent.
+   */
+  hideForStaff?: boolean;
   roles?: import('./auth').UserRole[];
 }

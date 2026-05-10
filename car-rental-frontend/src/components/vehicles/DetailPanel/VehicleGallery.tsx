@@ -1,34 +1,46 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Car } from 'lucide-react';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import type { Vehicle } from '@/types/vehicle';
 import { STATUS_CONFIG } from '@/data/vehicles/constants';
 
-// TODO: zastąpić listą zdjęć z GET /api/vehicles/{id}/images gdy backend gotowy
-const THUMBNAIL_COUNT = 3;
-
 interface VehicleGalleryProps {
   vehicle: Vehicle;
 }
 
 export function VehicleGallery({ vehicle }: VehicleGalleryProps) {
-  const [activeImg, setActiveImg] = useState(0);
+  // Order: primary first, then by position. Falls back to imageUrl when the
+  // vehicle has no image rows (legacy data path or freshly created vehicle).
+  const ordered = useMemo(() => {
+    const byPos = [...vehicle.images].sort((a, b) => {
+      if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1;
+      return a.position - b.position;
+    });
+    if (byPos.length > 0) return byPos.map((i) => i.url);
+    return vehicle.imageUrl ? [vehicle.imageUrl] : [];
+  }, [vehicle.images, vehicle.imageUrl]);
+
+  // Key the state on vehicle.id so switching between vehicles inside the same
+  // panel resets to the first thumbnail without an effect-driven cascade.
+  const [stateForId, setStateForId] = useState({ id: vehicle.id, idx: 0 });
+  if (stateForId.id !== vehicle.id) {
+    setStateForId({ id: vehicle.id, idx: 0 });
+  }
+  const activeImg = stateForId.id === vehicle.id ? stateForId.idx : 0;
+  const setActiveImg = (idx: number) => setStateForId({ id: vehicle.id, idx });
 
   const status = STATUS_CONFIG[vehicle.status];
-  const thumbnails = Array.from({ length: THUMBNAIL_COUNT }, (_, i) =>
-    i === 0 ? vehicle.imageUrl : null
-  );
-  const activeIsReal = activeImg === 0 && vehicle.imageUrl;
+  const activeUrl = ordered[activeImg] ?? null;
 
   return (
     <>
       <div className="relative aspect-video bg-linear-to-br from-secondary to-muted overflow-hidden rounded-t-2xl">
-        {activeIsReal ? (
+        {activeUrl ? (
           <Image
-            src={vehicle.imageUrl!}
+            src={activeUrl}
             alt={`${vehicle.brand} ${vehicle.model}`}
             fill
             className="object-cover"
@@ -36,33 +48,28 @@ export function VehicleGallery({ vehicle }: VehicleGalleryProps) {
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center gap-2">
             <Car className="w-20 h-20 text-muted-foreground/20" />
-            {activeImg > 0 && (
-              <p className="text-xs text-muted-foreground/40">Zdjęcie {activeImg + 1}</p>
-            )}
           </div>
         )}
         <Badge className={`absolute top-3 left-3 ${status.className}`}>{status.label}</Badge>
       </div>
 
-      <div className="flex gap-2 px-6 pt-3">
-        {thumbnails.map((img, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => setActiveImg(i)}
-            className={`relative w-16 h-12 rounded-lg overflow-hidden border-2 transition-colors shrink-0 bg-linear-to-br from-secondary to-muted flex items-center justify-center ${
-              activeImg === i ? 'border-primary' : 'border-transparent hover:border-border'
-            }`}
-            aria-label={`Zdjęcie ${i + 1}`}
-          >
-            {img ? (
-              <Image src={img} alt={`Zdjęcie ${i + 1}`} fill className="object-cover" />
-            ) : (
-              <Car className="w-5 h-5 text-muted-foreground/30" />
-            )}
-          </button>
-        ))}
-      </div>
+      {ordered.length > 1 && (
+        <div className="flex gap-2 px-6 pt-3 overflow-x-auto">
+          {ordered.map((url, i) => (
+            <button
+              key={url}
+              type="button"
+              onClick={() => setActiveImg(i)}
+              className={`relative w-16 h-12 rounded-lg overflow-hidden border-2 transition-colors shrink-0 bg-linear-to-br from-secondary to-muted flex items-center justify-center ${
+                activeImg === i ? 'border-primary' : 'border-transparent hover:border-border'
+              }`}
+              aria-label={`Zdjęcie ${i + 1}`}
+            >
+              <Image src={url} alt={`Zdjęcie ${i + 1}`} fill className="object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
     </>
   );
 }

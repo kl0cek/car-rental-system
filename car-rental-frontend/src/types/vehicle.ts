@@ -38,6 +38,13 @@ export interface CategoryApi {
   price_multiplier: string;
 }
 
+export interface VehicleImageApi {
+  id: string;
+  url: string;
+  position: number;
+  is_primary: boolean;
+}
+
 export interface VehicleApi {
   id: string;
   brand: string;
@@ -52,6 +59,7 @@ export interface VehicleApi {
   color: VehicleColor;
   mileage: number;
   image_url: string | null;
+  images: VehicleImageApi[];
   status: VehicleStatus;
   category: CategoryApi;
 }
@@ -63,7 +71,29 @@ export interface PaginatedVehiclesApi {
   limit: number;
 }
 
+export interface BookedDateRangeApi {
+  start_date: string;
+  end_date: string;
+}
+
+export interface VehicleDetailApi extends VehicleApi {
+  vin: string;
+  is_active: boolean;
+  average_rating: number | null;
+  review_count: number;
+  booked_dates: BookedDateRangeApi[];
+  created_at: string;
+  updated_at: string;
+}
+
 // --- Frontend types (camelCase) ---
+
+export interface VehicleImage {
+  id: string;
+  url: string;
+  position: number;
+  isPrimary: boolean;
+}
 
 export interface Vehicle {
   id: string;
@@ -79,12 +109,37 @@ export interface Vehicle {
   color: VehicleColor;
   mileage: number;
   imageUrl: string | null;
+  images: VehicleImage[];
   status: VehicleStatus;
   category: {
     id: string;
     name: CategoryName;
     description: string | null;
     priceMultiplier: number;
+  };
+}
+
+export interface BookedDateRange {
+  startDate: string;
+  endDate: string;
+}
+
+export interface VehicleDetail extends Vehicle {
+  vin: string;
+  isActive: boolean;
+  averageRating: number | null;
+  reviewCount: number;
+  bookedDates: BookedDateRange[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function mapVehicleImage(api: VehicleImageApi): VehicleImage {
+  return {
+    id: api.id,
+    url: api.url,
+    position: api.position,
+    isPrimary: api.is_primary,
   };
 }
 
@@ -103,6 +158,7 @@ export function mapVehicle(api: VehicleApi): Vehicle {
     color: api.color,
     mileage: api.mileage,
     imageUrl: api.image_url,
+    images: (api.images ?? []).map(mapVehicleImage),
     status: api.status,
     category: {
       id: api.category.id,
@@ -110,5 +166,19 @@ export function mapVehicle(api: VehicleApi): Vehicle {
       description: api.category.description,
       priceMultiplier: parseFloat(api.category.price_multiplier),
     },
+  };
+}
+
+export function mapVehicleDetail(api: VehicleDetailApi): VehicleDetail {
+  const base = mapVehicle(api);
+  return {
+    ...base,
+    vin: api.vin,
+    isActive: api.is_active,
+    averageRating: api.average_rating,
+    reviewCount: api.review_count,
+    bookedDates: api.booked_dates.map((d) => ({ startDate: d.start_date, endDate: d.end_date })),
+    createdAt: api.created_at,
+    updatedAt: api.updated_at,
   };
 }

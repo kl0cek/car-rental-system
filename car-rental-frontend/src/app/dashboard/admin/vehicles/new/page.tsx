@@ -32,11 +32,6 @@ export default function AddVehiclePage() {
         </div>
       </div>
 
-      <Alert>
-        <AlertTriangle className="w-4 h-4" />
-        <AlertDescription>{t('addVehicle.unsupported')}</AlertDescription>
-      </Alert>
-
       <AddVehicleForm />
     </div>
   );

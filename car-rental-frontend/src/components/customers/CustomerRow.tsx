@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { ShieldCheck, ExternalLink, MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -67,9 +68,11 @@ export function CustomerRow({ customer: c }: { customer: Customer }) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem disabled>
-              <ExternalLink className="w-4 h-4 mr-2" />
-              {t('customers.viewProfile')}
+            <DropdownMenuItem asChild>
+              <Link href={`/dashboard/customers/${c.id}`}>
+                <ExternalLink className="w-4 h-4 mr-2" />
+                {t('customers.viewProfile')}
+              </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
