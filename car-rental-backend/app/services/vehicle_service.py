@@ -431,9 +431,7 @@ async def create_vehicle(
         vehicle = await vehicle_repository.create(db, vehicle)
 
         for index, url in enumerate(persisted_urls):
-            await vehicle_repository.add_image(
-                db, vehicle.id, url, is_primary=(index == 0)
-            )
+            await vehicle_repository.add_image(db, vehicle.id, url, is_primary=(index == 0))
     except IntegrityError as exc:
         await db.rollback()
         for url in persisted_urls:

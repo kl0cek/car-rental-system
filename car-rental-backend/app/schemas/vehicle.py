@@ -269,4 +269,3 @@ class VehicleBulkStatusUpdate(BaseModel):
 class VehicleBulkStatusResponse(BaseModel):
     updated: int
     not_found: list[uuid.UUID]
-

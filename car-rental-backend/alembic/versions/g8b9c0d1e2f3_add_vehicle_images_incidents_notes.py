@@ -152,9 +152,7 @@ def upgrade() -> None:
             name="fk_customer_notes_customer_id",
             ondelete="CASCADE",
         ),
-        sa.ForeignKeyConstraint(
-            ["author_id"], ["users.id"], name="fk_customer_notes_author_id"
-        ),
+        sa.ForeignKeyConstraint(["author_id"], ["users.id"], name="fk_customer_notes_author_id"),
     )
     op.create_index("ix_customer_notes_customer_id", "customer_notes", ["customer_id"])
     op.create_index("ix_customer_notes_author_id", "customer_notes", ["author_id"])

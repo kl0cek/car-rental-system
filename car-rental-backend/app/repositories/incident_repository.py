@@ -27,9 +27,7 @@ async def get_by_id(
     incident_id: uuid.UUID,
 ) -> Incident | None:
     stmt = (
-        select(Incident)
-        .options(joinedload(Incident.reported_by))
-        .where(Incident.id == incident_id)
+        select(Incident).options(joinedload(Incident.reported_by)).where(Incident.id == incident_id)
     )
     return (await db.execute(stmt)).scalar_one_or_none()
 

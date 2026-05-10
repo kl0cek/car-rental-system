@@ -113,9 +113,7 @@ async def _compute_stats(db: AsyncSession, customer_id: uuid.UUID) -> CustomerSt
     )
 
 
-async def get_customer_detail(
-    db: AsyncSession, customer_id: uuid.UUID
-) -> CustomerDetailResponse:
+async def get_customer_detail(db: AsyncSession, customer_id: uuid.UUID) -> CustomerDetailResponse:
     user = await _ensure_customer(db, customer_id)
 
     rentals = await _load_rental_history(db, customer_id)
@@ -213,5 +211,3 @@ async def delete_note(
     if note is None or note.customer_id != customer_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note not found")
     await customer_note_repository.delete(db, note)
-
-

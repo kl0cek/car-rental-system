@@ -247,9 +247,7 @@ async def bulk_update_status(
     if not ids:
         return 0, []
 
-    existing_stmt = select(Vehicle.id).where(
-        Vehicle.id.in_(ids), Vehicle.is_active.is_(True)
-    )
+    existing_stmt = select(Vehicle.id).where(Vehicle.id.in_(ids), Vehicle.is_active.is_(True))
     existing = {row for row in (await db.execute(existing_stmt)).scalars()}
     missing = [vid for vid in ids if vid not in existing]
 

@@ -112,5 +112,3 @@ async def delete_customer_note(
 ) -> Response:
     await customer_service.delete_note(db, customer_id, note_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
