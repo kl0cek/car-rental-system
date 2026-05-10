@@ -190,15 +190,6 @@ export function AddVehicleForm({ onSuccess }: AddVehicleFormProps) {
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="color">{t('addVehicle.color')}</Label>
-          <Input
-            id="color"
-            value={form.color}
-            onChange={(e) => update('color', e.target.value)}
-            required
-          />
-        </div>
-        <div className="space-y-1.5">
           <Label>{t('addVehicle.color')}</Label>
           <Select
             value={form.color}
