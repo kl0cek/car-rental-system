@@ -49,13 +49,18 @@ export default function MaintenancePage() {
     setOverride(vehicleId, 'available', undefined);
   }
 
-  const tabs: Array<{ id: 'available' | 'in-service'; labelKey: 'maintenance.tab.available' | 'maintenance.tab.inService'; count: number }> = [
+  const tabs: Array<{
+    id: 'available' | 'in-service';
+    labelKey: 'maintenance.tab.available' | 'maintenance.tab.inService';
+    count: number;
+  }> = [
     { id: 'available', labelKey: 'maintenance.tab.available', count: available.length },
     { id: 'in-service', labelKey: 'maintenance.tab.inService', count: inService.length },
   ];
 
   const visible = tab === 'available' ? available : inService;
-  const emptyKey = tab === 'available' ? 'maintenance.empty.available' : 'maintenance.empty.inService';
+  const emptyKey =
+    tab === 'available' ? 'maintenance.empty.available' : 'maintenance.empty.inService';
 
   return (
     <div className="space-y-5">
@@ -85,15 +90,16 @@ export default function MaintenancePage() {
                 : 'border-border text-muted-foreground hover:bg-secondary hover:text-foreground'
             }`}
           >
-            {t(tabItem.labelKey)}{' '}
-            <span className="ml-1 text-xs opacity-80">({tabItem.count})</span>
+            {t(tabItem.labelKey)} <span className="ml-1 text-xs opacity-80">({tabItem.count})</span>
           </button>
         ))}
       </div>
 
       <Card>
         <CardHeader className="border-b pb-4">
-          <CardTitle>{t(tab === 'available' ? 'maintenance.tab.available' : 'maintenance.tab.inService')}</CardTitle>
+          <CardTitle>
+            {t(tab === 'available' ? 'maintenance.tab.available' : 'maintenance.tab.inService')}
+          </CardTitle>
           <CardDescription>{t('maintenance.subtitle')}</CardDescription>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">

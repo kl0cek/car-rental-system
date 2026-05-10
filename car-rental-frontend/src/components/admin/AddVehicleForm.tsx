@@ -86,11 +86,21 @@ export function AddVehicleForm({ onSuccess }: AddVehicleFormProps) {
       <Section titleKey="addVehicle.section.basic">
         <div className="space-y-1.5">
           <Label htmlFor="brand">{t('addVehicle.brand')}</Label>
-          <Input id="brand" value={form.brand} onChange={(e) => update('brand', e.target.value)} required />
+          <Input
+            id="brand"
+            value={form.brand}
+            onChange={(e) => update('brand', e.target.value)}
+            required
+          />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="model">{t('addVehicle.model')}</Label>
-          <Input id="model" value={form.model} onChange={(e) => update('model', e.target.value)} required />
+          <Input
+            id="model"
+            value={form.model}
+            onChange={(e) => update('model', e.target.value)}
+            required
+          />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="year">{t('addVehicle.year')}</Label>
@@ -115,7 +125,12 @@ export function AddVehicleForm({ onSuccess }: AddVehicleFormProps) {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="color">{t('addVehicle.color')}</Label>
-          <Input id="color" value={form.color} onChange={(e) => update('color', e.target.value)} required />
+          <Input
+            id="color"
+            value={form.color}
+            onChange={(e) => update('color', e.target.value)}
+            required
+          />
         </div>
         <div className="space-y-1.5">
           <Label>{t('addVehicle.category')}</Label>
