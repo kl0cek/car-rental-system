@@ -34,8 +34,7 @@ export const translations = {
     'maintenance.col.status': 'Status',
     'maintenance.col.period': 'Period',
     'maintenance.col.actions': 'Actions',
-    'maintenance.unsupported':
-      'API endpoints are not yet implemented. Changes are local only.',
+    'maintenance.unsupported': 'API endpoints are not yet implemented. Changes are local only.',
 
     // Admin add vehicle
     'addVehicle.title': 'Add New Vehicle',
@@ -467,8 +466,7 @@ export const translations = {
     'maintenance.col.status': 'Status',
     'maintenance.col.period': 'Okres',
     'maintenance.col.actions': 'Akcje',
-    'maintenance.unsupported':
-      'Endpointy API jeszcze nie zaimplementowane. Zmiany tylko lokalnie.',
+    'maintenance.unsupported': 'Endpointy API jeszcze nie zaimplementowane. Zmiany tylko lokalnie.',
 
     // Admin add vehicle
     'addVehicle.title': 'Dodaj nowy pojazd',

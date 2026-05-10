@@ -190,14 +190,11 @@ export function AddVehicleForm({ onSuccess }: AddVehicleFormProps) {
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="vin">{t('addVehicle.vin')}</Label>
+          <Label htmlFor="color">{t('addVehicle.color')}</Label>
           <Input
-            id="vin"
-            value={form.vin}
-            onChange={(e) => update('vin', e.target.value.toUpperCase())}
-            maxLength={17}
-            minLength={17}
-            placeholder="17 characters"
+            id="color"
+            value={form.color}
+            onChange={(e) => update('color', e.target.value)}
             required
           />
         </div>

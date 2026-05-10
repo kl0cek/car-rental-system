@@ -1,13 +1,7 @@
 'use client';
 
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useTranslation } from '@/i18n/useTranslation';
 import { MaintenanceRow } from './MaintenanceRow';
 import type { MaintenanceVehicle } from '@/hooks/useMaintenanceVehicles';
@@ -22,7 +16,12 @@ interface MaintenanceTableProps {
   onMarkFixed: (vehicleId: string) => Promise<void>;
 }
 
-const COLS = ['maintenance.col.vehicle', 'maintenance.col.status', 'maintenance.col.period', 'maintenance.col.actions'] as const;
+const COLS = [
+  'maintenance.col.vehicle',
+  'maintenance.col.status',
+  'maintenance.col.period',
+  'maintenance.col.actions',
+] as const;
 
 export function MaintenanceTable({
   vehicles,
