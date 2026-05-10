@@ -160,6 +160,7 @@ async def create_incident(
         severity=body.severity,
         title=body.title,
         description=body.description,
+        cost=body.cost,
     )
     saved = await incident_repository.create(db, incident)
     return IncidentResponse.model_validate(saved)

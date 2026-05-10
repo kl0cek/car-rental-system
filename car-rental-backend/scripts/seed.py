@@ -40,6 +40,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
     from app.db.base import Base
     from app.db.engine import async_engine, async_session_factory
     from app.models.category import Category, CategoryName
+    from app.models.incident import Incident, IncidentSeverity, IncidentType
     from app.models.rental import Rental, RentalPriceBreakdown, Reservation, ReservationStatus
     from app.models.user import User, UserRole
     from app.models.vehicle import EngineType, Vehicle, VehicleColor, VehicleStatus
@@ -69,7 +70,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
             role=UserRole.CUSTOMER,
             phone="+48600100200",
             is_verified=True,
-            # Low-risk customer — no risk premium on price.
+            # Low-risk customer — score < 20 → 0.80 multiplier (discount).
             risk_score=Decimal("0.00"),
         ),
         User(
@@ -81,7 +82,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
             role=UserRole.CUSTOMER,
             phone="+48601200300",
             is_verified=True,
-            # Moderate-risk customer — falls into the 25-50 bucket → +5% multiplier.
+            # Moderate-risk customer — score in [20, 40) → 0.90 multiplier.
             risk_score=Decimal("35.00"),
         ),
         User(
@@ -92,7 +93,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
             last_name="Wiśniewski",
             role=UserRole.CUSTOMER,
             is_verified=True,
-            # Higher-risk customer — 50-75 bucket → +15% multiplier.
+            # Higher-risk customer — score in [60, 80) → 1.20 multiplier.
             risk_score=Decimal("60.00"),
         ),
         User(
@@ -533,6 +534,21 @@ async def seed_postgres(*, drop: bool = False) -> None:
 
     price_breakdowns = [_make_breakdown(r) for r in active_rentals]
 
+    # --- Incidents (PG) — exercise the new cost column and renamed severity enum.
+    # Tied to ACTIVE_RENTAL_IDS[6] (Skoda Octavia minor scratch noted in seed).
+    incidents_pg = [
+        Incident(
+            customer_id=USER_IDS[0],
+            rental_id=ACTIVE_RENTAL_IDS[6],
+            reported_by_id=USER_IDS[3],  # Marta Zielińska (employee)
+            type=IncidentType.DAMAGE,
+            severity=IncidentSeverity.MINOR,
+            title="Zarysowanie zderzaka",
+            description="Drobne zarysowanie zderzaka przedniego na parkingu.",
+            cost=Decimal("450.00"),
+        ),
+    ]
+
     # --- Vehicle images (one primary per vehicle, mapping VEHICLE_IDS -> URL) ---
     vehicle_image_urls = [
         "https://images.unsplash.com/photo-1623869675781-80aa31012a5a?w=800&q=80",
@@ -575,13 +591,16 @@ async def seed_postgres(*, drop: bool = False) -> None:
         session.add_all(active_rentals)
         await session.flush()
         session.add_all(price_breakdowns)
+        await session.flush()
+        session.add_all(incidents_pg)
         await session.commit()
 
     print(
         f"[PG] Seeded: {len(users)} users, {len(categories)} categories, "
         f"{len(vehicles)} vehicles, {len(vehicle_images)} vehicle images, "
         f"{len(reservations)} reservations, "
-        f"{len(active_rentals)} active rentals, {len(price_breakdowns)} price breakdowns"
+        f"{len(active_rentals)} active rentals, {len(price_breakdowns)} price breakdowns, "
+        f"{len(incidents_pg)} incidents"
     )
 
     await async_engine.dispose()
@@ -745,7 +764,7 @@ async def seed_mongo(*, drop: bool = False) -> None:
             "vehicle_id": str(VEHICLE_IDS[4]),
             "type": "minor_damage",
             "description": "Drobne zarysowanie zderzaka przedniego na parkingu.",
-            "severity": "low",
+            "severity": "minor",
             "reported_at": (NOW - timedelta(days=195)).isoformat(),
             "resolved": True,
             "repair_cost": 450.00,
@@ -757,7 +776,7 @@ async def seed_mongo(*, drop: bool = False) -> None:
             "vehicle_id": str(VEHICLE_IDS[3]),
             "type": "flat_tire",
             "description": "Przebita opona na autostradzie A4. Wymieniono na zapasową.",
-            "severity": "medium",
+            "severity": "moderate",
             "reported_at": (NOW - timedelta(days=57)).isoformat(),
             "resolved": True,
             "repair_cost": 320.00,
