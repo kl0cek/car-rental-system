@@ -35,12 +35,12 @@ interface CustomerIncidentsPanelProps {
 }
 
 const TYPES: IncidentType[] = ['damage', 'late_return', 'traffic_violation', 'complaint', 'other'];
-const SEVERITIES: IncidentSeverity[] = ['low', 'medium', 'high'];
+const SEVERITIES: IncidentSeverity[] = ['minor', 'moderate', 'major'];
 
 const SEVERITY_TONE: Record<IncidentSeverity, string> = {
-  low: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
-  medium: 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-300',
-  high: 'bg-destructive/10 text-destructive',
+  minor: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+  moderate: 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-300',
+  major: 'bg-destructive/10 text-destructive',
 };
 
 const NO_RENTAL = '__none__';
@@ -55,19 +55,21 @@ export function CustomerIncidentsPanel({
   const { createIncident, deleteIncident, isLoading } = useCustomerIncidentMutations(customerId);
   const [adding, setAdding] = useState(false);
   const [type, setType] = useState<IncidentType>('damage');
-  const [severity, setSeverity] = useState<IncidentSeverity>('medium');
+  const [severity, setSeverity] = useState<IncidentSeverity>('moderate');
   const [rentalId, setRentalId] = useState<string>(NO_RENTAL);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [cost, setCost] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   function reset() {
     setAdding(false);
     setType('damage');
-    setSeverity('medium');
+    setSeverity('moderate');
     setRentalId(NO_RENTAL);
     setTitle('');
     setDescription('');
+    setCost('');
     setError(null);
   }
 
@@ -81,6 +83,7 @@ export function CustomerIncidentsPanel({
         severity,
         title,
         description,
+        cost: cost.trim() === '' ? null : cost.trim(),
       });
       onChanged();
       reset();
@@ -168,6 +171,19 @@ export function CustomerIncidentsPanel({
                 </div>
               )}
               <div className="sm:col-span-2 space-y-1.5">
+                <Label htmlFor="incident-cost">{t('customerDetail.cost')}</Label>
+                <Input
+                  id="incident-cost"
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.01"
+                  value={cost}
+                  onChange={(e) => setCost(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="sm:col-span-2 space-y-1.5">
                 <Label htmlFor="incident-title">{t('customerDetail.incidentTitle')}</Label>
                 <Input
                   id="incident-title"
@@ -225,6 +241,11 @@ export function CustomerIncidentsPanel({
                       <Badge variant="outline" className="text-xs">
                         {t(`customerDetail.incidentType.${incident.type}` as TranslationKey)}
                       </Badge>
+                      {incident.cost !== null && (
+                        <Badge variant="outline" className="text-xs">
+                          {incident.cost} PLN
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
                       {incident.reportedBy.firstName} {incident.reportedBy.lastName} ·{' '}

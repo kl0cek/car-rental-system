@@ -109,7 +109,9 @@ class RentalPriceBreakdown(Base):
         CheckConstraint(
             "fuel_surcharge >= 0", name="ck_price_breakdown_fuel_surcharge_non_negative"
         ),
-        CheckConstraint("risk_multiplier >= 1", name="ck_price_breakdown_risk_multiplier_gte_one"),
+        CheckConstraint(
+            "risk_multiplier >= 0", name="ck_price_breakdown_risk_multiplier_non_negative"
+        ),
         CheckConstraint("final_price >= 0", name="ck_price_breakdown_final_price_non_negative"),
     )
 

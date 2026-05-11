@@ -30,6 +30,7 @@ class IncidentResponse(BaseModel):
     severity: IncidentSeverity
     title: str
     description: str
+    cost: Decimal | None = None
     reported_by: IncidentAuthorInfo
     created_at: datetime
 
@@ -42,6 +43,7 @@ class IncidentCreate(BaseModel):
     severity: IncidentSeverity
     title: str = Field(min_length=1, max_length=200)
     description: str = Field(min_length=1, max_length=2000)
+    cost: Decimal | None = None
 
 
 class CustomerNoteAuthorInfo(BaseModel):

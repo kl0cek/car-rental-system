@@ -22,6 +22,7 @@ from app.models.vehicle import Vehicle
 from app.repositories import rental_repository, reservation_repository, user_repository
 from app.schemas.rental import PickupRequest, ReturnRequest
 from app.schemas.user import UserRentalItem, UserRentalVehicleInfo
+from app.services import risk_scoring
 
 
 def _vehicle_primary_image_url(vehicle: Vehicle) -> str | None:
@@ -35,25 +36,32 @@ def _vehicle_primary_image_url(vehicle: Vehicle) -> str | None:
 
 
 def compute_risk_multiplier(user_risk_score: Decimal | None) -> Decimal:
-    """Map a user's risk score (0..100) to a rental price multiplier.
+    """Map a user's risk score (0..100) to a rental price multiplier in [0.8, 1.5].
 
-    Buckets are intentionally coarse to keep behavior predictable:
+    Piecewise mapping designed so that customers with a clean history get a
+    discount, while higher-risk customers pay a premium:
 
-    * ``None`` or ``< 25`` → ``1.0000`` (no risk premium)
-    * ``[25, 50)``        → ``1.0500`` (+5%)
-    * ``[50, 75)``        → ``1.1500`` (+15%)
-    * ``>= 75``           → ``1.3000`` (+30%)
+    * ``None``        → ``1.0000`` (neutral baseline for users without a score)
+    * ``< 20``        → ``0.8000`` (-20% loyalty/clean-history discount)
+    * ``[20, 40)``    → ``0.9000`` (-10%)
+    * ``[40, 60)``    → ``1.0000`` (neutral)
+    * ``[60, 80)``    → ``1.2000`` (+20%)
+    * ``>= 80``       → ``1.5000`` (+50%)
 
     Called by both ``return_rental`` and the seed script — keep them aligned by
     importing this helper rather than copying thresholds.
     """
-    if user_risk_score is None or user_risk_score < Decimal("25"):
+    if user_risk_score is None:
         return Decimal("1.0000")
-    if user_risk_score < Decimal("50"):
-        return Decimal("1.0500")
-    if user_risk_score < Decimal("75"):
-        return Decimal("1.1500")
-    return Decimal("1.3000")
+    if user_risk_score < Decimal("20"):
+        return Decimal("0.8000")
+    if user_risk_score < Decimal("40"):
+        return Decimal("0.9000")
+    if user_risk_score < Decimal("60"):
+        return Decimal("1.0000")
+    if user_risk_score < Decimal("80"):
+        return Decimal("1.2000")
+    return Decimal("1.5000")
 
 
 def build_user_rental_item(rental: Rental) -> UserRentalItem:
@@ -173,6 +181,10 @@ async def return_rental(
     rental.price_breakdown = breakdown
 
     await reservation_repository.update_status(db, reservation, ReservationStatus.COMPLETED)
+
+    # Event-driven update: recompute risk_score from the user's full history so the
+    # next rental's multiplier reflects this return (and any incidents reported on it).
+    await risk_scoring.recompute_and_persist(db, reservation.user_id)
 
     return rental
 

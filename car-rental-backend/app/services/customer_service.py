@@ -33,6 +33,7 @@ from app.schemas.customer import (
     IncidentCreate,
     IncidentResponse,
 )
+from app.services import risk_scoring
 
 
 async def _ensure_customer(db: AsyncSession, customer_id: uuid.UUID) -> User:
@@ -160,8 +161,11 @@ async def create_incident(
         severity=body.severity,
         title=body.title,
         description=body.description,
+        cost=body.cost,
     )
     saved = await incident_repository.create(db, incident)
+    # Event-driven: a new incident affects the customer's risk profile.
+    await risk_scoring.recompute_and_persist(db, customer_id)
     return IncidentResponse.model_validate(saved)
 
 
@@ -174,6 +178,8 @@ async def delete_incident(
     if incident is None or incident.customer_id != customer_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found")
     await incident_repository.delete(db, incident)
+    # Event-driven: removing an incident also affects the customer's risk profile.
+    await risk_scoring.recompute_and_persist(db, customer_id)
 
 
 async def create_note(
