@@ -44,7 +44,7 @@ export type IncidentType =
   | 'complaint'
   | 'other';
 
-export type IncidentSeverity = 'low' | 'medium' | 'high';
+export type IncidentSeverity = 'minor' | 'moderate' | 'major';
 
 interface PersonRefApi {
   id: string;
@@ -60,6 +60,7 @@ export interface IncidentApi {
   severity: IncidentSeverity;
   title: string;
   description: string;
+  cost: string | null;
   reported_by: PersonRefApi;
   created_at: string;
 }
@@ -129,6 +130,7 @@ export interface Incident {
   severity: IncidentSeverity;
   title: string;
   description: string;
+  cost: string | null;
   reportedBy: PersonRef;
   createdAt: string;
 }
@@ -197,6 +199,7 @@ export function mapIncident(api: IncidentApi): Incident {
     severity: api.severity,
     title: api.title,
     description: api.description,
+    cost: api.cost,
     reportedBy: mapPerson(api.reported_by),
     createdAt: api.created_at,
   };

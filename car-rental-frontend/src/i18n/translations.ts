@@ -314,9 +314,10 @@ export const translations = {
     'customerDetail.incidentType.traffic_violation': 'Traffic violation',
     'customerDetail.incidentType.complaint': 'Complaint',
     'customerDetail.incidentType.other': 'Other',
-    'customerDetail.severity.low': 'Low',
-    'customerDetail.severity.medium': 'Medium',
-    'customerDetail.severity.high': 'High',
+    'customerDetail.severity.minor': 'Minor',
+    'customerDetail.severity.moderate': 'Moderate',
+    'customerDetail.severity.major': 'Major',
+    'customerDetail.cost': 'Cost (PLN)',
 
     // Vehicles
     'vehicles.title': 'Vehicles',
@@ -746,9 +747,10 @@ export const translations = {
     'customerDetail.incidentType.traffic_violation': 'Mandat / wykroczenie',
     'customerDetail.incidentType.complaint': 'Skarga',
     'customerDetail.incidentType.other': 'Inne',
-    'customerDetail.severity.low': 'Niska',
-    'customerDetail.severity.medium': 'Średnia',
-    'customerDetail.severity.high': 'Wysoka',
+    'customerDetail.severity.minor': 'Drobny',
+    'customerDetail.severity.moderate': 'Umiarkowany',
+    'customerDetail.severity.major': 'Poważny',
+    'customerDetail.cost': 'Koszt (PLN)',
 
     // Vehicles
     'vehicles.title': 'Pojazdy',

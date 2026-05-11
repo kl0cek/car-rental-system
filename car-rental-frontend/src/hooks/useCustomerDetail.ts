@@ -43,6 +43,7 @@ export interface IncidentInput {
   severity: IncidentSeverity;
   title: string;
   description: string;
+  cost: string | null;
 }
 
 export function useCustomerIncidentMutations(customerId: string) {
@@ -75,6 +76,7 @@ export function useCustomerIncidentMutations(customerId: string) {
           severity: input.severity,
           title: input.title,
           description: input.description,
+          cost: input.cost,
         }),
       });
       if (!res.ok) {
