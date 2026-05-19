@@ -24,8 +24,7 @@ export function CustomerNotesPanel({
   onChanged,
 }: CustomerNotesPanelProps) {
   const { t } = useTranslation();
-  const { createNote, updateNote, deleteNote, isLoading } =
-    useCustomerNoteMutations(customerId);
+  const { createNote, updateNote, deleteNote, isLoading } = useCustomerNoteMutations(customerId);
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState('');
   const [editing, setEditing] = useState<string | null>(null);

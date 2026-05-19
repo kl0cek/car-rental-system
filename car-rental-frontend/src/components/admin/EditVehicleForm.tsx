@@ -20,12 +20,7 @@ import { useUpdateVehicle, type UpdateVehicleInput } from '@/hooks/useUpdateVehi
 import { useVehicleImages } from '@/hooks/useVehicleImages';
 import { useCategories } from '@/hooks/useCategories';
 import { ENGINE_TYPES, STATUS_CONFIG, VEHICLE_COLORS } from '@/data/vehicles/constants';
-import type {
-  EngineType,
-  VehicleColor,
-  VehicleDetail,
-  VehicleStatus,
-} from '@/types/vehicle';
+import type { EngineType, VehicleColor, VehicleDetail, VehicleStatus } from '@/types/vehicle';
 
 const CURRENT_YEAR = new Date().getFullYear();
 const ACCEPTED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
@@ -52,12 +47,7 @@ interface EditVehicleFormProps {
   onChanged?: () => void;
 }
 
-const STATUS_OPTIONS: VehicleStatus[] = [
-  'available',
-  'rented',
-  'maintenance',
-  'out_of_service',
-];
+const STATUS_OPTIONS: VehicleStatus[] = ['available', 'rented', 'maintenance', 'out_of_service'];
 
 export function EditVehicleForm({ vehicle, onChanged }: EditVehicleFormProps) {
   const { t } = useTranslation();

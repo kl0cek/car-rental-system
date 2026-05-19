@@ -190,6 +190,18 @@ export function AddVehicleForm({ onSuccess }: AddVehicleFormProps) {
           />
         </div>
         <div className="space-y-1.5">
+          <Label htmlFor="vin">{t('addVehicle.vin')}</Label>
+          <Input
+            id="vin"
+            value={form.vin}
+            onChange={(e) => update('vin', e.target.value.toUpperCase())}
+            maxLength={17}
+            minLength={17}
+            placeholder="17 characters"
+            required
+          />
+        </div>
+        <div className="space-y-1.5">
           <Label>{t('addVehicle.color')}</Label>
           <Select
             value={form.color}
@@ -329,11 +341,7 @@ export function AddVehicleForm({ onSuccess }: AddVehicleFormProps) {
       {success && <p className="text-sm text-green-600">{t('addVehicle.success')}</p>}
 
       <div className="flex justify-end">
-        <Button
-          type="submit"
-          disabled={isLoading || !effectiveCategoryId}
-          className="gap-2"
-        >
+        <Button type="submit" disabled={isLoading || !effectiveCategoryId} className="gap-2">
           <Save className="w-4 h-4" />
           {isLoading ? t('addVehicle.submitting') : t('addVehicle.submit')}
         </Button>

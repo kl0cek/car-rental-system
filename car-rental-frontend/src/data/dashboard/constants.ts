@@ -8,6 +8,7 @@ import {
   CalendarCheck,
   Wrench,
   PlusSquare,
+  MessageSquare,
 } from 'lucide-react';
 import type { NavItem, Stat } from '@/types/booking';
 import type { UserRole } from '@/types/auth';
@@ -51,6 +52,12 @@ export const navigation: NavItem[] = [
     href: '/dashboard/admin/vehicles/new',
     icon: PlusSquare,
     roles: ['admin'],
+  },
+  {
+    name: 'nav.reviewsModeration',
+    href: '/dashboard/admin/reviews',
+    icon: MessageSquare,
+    staffOnly: true,
   },
   { name: 'nav.settings', href: '/dashboard/settings', icon: Settings },
 ];

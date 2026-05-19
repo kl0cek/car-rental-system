@@ -103,12 +103,7 @@ export function MultiImageUpload({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium">{t('multiImage.title')}</p>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => inputRef.current?.click()}
-        >
+        <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
           <ImagePlus className="w-4 h-4 mr-2" />
           {t('multiImage.add')}
         </Button>
