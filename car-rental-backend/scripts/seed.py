@@ -42,6 +42,8 @@ async def seed_postgres(*, drop: bool = False) -> None:
     from app.models.category import Category, CategoryName
     from app.models.incident import Incident, IncidentSeverity, IncidentType
     from app.models.rental import Rental, RentalPriceBreakdown, Reservation, ReservationStatus
+    from app.models.service_history import ServiceHistory
+    from app.models.service_order import ServiceOrder, ServiceOrderStatus, ServiceType
     from app.models.user import User, UserRole
     from app.models.vehicle import EngineType, Vehicle, VehicleColor, VehicleStatus
     from app.models.vehicle_image import VehicleImage
@@ -549,6 +551,57 @@ async def seed_postgres(*, drop: bool = False) -> None:
         ),
     ]
 
+    # --- Service orders & history --------------------------------------------
+    # Demonstrate the full ScheduledInspection → InProgressRepair →
+    # CompletedTireSwap lifecycle. Technician = USER_IDS[4] (Tomasz
+    # Lewandowski). Vehicle mileages: Corolla=25000, Golf=45000, Tesla=8000.
+    completed_tire_swap_id = uuid.uuid4()
+    service_orders = [
+        ServiceOrder(
+            vehicle_id=VEHICLE_IDS[0],
+            type=ServiceType.INSPECTION,
+            status=ServiceOrderStatus.SCHEDULED,
+            description="Przegląd okresowy 25 000 km — wymiana oleju, filtrów.",
+            cost=None,
+            scheduled_date=NOW + timedelta(days=7),
+            completed_date=None,
+            technician_id=USER_IDS[4],
+        ),
+        ServiceOrder(
+            vehicle_id=VEHICLE_IDS[1],
+            type=ServiceType.REPAIR,
+            status=ServiceOrderStatus.IN_PROGRESS,
+            description="Wymiana klocków hamulcowych — przód oraz tarcz.",
+            cost=Decimal("680.00"),
+            scheduled_date=NOW - timedelta(days=2),
+            completed_date=None,
+            technician_id=USER_IDS[4],
+        ),
+        ServiceOrder(
+            id=completed_tire_swap_id,
+            vehicle_id=VEHICLE_IDS[2],
+            type=ServiceType.TIRE_SWAP,
+            status=ServiceOrderStatus.COMPLETED,
+            description="Sezonowa wymiana opon na zimowe.",
+            cost=Decimal("220.00"),
+            scheduled_date=NOW - timedelta(days=10),
+            completed_date=NOW - timedelta(days=9),
+            technician_id=USER_IDS[4],
+        ),
+    ]
+
+    # One history record for the completed tire swap — Tesla currently at
+    # mileage 8000, service captured at ~+100 km.
+    service_history = [
+        ServiceHistory(
+            vehicle_id=VEHICLE_IDS[2],
+            service_order_id=completed_tire_swap_id,
+            notes="Wymieniono komplet opon zimowych. Pojazd gotowy do odbioru.",
+            parts_replaced=["Opona zimowa 205/55R16 x4"],
+            mileage_at_service=8100,
+        ),
+    ]
+
     # --- Vehicle images (one primary per vehicle, mapping VEHICLE_IDS -> URL) ---
     vehicle_image_urls = [
         "https://images.unsplash.com/photo-1623869675781-80aa31012a5a?w=800&q=80",
@@ -593,6 +646,10 @@ async def seed_postgres(*, drop: bool = False) -> None:
         session.add_all(price_breakdowns)
         await session.flush()
         session.add_all(incidents_pg)
+        await session.flush()
+        session.add_all(service_orders)
+        await session.flush()
+        session.add_all(service_history)
         await session.commit()
 
     print(
@@ -600,7 +657,8 @@ async def seed_postgres(*, drop: bool = False) -> None:
         f"{len(vehicles)} vehicles, {len(vehicle_images)} vehicle images, "
         f"{len(reservations)} reservations, "
         f"{len(active_rentals)} active rentals, {len(price_breakdowns)} price breakdowns, "
-        f"{len(incidents_pg)} incidents"
+        f"{len(incidents_pg)} incidents, "
+        f"{len(service_orders)} service orders, {len(service_history)} service history entries"
     )
 
     await async_engine.dispose()
