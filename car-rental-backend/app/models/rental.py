@@ -3,7 +3,7 @@
 `Reservation` to zamówienie klienta, `Rental` to faktyczne wydanie
 pojazdu (powstaje gdy pracownik potwierdzi odbiór), a
 `RentalPriceBreakdown` przechowuje składniki ostatecznej ceny
-(cena bazowa, dopłata paliwowa, mnożnik ryzyka).
+(cena bazowa, mnożnik kategorii, mnożnik ryzyka).
 """
 
 from __future__ import annotations
@@ -107,9 +107,6 @@ class RentalPriceBreakdown(Base):
     __table_args__ = (
         CheckConstraint("base_price >= 0", name="ck_price_breakdown_base_price_non_negative"),
         CheckConstraint(
-            "fuel_surcharge >= 0", name="ck_price_breakdown_fuel_surcharge_non_negative"
-        ),
-        CheckConstraint(
             "risk_multiplier >= 0", name="ck_price_breakdown_risk_multiplier_non_negative"
         ),
         CheckConstraint("final_price >= 0", name="ck_price_breakdown_final_price_non_negative"),
@@ -117,7 +114,6 @@ class RentalPriceBreakdown(Base):
 
     rental_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("rentals.id"), unique=True)
     base_price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
-    fuel_surcharge: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     risk_multiplier: Mapped[Decimal] = mapped_column(Numeric(6, 4))
     final_price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     calculated_at: Mapped[datetime] = mapped_column(

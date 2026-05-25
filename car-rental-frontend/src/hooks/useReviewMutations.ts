@@ -1,24 +1,39 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import {
-  createReview as storeCreate,
-  updateReview as storeUpdate,
-  deleteReview as storeDelete,
-  voteReview as storeVote,
-  moderateReview as storeModerate,
-} from '@/data/reviews/mockStore';
+import { mutate as globalMutate } from 'swr';
 import {
   mapReview,
   type CreateReviewPayload,
-  type UpdateReviewPayload,
   type Review,
-  type ModerateReviewPayload,
+  type ReviewApi,
 } from '@/types/review';
-import { useAuth } from '@/contexts/AuthContext';
 
-function fakeAsync<T>(value: T): Promise<T> {
-  return new Promise((resolve) => setTimeout(() => resolve(value), 250));
+/**
+ * Best-effort revalidation of every SWR key that lists reviews when a
+ * mutation lands. We don't know which vehicle's list is currently mounted,
+ * so we invalidate the prefixes that matter: per-vehicle review pages, the
+ * admin moderation list, and the customer's "rentals available to review".
+ */
+function revalidateReviewLists(): void {
+  globalMutate(
+    (key) =>
+      typeof key === 'string' &&
+      (key.startsWith('/api/vehicles/') && key.includes('/reviews') ||
+        key.startsWith('/api/reviews') ||
+        key.startsWith('/api/users/me/rentals'))
+  );
+}
+
+async function readError(res: Response): Promise<string> {
+  try {
+    const body = (await res.json()) as { detail?: string | { msg?: string }[] };
+    if (typeof body.detail === 'string') return body.detail;
+    if (Array.isArray(body.detail) && body.detail[0]?.msg) return body.detail[0].msg;
+  } catch {
+    // fall through
+  }
+  return `Request failed (${res.status})`;
 }
 
 export function useCreateReview(): {
@@ -26,66 +41,31 @@ export function useCreateReview(): {
   isSubmitting: boolean;
   error: string | null;
 } {
-  const { user } = useAuth();
   const [isSubmitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const submit = useCallback(
-    async (payload: CreateReviewPayload) => {
-      setSubmitting(true);
-      setError(null);
-      try {
-        const api = storeCreate({
-          vehicle_id: payload.vehicleId,
-          rental_id: payload.rentalId,
-          rating: payload.rating,
-          title: payload.title,
-          body: payload.body,
-          author: {
-            id: user?.id ?? 'anonymous',
-            first_name: user?.firstName ?? 'Anonim',
-            last_name: user?.lastName ?? '',
-            avatar_url: user?.avatarUrl ?? null,
-          },
-        });
-        return await fakeAsync(mapReview(api));
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Failed to create review';
-        setError(msg);
-        throw e;
-      } finally {
-        setSubmitting(false);
-      }
-    },
-    [user]
-  );
-
-  return { submit, isSubmitting, error };
-}
-
-export function useUpdateReview(): {
-  submit: (id: string, payload: UpdateReviewPayload) => Promise<Review>;
-  isSubmitting: boolean;
-  error: string | null;
-} {
-  const [isSubmitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const submit = useCallback(async (id: string, payload: UpdateReviewPayload) => {
+  const submit = useCallback(async (payload: CreateReviewPayload) => {
     setSubmitting(true);
     setError(null);
     try {
-      const api = storeUpdate({
-        id,
-        rating: payload.rating,
-        title: payload.title,
-        body: payload.body,
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rental_id: payload.rentalId,
+          rating: payload.rating,
+          comment: payload.comment,
+        }),
       });
-      return await fakeAsync(mapReview(api));
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Failed to update review';
-      setError(msg);
-      throw e;
+      if (!res.ok) {
+        const message = await readError(res);
+        setError(message);
+        throw new Error(message);
+      }
+      const api = (await res.json()) as ReviewApi;
+      revalidateReviewLists();
+      return mapReview(api);
     } finally {
       setSubmitting(false);
     }
@@ -97,52 +77,29 @@ export function useUpdateReview(): {
 export function useDeleteReview(): {
   submit: (id: string) => Promise<void>;
   isSubmitting: boolean;
+  error: string | null;
 } {
   const [isSubmitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const submit = useCallback(async (id: string) => {
     setSubmitting(true);
+    setError(null);
     try {
-      storeDelete(id);
-      await fakeAsync(undefined);
+      const res = await fetch(`/api/reviews/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const message = await readError(res);
+        setError(message);
+        throw new Error(message);
+      }
+      revalidateReviewLists();
     } finally {
       setSubmitting(false);
     }
   }, []);
-  return { submit, isSubmitting };
-}
 
-export function useVoteReview(): {
-  submit: (id: string, vote: 'helpful' | 'unhelpful' | null) => Promise<void>;
-} {
-  const submit = useCallback(async (id: string, vote: 'helpful' | 'unhelpful' | null) => {
-    storeVote({ id, vote });
-    await fakeAsync(undefined);
-  }, []);
-  return { submit };
-}
-
-export function useModerateReview(): {
-  submit: (id: string, payload: ModerateReviewPayload) => Promise<void>;
-  isSubmitting: boolean;
-} {
-  const { user } = useAuth();
-  const [isSubmitting, setSubmitting] = useState(false);
-  const submit = useCallback(
-    async (id: string, payload: ModerateReviewPayload) => {
-      setSubmitting(true);
-      try {
-        storeModerate({
-          id,
-          action: payload.action,
-          reason: payload.reason,
-          moderatorId: user?.id ?? 'unknown',
-        });
-        await fakeAsync(undefined);
-      } finally {
-        setSubmitting(false);
-      }
-    },
-    [user]
-  );
-  return { submit, isSubmitting };
+  return { submit, isSubmitting, error };
 }

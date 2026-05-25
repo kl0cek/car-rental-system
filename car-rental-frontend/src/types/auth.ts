@@ -29,6 +29,8 @@ export interface UserApiResponse {
   is_verified: boolean;
   created_at: string;
   avatar_url: string | null;
+  risk_score?: string;
+  risk_multiplier?: string;
 }
 
 // Frontend types (camelCase)
@@ -41,6 +43,7 @@ export interface User {
   isVerified: boolean;
   createdAt: string;
   avatarUrl: string | null;
+  riskMultiplier: number;
 }
 
 export function mapUserFromApi(apiUser: UserApiResponse): User {
@@ -53,5 +56,6 @@ export function mapUserFromApi(apiUser: UserApiResponse): User {
     isVerified: apiUser.is_verified,
     createdAt: apiUser.created_at,
     avatarUrl: apiUser.avatar_url ?? null,
+    riskMultiplier: apiUser.risk_multiplier ? parseFloat(apiUser.risk_multiplier) : 1,
   };
 }

@@ -19,7 +19,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
-from app.db.mongodb import get_mongo_db
 from app.db.session import schedule_post_commit
 from app.models.category import Category
 from app.models.vehicle import Vehicle, VehicleStatus
@@ -345,7 +344,10 @@ def _integrity_error_to_http(exc: IntegrityError) -> HTTPException:
 async def _detail_payload(db: AsyncSession, vehicle: Vehicle) -> dict[str, Any]:
     """Shared field bag for both public and admin detail responses."""
     booked_dates = await vehicle_repository.get_booked_dates(db, vehicle.id)
-    average_rating, review_count = await _get_review_stats(vehicle.id)
+    # avg_rating / ratings_count are persisted on the vehicle row by
+    # review_service after each review insert/delete — read them directly
+    # instead of aggregating from Mongo on every detail request.
+    average_rating = float(vehicle.avg_rating) if vehicle.avg_rating is not None else None
     return {
         "id": vehicle.id,
         "brand": vehicle.brand,
@@ -364,7 +366,7 @@ async def _detail_payload(db: AsyncSession, vehicle: Vehicle) -> dict[str, Any]:
         "is_active": vehicle.is_active,
         "category": vehicle.category,
         "average_rating": average_rating,
-        "review_count": review_count,
+        "review_count": vehicle.ratings_count,
         "booked_dates": booked_dates,
         "created_at": vehicle.created_at,
         "updated_at": vehicle.updated_at,
@@ -571,16 +573,3 @@ async def delete_vehicle(db: AsyncSession, vehicle_id: uuid.UUID) -> bool:
 
     await vehicle_repository.soft_delete(db, vehicle)
     return True
-
-
-async def _get_review_stats(vehicle_id: uuid.UUID) -> tuple[float | None, int]:
-    mongo_db = get_mongo_db()
-    pipeline: list[dict[str, Any]] = [
-        {"$match": {"vehicle_id": str(vehicle_id)}},
-        {"$group": {"_id": None, "avg": {"$avg": "$rating"}, "count": {"$sum": 1}}},
-    ]
-    results = await mongo_db.reviews.aggregate(pipeline).to_list(1)
-    if not results:
-        return None, 0
-    doc = results[0]
-    return round(doc["avg"], 2), doc["count"]

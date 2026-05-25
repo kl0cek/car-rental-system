@@ -5,6 +5,7 @@ import { memo } from 'react';
 import { Car, Fuel, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { Vehicle } from '@/types/vehicle';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface VehicleCardProps {
   vehicle: Vehicle;
@@ -13,6 +14,10 @@ interface VehicleCardProps {
 }
 
 function VehicleCardImpl({ vehicle, selected, onSelect }: VehicleCardProps) {
+  const { user } = useAuth();
+  const riskMultiplier = user?.riskMultiplier ?? 1;
+  const pricePerDay = vehicle.dailyBasePrice * vehicle.category.priceMultiplier * riskMultiplier;
+
   return (
     <button
       type="button"
@@ -52,7 +57,7 @@ function VehicleCardImpl({ vehicle, selected, onSelect }: VehicleCardProps) {
           <span>{vehicle.horsepower} hp</span>
         </div>
         <p className="mt-3 font-semibold text-foreground">
-          {vehicle.dailyBasePrice.toFixed(0)} PLN
+          {pricePerDay.toFixed(0)} PLN
           <span className="text-xs font-normal text-muted-foreground"> / day</span>
         </p>
       </div>

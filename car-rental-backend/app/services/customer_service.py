@@ -13,6 +13,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import contains_eager, joinedload
 
+from app.db.redis import get_redis
 from app.models.customer_note import CustomerNote
 from app.models.incident import Incident
 from app.models.rental import Rental, Reservation, ReservationStatus
@@ -165,7 +166,7 @@ async def create_incident(
     )
     saved = await incident_repository.create(db, incident)
     # Event-driven: a new incident affects the customer's risk profile.
-    await risk_scoring.recompute_and_persist(db, customer_id)
+    await risk_scoring.recompute_and_persist(db, customer_id, get_redis())
     return IncidentResponse.model_validate(saved)
 
 
@@ -179,7 +180,7 @@ async def delete_incident(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found")
     await incident_repository.delete(db, incident)
     # Event-driven: removing an incident also affects the customer's risk profile.
-    await risk_scoring.recompute_and_persist(db, customer_id)
+    await risk_scoring.recompute_and_persist(db, customer_id, get_redis())
 
 
 async def create_note(

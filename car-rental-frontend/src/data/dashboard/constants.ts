@@ -42,8 +42,8 @@ export const navigation: NavItem[] = [
   { name: 'nav.fleet', href: '/dashboard/fleet', icon: Car, staffOnly: true },
   { name: 'nav.customers', href: '/dashboard/customers', icon: Users, staffOnly: true },
   {
-    name: 'nav.maintenance',
-    href: '/dashboard/maintenance',
+    name: 'nav.serviceOrders',
+    href: '/dashboard/service-orders',
     icon: Wrench,
     roles: ['technician', 'admin'],
   },

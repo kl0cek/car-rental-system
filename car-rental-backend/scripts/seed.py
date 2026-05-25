@@ -497,7 +497,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
     # --- Rental Price Breakdowns (for all completed/active rentals) ---
     # Use the production helper so seeded final_price values respect the
     # invariant enforced by rental_service.return_rental:
-    #   final_price == (base_price + fuel_surcharge) * risk_multiplier
+    #   final_price == base_price * risk_multiplier
     # Importing here (not at module top) keeps the script's imports lazy.
     from app.services.rental_service import compute_risk_multiplier
 
@@ -508,28 +508,14 @@ async def seed_postgres(*, drop: bool = False) -> None:
     }
     reservation_by_id = {r.id: r for r in reservations}
 
-    # Per-rental fuel surcharges (rough domain values; not derived from fuel diff
-    # in seed because we want to exercise cases with and without surcharge).
-    fuel_surcharges: dict[uuid.UUID, Decimal] = {
-        ACTIVE_RENTAL_IDS[0]: Decimal("15.00"),
-        ACTIVE_RENTAL_IDS[1]: Decimal("0.00"),
-        ACTIVE_RENTAL_IDS[2]: Decimal("28.00"),
-        ACTIVE_RENTAL_IDS[3]: Decimal("0.00"),
-        ACTIVE_RENTAL_IDS[4]: Decimal("12.00"),
-        ACTIVE_RENTAL_IDS[5]: Decimal("10.00"),
-        ACTIVE_RENTAL_IDS[6]: Decimal("22.00"),
-    }
-
     def _make_breakdown(rental: Rental) -> RentalPriceBreakdown:
         reservation = reservation_by_id[rental.reservation_id]
         base_price = reservation.total_price.quantize(Decimal("0.01"))
-        fuel_surcharge = fuel_surcharges[rental.id]
         risk_multiplier = risk_by_user[reservation.user_id]
-        final_price = ((base_price + fuel_surcharge) * risk_multiplier).quantize(Decimal("0.01"))
+        final_price = (base_price * risk_multiplier).quantize(Decimal("0.01"))
         return RentalPriceBreakdown(
             rental_id=rental.id,
             base_price=base_price,
-            fuel_surcharge=fuel_surcharge,
             risk_multiplier=risk_multiplier,
             final_price=final_price,
         )
@@ -677,7 +663,6 @@ async def seed_mongo(*, drop: bool = False) -> None:
         for coll_name in [
             "rental_logs",
             "reviews",
-            "price_history",
             "incidents",
             "user_preferences",
         ]:
@@ -747,71 +732,67 @@ async def seed_mongo(*, drop: bool = False) -> None:
     ]
 
     # --- Reviews ---
+    # rental_id refers to the actual Rental record (post-pickup), not the Reservation.
+    # Uniqueness is enforced by a compound (rental_id, user_id) index in MongoDB.
+    # ``author`` snapshots the user's display info at write time so the public
+    # listing endpoint stays one round-trip (matches review_repository.insert).
+    _seed_authors = {
+        str(USER_IDS[0]): {"first_name": "Jan", "last_name": "Kowalski"},
+        str(USER_IDS[1]): {"first_name": "Anna", "last_name": "Nowak"},
+        str(USER_IDS[2]): {"first_name": "Piotr", "last_name": "Wiśniewski"},
+    }
+
+    def _review_author(user_id: uuid.UUID) -> dict[str, object]:
+        info = _seed_authors[str(user_id)]
+        return {
+            "id": str(user_id),
+            "first_name": info["first_name"],
+            "last_name": info["last_name"],
+            "avatar_url": None,
+        }
+
     reviews = [
         {
+            "_id": str(uuid.uuid4()),
             "user_id": str(USER_IDS[0]),
             "vehicle_id": str(VEHICLE_IDS[0]),
-            "reservation_id": str(RESERVATION_IDS[0]),
+            "rental_id": str(ACTIVE_RENTAL_IDS[0]),
             "rating": 5,
             "comment": "Świetny samochód, czysty i zadbany. Polecam!",
-            "created_at": (NOW - timedelta(days=24)).isoformat(),
+            "created_at": NOW - timedelta(days=24),
+            "author": _review_author(USER_IDS[0]),
         },
         {
+            "_id": str(uuid.uuid4()),
             "user_id": str(USER_IDS[0]),
             "vehicle_id": str(VEHICLE_IDS[2]),
-            "reservation_id": str(RESERVATION_IDS[1]),
+            "rental_id": str(ACTIVE_RENTAL_IDS[1]),
             "rating": 4,
             "comment": "Tesla super, ale zasięg mniejszy niż obiecany.",
-            "created_at": (NOW - timedelta(days=11)).isoformat(),
+            "created_at": NOW - timedelta(days=11),
+            "author": _review_author(USER_IDS[0]),
         },
         {
+            "_id": str(uuid.uuid4()),
             "user_id": str(USER_IDS[1]),
             "vehicle_id": str(VEHICLE_IDS[3]),
-            "reservation_id": str(RESERVATION_IDS[3]),
+            "rental_id": str(ACTIVE_RENTAL_IDS[3]),
             "rating": 5,
             "comment": "RAV4 Hybrid idealny na dłuższą trasę. Niskie spalanie.",
-            "created_at": (NOW - timedelta(days=54)).isoformat(),
+            "created_at": NOW - timedelta(days=54),
+            "author": _review_author(USER_IDS[1]),
         },
         {
+            "_id": str(uuid.uuid4()),
             "user_id": str(USER_IDS[2]),
             "vehicle_id": str(VEHICLE_IDS[0]),
-            "reservation_id": str(RESERVATION_IDS[5]),
+            "rental_id": str(ACTIVE_RENTAL_IDS[4]),
             "rating": 3,
             "comment": "Samochód OK, ale trochę hałaśliwy silnik.",
-            "created_at": (NOW - timedelta(days=84)).isoformat(),
+            "created_at": NOW - timedelta(days=84),
+            "author": _review_author(USER_IDS[2]),
         },
     ]
-
-    # --- Price history ---
-    price_history = []
-    for days_ago in [90, 60, 30, 14, 7, 1]:
-        price_history.append(
-            {
-                "fuel_type": "petrol_95",
-                "price_per_liter": round(6.20 + (90 - days_ago) * 0.005, 2),
-                "currency": "PLN",
-                "source": "e-petrol.pl",
-                "recorded_at": (NOW - timedelta(days=days_ago)).isoformat(),
-            }
-        )
-        price_history.append(
-            {
-                "fuel_type": "diesel",
-                "price_per_liter": round(6.50 + (90 - days_ago) * 0.004, 2),
-                "currency": "PLN",
-                "source": "e-petrol.pl",
-                "recorded_at": (NOW - timedelta(days=days_ago)).isoformat(),
-            }
-        )
-        price_history.append(
-            {
-                "fuel_type": "electricity_kwh",
-                "price_per_liter": round(0.85 + (90 - days_ago) * 0.001, 2),
-                "currency": "PLN",
-                "source": "URE",
-                "recorded_at": (NOW - timedelta(days=days_ago)).isoformat(),
-            }
-        )
 
     # --- Incidents ---
     incidents = [
@@ -866,9 +847,15 @@ async def seed_mongo(*, drop: bool = False) -> None:
         },
     ]
 
+    from app.repositories import review_repository
+
+    # Ensure the reviews collection has its validator + unique (rental_id, user_id)
+    # index in place BEFORE inserting, so the seed runs against the same schema
+    # the production app enforces.
+    await review_repository.ensure_collection(mongo_db)
+
     await mongo_db.rental_logs.insert_many(rental_logs)
     await mongo_db.reviews.insert_many(reviews)
-    await mongo_db.price_history.insert_many(price_history)
     await mongo_db.incidents.insert_many(incidents)
     await mongo_db.user_preferences.insert_many(user_preferences)
 
@@ -876,19 +863,56 @@ async def seed_mongo(*, drop: bool = False) -> None:
     await mongo_db.rental_logs.create_index("rental_id")
     await mongo_db.rental_logs.create_index("reservation_id")
     await mongo_db.rental_logs.create_index("user_id")
-    await mongo_db.reviews.create_index("vehicle_id")
-    await mongo_db.reviews.create_index("user_id")
-    await mongo_db.reviews.create_index("reservation_id")
-    await mongo_db.price_history.create_index([("fuel_type", 1), ("recorded_at", -1)])
+    # reviews indexes are owned by review_repository.ensure_collection above.
     await mongo_db.incidents.create_index("rental_id")
     await mongo_db.incidents.create_index("reservation_id")
     await mongo_db.user_preferences.create_index("user_id", unique=True)
 
+    # Propagate review aggregates onto vehicles (avg_rating / ratings_count) so
+    # the Postgres-side denormalised columns match the seeded Mongo state.
+    await _backfill_vehicle_review_aggregates(mongo_db)
+
     print(
         f"[MONGO] Seeded: {len(rental_logs)} logs, {len(reviews)} reviews, "
-        f"{len(price_history)} price records, {len(incidents)} incidents, "
+        f"{len(incidents)} incidents, "
         f"{len(user_preferences)} user preferences"
     )
+
+
+async def _backfill_vehicle_review_aggregates(mongo_db: object) -> None:
+    """Recompute avg_rating / ratings_count on vehicles from the seeded Mongo reviews.
+
+    Mirrors the runtime behaviour of ``review_service._refresh_vehicle_rating``
+    but in a single bulk pass so the seed leaves both databases consistent.
+    """
+    from sqlalchemy import update as sa_update
+
+    from app.db.engine import async_engine, async_session_factory
+    from app.models.vehicle import Vehicle
+
+    pipeline = [
+        {
+            "$group": {
+                "_id": "$vehicle_id",
+                "avg": {"$avg": "$rating"},
+                "count": {"$sum": 1},
+            }
+        }
+    ]
+    aggregates = await mongo_db.reviews.aggregate(pipeline).to_list(length=None)  # type: ignore[attr-defined]
+
+    async with async_session_factory() as session:
+        for row in aggregates:
+            await session.execute(
+                sa_update(Vehicle)
+                .where(Vehicle.id == uuid.UUID(row["_id"]))
+                .values(
+                    avg_rating=Decimal(str(round(row["avg"], 2))),
+                    ratings_count=int(row["count"]),
+                )
+            )
+        await session.commit()
+    await async_engine.dispose()
 
 
 # ===========================================================================
@@ -926,14 +950,6 @@ async def seed_redis(*, drop: bool = False) -> None:
             3600,
             statuses[i],
         )
-
-    # --- Fuel/energy price cache ---
-    fuel_cache = {
-        "petrol_95": 6.65,
-        "diesel": 6.86,
-        "electricity_kwh": 0.94,
-    }
-    await redis_client.setex("cache:fuel_prices", 3600, json.dumps(fuel_cache))
 
     # --- User sessions ---
     for i in range(3):

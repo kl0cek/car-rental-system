@@ -19,9 +19,11 @@ from decimal import Decimal
 
 import sqlalchemy as sa
 from fastapi import HTTPException, status
+from redis.asyncio import Redis
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.user_cache import invalidate_user_cache
 from app.models.incident import Incident, IncidentSeverity
 from app.models.rental import Rental, Reservation
 from app.repositories import user_repository
@@ -138,7 +140,11 @@ async def compute_user_risk_score(
     return score.quantize(Decimal("0.01"))
 
 
-async def recompute_and_persist(db: AsyncSession, user_id: uuid.UUID) -> Decimal:
+async def recompute_and_persist(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    redis: Redis | None = None,
+) -> Decimal:
     """Recompute and write ``User.risk_score``. Returns the new score.
 
     Uses the ORM path (load → mutate → flush) rather than a Core UPDATE so
@@ -146,6 +152,10 @@ async def recompute_and_persist(db: AsyncSession, user_id: uuid.UUID) -> Decimal
     consistent ``risk_score``. Raises 404 if the user does not exist —
     important when this is invoked from event hooks where a bogus
     ``user_id`` would otherwise silently no-op.
+
+    When ``redis`` is supplied, the cached user entry is invalidated after
+    the flush so the next authenticated request sees the new score instead
+    of the stale value left in Redis (TTL up to ``USER_CACHE_TTL_SECONDS``).
     """
     user = await user_repository.get_by_id(db, user_id)
     if user is None:
@@ -154,4 +164,6 @@ async def recompute_and_persist(db: AsyncSession, user_id: uuid.UUID) -> Decimal
     new_score = await compute_user_risk_score(db, user_id)
     user.risk_score = new_score
     await db.flush()
+    if redis is not None:
+        await invalidate_user_cache(redis, user_id)
     return new_score

@@ -9,7 +9,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, EmailStr, Field, model_validator
+from pydantic import BaseModel, EmailStr, Field, computed_field, model_validator
 
 from app.models.rental import ReservationStatus
 from app.models.user import UserRole
@@ -31,6 +31,16 @@ class UserProfileResponse(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def risk_multiplier(self) -> Decimal:
+        # Lazy import: schemas should not depend on services at module load time
+        # (circular-import risk). Computed at serialisation time, when the
+        # service layer is already imported.
+        from app.services.rental_service import compute_risk_multiplier
+
+        return compute_risk_multiplier(self.risk_score)
 
 
 class UserProfileUpdate(BaseModel):

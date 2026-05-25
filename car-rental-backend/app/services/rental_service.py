@@ -1,9 +1,9 @@
 """Serwis wynajmu (pickup / return).
 
 Pracownik potwierdza odbiór pojazdu (powstaje rekord `Rental` ze stanem
-licznika i paliwa) oraz zwrot. Przy zwrocie wyliczana jest finalna cena
-(z dopłatą paliwową) i zapisywana w `RentalPriceBreakdown`. Historia
-trafia także do MongoDB.
+licznika i poziomu paliwa) oraz zwrot. Przy zwrocie wyliczana jest finalna
+cena (`base * risk * dni`, gdzie kategoria pojazdu wpływa już na `base`)
+i zapisywana w `RentalPriceBreakdown`. Historia trafia także do MongoDB.
 """
 
 import uuid
@@ -15,7 +15,7 @@ from fastapi import HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
+from app.db.redis import get_redis
 from app.models.rental import Rental, ReservationStatus
 from app.models.user import User
 from app.models.vehicle import Vehicle
@@ -156,25 +156,20 @@ async def return_rental(
     )
 
     # Wyliczenie ceny finalnej:
-    # - base_price: pierwotna cena z rezerwacji + dopłaty (np. szkody, czyszczenie)
-    # - fuel_surcharge: dopłata za każdy "brakujący" % paliwa (tylko gdy auto wraca z mniejszym)
+    # - base_price: pierwotna cena z rezerwacji (daily_base * category_mult * dni)
+    #   + ewentualne dopłaty pracownicze (szkody, czyszczenie)
     # - risk_multiplier: pochodzi z risk_score klienta — mnoży końcową kwotę,
     #   żeby klienci z wyższym ryzykiem płacili więcej (patrz compute_risk_multiplier)
     reservation = rental.reservation
     base_price = (reservation.total_price + body.extra_charges).quantize(Decimal("0.01"))
-    fuel_diff = rental.fuel_level_start - body.fuel_level_end
-    fuel_surcharge = (
-        max(fuel_diff, Decimal("0")) * settings.fuel_surcharge_rate_per_percent
-    ).quantize(Decimal("0.01"))
     customer = await user_repository.get_by_id(db, reservation.user_id)
     risk_multiplier = compute_risk_multiplier(customer.risk_score if customer else None)
-    final_price = ((base_price + fuel_surcharge) * risk_multiplier).quantize(Decimal("0.01"))
+    final_price = (base_price * risk_multiplier).quantize(Decimal("0.01"))
 
     breakdown = await rental_repository.create_price_breakdown(
         db,
         rental_id=rental.id,
         base_price=base_price,
-        fuel_surcharge=fuel_surcharge,
         risk_multiplier=risk_multiplier,
         final_price=final_price,
     )
@@ -184,7 +179,9 @@ async def return_rental(
 
     # Event-driven update: recompute risk_score from the user's full history so the
     # next rental's multiplier reflects this return (and any incidents reported on it).
-    await risk_scoring.recompute_and_persist(db, reservation.user_id)
+    # Pass redis so the cached User record gets invalidated alongside the DB write —
+    # otherwise the next price quote in this session would still see the old score.
+    await risk_scoring.recompute_and_persist(db, reservation.user_id, get_redis())
 
     return rental
 

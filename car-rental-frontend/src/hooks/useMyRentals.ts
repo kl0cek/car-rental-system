@@ -7,9 +7,10 @@ const fetcher = (url: string) =>
     return res.json();
   });
 
-export function useMyRentals(limit = 5) {
+export function useMyRentals(limit = 5, status?: string) {
+  const statusParam = status ? `&status=${encodeURIComponent(status)}` : '';
   const { data, isLoading, mutate } = useSWR<PaginatedUserRentalsApi>(
-    `/api/users/me/rentals?limit=${limit}&offset=0&sort_by=pickup_date&sort_order=desc`,
+    `/api/users/me/rentals?limit=${limit}&offset=0&sort_by=pickup_date&sort_order=desc${statusParam}`,
     fetcher
   );
 

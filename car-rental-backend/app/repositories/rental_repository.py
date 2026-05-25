@@ -131,14 +131,12 @@ async def create_price_breakdown(
     *,
     rental_id: uuid.UUID,
     base_price: Decimal,
-    fuel_surcharge: Decimal,
     risk_multiplier: Decimal,
     final_price: Decimal,
 ) -> RentalPriceBreakdown:
     breakdown = RentalPriceBreakdown(
         rental_id=rental_id,
         base_price=base_price,
-        fuel_surcharge=fuel_surcharge,
         risk_multiplier=risk_multiplier,
         final_price=final_price,
     )

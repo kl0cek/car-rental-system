@@ -28,7 +28,6 @@ export interface PaginatedUserRentalsApi {
 
 export interface RentalPriceBreakdown {
   base_price: string;
-  fuel_surcharge: string;
   risk_multiplier: string;
   final_price: string;
   calculated_at: string;

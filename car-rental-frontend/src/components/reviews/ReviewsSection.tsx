@@ -12,13 +12,14 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { useVehicleReviews } from '@/hooks/useVehicleReviews';
+import { useVehicleDetail } from '@/hooks/useVehicleDetail';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { ReviewSort } from '@/types/review';
 import type { TranslationKey } from '@/i18n/translations';
 import { StarRating } from './StarRating';
 import { ReviewItem } from './ReviewItem';
 
-const SORT_OPTIONS: ReviewSort[] = ['newest', 'top_rating', 'low_rating', 'most_helpful'];
+const SORT_OPTIONS: ReviewSort[] = ['newest', 'top_rating', 'low_rating'];
 
 interface ReviewsSectionProps {
   vehicleId: string;
@@ -30,6 +31,12 @@ export function ReviewsSection({ vehicleId }: ReviewsSectionProps) {
   const [page, setPage] = useState(1);
 
   const { data, isLoading, pageSize } = useVehicleReviews({ vehicleId, sort, page });
+  // Aggregate average / count come from the persisted columns on the vehicle —
+  // backend recomputes them on every review insert/delete (see
+  // review_service._refresh_vehicle_rating).
+  const { vehicle } = useVehicleDetail(vehicleId);
+  const averageRating = vehicle?.averageRating ?? null;
+  const reviewCount = vehicle?.reviewCount ?? data?.total ?? 0;
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / pageSize)) : 1;
 
@@ -41,18 +48,18 @@ export function ReviewsSection({ vehicleId }: ReviewsSectionProps) {
           <p className="text-sm text-muted-foreground">{t('reviews.section.subtitle')}</p>
         </div>
 
-        {data && data.total > 0 && (
+        {reviewCount > 0 && (
           <div className="text-right">
             <div className="flex items-center gap-2 justify-end">
               <span className="text-2xl font-bold text-foreground">
-                {data.averageRating?.toFixed(1) ?? '—'}
+                {averageRating !== null ? averageRating.toFixed(1) : '—'}
               </span>
-              <StarRating value={data.averageRating ?? 0} size="md" />
+              <StarRating value={averageRating ?? 0} size="md" />
             </div>
             <p className="text-xs text-muted-foreground">
-              {data.total === 1
+              {reviewCount === 1
                 ? t('reviews.basedOn.one')
-                : t('reviews.basedOn', { count: data.total })}
+                : t('reviews.basedOn', { count: reviewCount })}
             </p>
           </div>
         )}
