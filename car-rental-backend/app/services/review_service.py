@@ -87,9 +87,7 @@ async def _refresh_vehicle_rating(
     # concurrent writer has either committed its Mongo insert before we
     # aggregated (we'll see it) or is queued behind our lock (it'll re-read
     # the post-our-commit state).
-    await db.execute(
-        select(Vehicle.id).where(Vehicle.id == vehicle_id).with_for_update()
-    )
+    await db.execute(select(Vehicle.id).where(Vehicle.id == vehicle_id).with_for_update())
     avg, count = await review_repository.aggregate_rating(mongo, vehicle_id)
     avg_decimal = None if avg is None else Decimal(str(avg))
     await db.execute(
@@ -103,17 +101,11 @@ async def _load_rental_for_review(
     db: AsyncSession, rental_id: uuid.UUID
 ) -> tuple[Rental, Reservation]:
     """Fetch the rental with its reservation eager-loaded, or 404."""
-    stmt = (
-        select(Rental)
-        .options(joinedload(Rental.reservation))
-        .where(Rental.id == rental_id)
-    )
+    stmt = select(Rental).options(joinedload(Rental.reservation)).where(Rental.id == rental_id)
     result = await db.execute(stmt)
     rental = result.scalar_one_or_none()
     if rental is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Rental not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rental not found")
     return rental, rental.reservation
 
 
@@ -172,9 +164,7 @@ async def list_vehicle_reviews(
         select(Vehicle.id).where(Vehicle.id == vehicle_id, Vehicle.is_active.is_(True))
     )
     if exists is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Vehicle not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vehicle not found")
 
     items, total = await review_repository.list_for_vehicle(
         mongo, vehicle_id, offset=offset, limit=limit
@@ -225,8 +215,6 @@ async def delete_review(
 
     doc = await review_repository.find_and_delete_by_id(mongo, review_id)
     if doc is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Review not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found")
 
     await _refresh_vehicle_rating(db, mongo, uuid.UUID(doc["vehicle_id"]))

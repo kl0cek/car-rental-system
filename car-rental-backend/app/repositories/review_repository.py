@@ -159,9 +159,7 @@ async def find_and_delete_by_id(
     return result
 
 
-async def list_user_rental_ids(
-    mongo: AsyncIOMotorDatabase[Any], user_id: uuid.UUID
-) -> list[str]:
+async def list_user_rental_ids(mongo: AsyncIOMotorDatabase[Any], user_id: uuid.UUID) -> list[str]:
     """Return rental IDs already reviewed by the given user.
 
     UI uses this to hide the "write review" affordance for rentals that the
@@ -184,9 +182,7 @@ async def list_for_vehicle(
     coll = mongo[COLLECTION]
     filt = {"vehicle_id": str(vehicle_id)}
     total = await coll.count_documents(filt)
-    cursor = (
-        coll.find(filt).sort("created_at", DESCENDING).skip(offset).limit(limit)
-    )
+    cursor = coll.find(filt).sort("created_at", DESCENDING).skip(offset).limit(limit)
     items = await cursor.to_list(length=limit)
     return items, total
 
