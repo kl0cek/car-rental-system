@@ -32,8 +32,8 @@ from app.schemas.service import (
     ServiceHistoryCreate,
     ServiceOrderCreate,
     ServiceOrderListParams,
-    ServiceOrderStatusUpdate,
     ServiceOrderStats,
+    ServiceOrderStatusUpdate,
     ServiceOrderUpdate,
 )
 

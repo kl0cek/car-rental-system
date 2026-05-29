@@ -18,7 +18,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path, Query, status
 
-from app.core.deps import CurrentUser, require_roles
+from app.core.deps import require_roles
 from app.db.session import DbSession
 from app.models.user import User, UserRole
 from app.schemas.service import (
