@@ -45,9 +45,7 @@ export function CustomerRentalsList({ rentals }: CustomerRentalsListProps) {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{rental.vehicleName}</p>
-                    <p className="text-xs text-muted-foreground font-mono">
-                      {rental.licensePlate}
-                    </p>
+                    <p className="text-xs text-muted-foreground font-mono">{rental.licensePlate}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm">

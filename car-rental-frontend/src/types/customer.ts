@@ -37,12 +37,7 @@ export interface PaginatedAdminUsersApi {
 // Customer detail panel (staff view) — incidents, notes, rental history
 // ===========================================================================
 
-export type IncidentType =
-  | 'damage'
-  | 'late_return'
-  | 'traffic_violation'
-  | 'complaint'
-  | 'other';
+export type IncidentType = 'damage' | 'late_return' | 'traffic_violation' | 'complaint' | 'other';
 
 export type IncidentSeverity = 'minor' | 'moderate' | 'major';
 

@@ -11,6 +11,7 @@ import { VehicleGallery } from './VehicleGallery';
 import { VehicleSpecs } from './VehicleSpec';
 import { AvailabilityCalendar } from './AvailabilityCalendar';
 import { PriceCalculator } from './PriceCalculator';
+import { ReviewsSection } from '@/components/reviews/ReviewsSection';
 import { useVehicleAvailability } from '@/hooks/useVehicleAvailability';
 import { useCreateReservation } from '@/hooks/useCreateReservation';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -189,6 +190,10 @@ export function VehicleDetailPanel({
               </Button>
             </>
           )}
+
+          <Separator />
+
+          <ReviewsSection vehicleId={vehicle.id} />
         </div>
       </div>
     </div>

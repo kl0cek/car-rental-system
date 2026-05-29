@@ -11,12 +11,7 @@ import { VehiclePagination } from '@/components/vehicles/VehiclePagination';
 import { VehicleDetailPanel } from '@/components/vehicles/DetailPanel/VehicleDetailPanel';
 import { useFleetVehicles, type FleetParams } from '@/hooks/useFleetVehicles';
 import { useBulkUpdateVehicleStatus } from '@/hooks/useBulkUpdateVehicleStatus';
-import type {
-  SortableField,
-  Vehicle,
-  VehicleStatus,
-  PaginatedVehiclesApi,
-} from '@/types/vehicle';
+import type { SortableField, Vehicle, VehicleStatus, PaginatedVehiclesApi } from '@/types/vehicle';
 import { mapVehicle } from '@/types/vehicle';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -198,10 +193,7 @@ export default function FleetPage() {
         exporting={exporting}
       />
 
-      <FleetStatusTabs
-        value={params.status}
-        onChange={(status) => update({ status })}
-      />
+      <FleetStatusTabs value={params.status} onChange={(status) => update({ status })} />
 
       <FleetBulkActionBar
         selectedCount={selectedIds.size}

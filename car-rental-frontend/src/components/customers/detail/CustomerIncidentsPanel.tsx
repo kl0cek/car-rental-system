@@ -15,9 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { formatDate } from '@/lib/formatters';
-import {
-  useCustomerIncidentMutations,
-} from '@/hooks/useCustomerDetail';
+import { useCustomerIncidentMutations } from '@/hooks/useCustomerDetail';
 import type {
   CustomerRentalSummary,
   Incident,
@@ -117,7 +115,10 @@ export function CustomerIncidentsPanel({
       </CardHeader>
       <CardContent className="space-y-3">
         {adding && (
-          <form onSubmit={submit} className="rounded-lg border border-border p-3 space-y-3 bg-muted/30">
+          <form
+            onSubmit={submit}
+            className="rounded-lg border border-border p-3 space-y-3 bg-muted/30"
+          >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>{t('customerDetail.incidentType')}</Label>
@@ -227,10 +228,7 @@ export function CustomerIncidentsPanel({
         ) : (
           <ul className="space-y-2">
             {incidents.map((incident) => (
-              <li
-                key={incident.id}
-                className="rounded-lg border border-border p-3 space-y-1.5"
-              >
+              <li key={incident.id} className="rounded-lg border border-border p-3 space-y-1.5">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">

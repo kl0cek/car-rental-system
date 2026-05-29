@@ -43,9 +43,7 @@ export function FleetBulkActionBar({
   return (
     <div className="sticky top-2 z-20 flex items-center gap-3 bg-card border border-border shadow-md rounded-xl px-4 py-2.5">
       <CheckSquare className="w-4 h-4 text-primary" />
-      <p className="text-sm font-medium">
-        {t('fleet.bulk.selected', { count: selectedCount })}
-      </p>
+      <p className="text-sm font-medium">{t('fleet.bulk.selected', { count: selectedCount })}</p>
 
       <Select
         value={pendingStatus ?? undefined}

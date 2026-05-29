@@ -1,5 +1,11 @@
 import useSWR from 'swr';
-import type { PaginatedVehiclesApi, VehicleStatus, SortableField, EngineType, CategoryName } from '@/types/vehicle';
+import type {
+  PaginatedVehiclesApi,
+  VehicleStatus,
+  SortableField,
+  EngineType,
+  CategoryName,
+} from '@/types/vehicle';
 import { mapVehicle } from '@/types/vehicle';
 
 const FLEET_PAGE_SIZE = 15;
