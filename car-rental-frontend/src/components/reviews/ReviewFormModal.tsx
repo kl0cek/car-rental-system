@@ -3,50 +3,34 @@
 import { useEffect, useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTranslation } from '@/i18n/useTranslation';
-import { useCreateReview, useUpdateReview } from '@/hooks/useReviewMutations';
-import type { Review } from '@/types/review';
+import { useCreateReview } from '@/hooks/useReviewMutations';
 import { StarRating } from './StarRating';
 
 interface ReviewFormModalProps {
-  vehicleId: string;
   rentalId: string;
   vehicleLabel: string;
-  /**
-   * When provided we render the edit flow — pre-fill the form and call the
-   * update endpoint on submit. When null/undefined, we render the create flow.
-   */
-  existingReview?: Review | null;
   onClose: () => void;
   onSuccess?: () => void;
 }
 
-const BODY_MAX = 2000;
-const BODY_MIN = 10;
+const COMMENT_MAX = 2000;
+const COMMENT_MIN = 10;
 
 export function ReviewFormModal({
-  vehicleId,
   rentalId,
   vehicleLabel,
-  existingReview,
   onClose,
   onSuccess,
 }: ReviewFormModalProps) {
   const { t } = useTranslation();
-  const isEdit = !!existingReview;
 
-  const [rating, setRating] = useState<number>(existingReview?.rating ?? 0);
-  const [title, setTitle] = useState<string>(existingReview?.title ?? '');
-  const [body, setBody] = useState<string>(existingReview?.body ?? '');
+  const [rating, setRating] = useState<number>(0);
+  const [comment, setComment] = useState<string>('');
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  const create = useCreateReview();
-  const update = useUpdateReview();
-  const isSubmitting = create.isSubmitting || update.isSubmitting;
-  const submitError = create.error ?? update.error;
+  const { submit, isSubmitting, error: submitError } = useCreateReview();
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -66,32 +50,22 @@ export function ReviewFormModal({
       setValidationError(t('reviews.form.errorRating'));
       return;
     }
-    if (body.trim().length < BODY_MIN) {
+    if (comment.trim().length < COMMENT_MIN) {
       setValidationError(t('reviews.form.errorBody'));
       return;
     }
     setValidationError(null);
 
-    const payload = {
-      rating,
-      title: title.trim() ? title.trim() : null,
-      body: body.trim(),
-    };
-
     try {
-      if (isEdit && existingReview) {
-        await update.submit(existingReview.id, payload);
-      } else {
-        await create.submit({
-          vehicleId,
-          rentalId,
-          ...payload,
-        });
-      }
+      await submit({
+        rentalId,
+        rating,
+        comment: comment.trim(),
+      });
       onSuccess?.();
       onClose();
     } catch {
-      // Errors surfaced via create.error / update.error below.
+      // submitError already populated by the hook
     }
   };
 
@@ -114,9 +88,7 @@ export function ReviewFormModal({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <header>
-            <h2 className="text-xl font-bold text-foreground">
-              {isEdit ? t('reviews.form.editTitle') : t('reviews.form.title')}
-            </h2>
+            <h2 className="text-xl font-bold text-foreground">{t('reviews.form.title')}</h2>
             <p className="text-sm text-muted-foreground mt-1">{vehicleLabel}</p>
             <p className="text-sm text-muted-foreground">{t('reviews.form.subtitle')}</p>
           </header>
@@ -132,37 +104,20 @@ export function ReviewFormModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="review-title">{t('reviews.form.titleField')}</Label>
-            <Input
-              id="review-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={t('reviews.form.titlePlaceholder')}
-              maxLength={120}
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="review-body">{t('reviews.form.body')}</Label>
             <textarea
               id="review-body"
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
               placeholder={t('reviews.form.bodyPlaceholder')}
-              maxLength={BODY_MAX}
+              maxLength={COMMENT_MAX}
               rows={6}
               className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             />
             <p className="text-xs text-muted-foreground">
-              {t('reviews.form.bodyHint', { count: body.length })}
+              {t('reviews.form.bodyHint', { count: comment.length })}
             </p>
           </div>
-
-          {!isEdit && (
-            <Alert>
-              <AlertDescription>{t('reviews.form.pendingNotice')}</AlertDescription>
-            </Alert>
-          )}
 
           {validationError && <p className="text-sm text-destructive">{validationError}</p>}
           {submitError && <p className="text-sm text-destructive">{submitError}</p>}
@@ -173,11 +128,7 @@ export function ReviewFormModal({
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {isSubmitting
-                ? t('reviews.form.submitting')
-                : isEdit
-                  ? t('reviews.form.submitEditing')
-                  : t('reviews.form.submit')}
+              {isSubmitting ? t('reviews.form.submitting') : t('reviews.form.submit')}
             </Button>
           </div>
         </form>

@@ -8,6 +8,7 @@ import type { Vehicle } from '@/types/vehicle';
 import { STATUS_CONFIG, ENGINE_CONFIG, CATEGORY_LABELS } from '@/data/vehicles/constants';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/translations';
+import { useAuth } from '@/contexts/AuthContext';
 import Image from 'next/image';
 
 export function VehicleCard({
@@ -18,10 +19,15 @@ export function VehicleCard({
   onSelect?: (vehicle: Vehicle) => void;
 }) {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const status = STATUS_CONFIG[vehicle.status];
   const engine = ENGINE_CONFIG[vehicle.engineType];
   const EngineIcon = engine.Icon;
   const isAvailable = vehicle.status === 'available';
+
+  const riskMultiplier = user?.riskMultiplier ?? 1;
+  const pricePerDay = vehicle.dailyBasePrice * vehicle.category.priceMultiplier * riskMultiplier;
+  const showRiskBadge = user !== null && riskMultiplier !== 1;
 
   return (
     <Card className="overflow-hidden group hover:shadow-md transition-all duration-200">
@@ -79,11 +85,18 @@ export function VehicleCard({
         </div>
 
         <div className="flex items-center justify-between pt-1 border-t border-border">
-          <div>
-            <span className="text-lg font-bold text-foreground">
-              {vehicle.dailyBasePrice.toFixed(0)} PLN
-            </span>
-            <span className="text-xs text-muted-foreground"> /day</span>
+          <div className="flex flex-col">
+            <div>
+              <span className="text-lg font-bold text-foreground">
+                {pricePerDay.toFixed(0)} PLN
+              </span>
+              <span className="text-xs text-muted-foreground"> /day</span>
+            </div>
+            {showRiskBadge && (
+              <span className="text-[10px] text-muted-foreground">
+                base {vehicle.dailyBasePrice.toFixed(0)} PLN · risk ×{riskMultiplier.toFixed(2)}
+              </span>
+            )}
           </div>
           <Button size="sm" disabled={!isAvailable}>
             {isAvailable ? 'Reserve' : 'Unavailable'}

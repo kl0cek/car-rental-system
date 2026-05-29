@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useMyReservations } from '@/src/hooks/useMyReservations';
 import { useCancelReservation } from '@/src/hooks/useCancelReservation';
+import { useMyRentals } from '@/hooks/useMyRentals';
+import { useMyReviewedRentalIds } from '@/hooks/useMyReviewedRentalIds';
 import {
   Table,
   TableBody,
@@ -21,17 +23,12 @@ import { EmptyState } from '@/components/EmptyState';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/translations';
 import { ReviewFormModal } from '@/components/reviews/ReviewFormModal';
-import { findReviewByRental } from '@/data/reviews/mockStore';
-import { mapReview, type Review } from '@/types/review';
 
 const CANCELLABLE = new Set(['pending', 'confirmed']);
-const REVIEWABLE = new Set(['completed']);
 
 interface ActiveReview {
-  vehicleId: string;
   rentalId: string;
   vehicleLabel: string;
-  existing: Review | null;
 }
 
 const COL_KEYS: TranslationKey[] = [
@@ -45,26 +42,25 @@ const COL_KEYS: TranslationKey[] = [
 export function CustomerBookingsTable() {
   const { reservations, isLoading, mutate } = useMyReservations();
   const { cancel, loadingId: cancellingId } = useCancelReservation();
+  // Completed rentals carry the rental_id we need to attach the review to.
+  // Reservations don't expose it, so we fetch rentals separately and map by
+  // reservation_id.
+  const { rentals } = useMyRentals(100, 'completed');
+  const { rentalIds: reviewedRentalIds } = useMyReviewedRentalIds();
   const { t } = useTranslation();
   const [activeReview, setActiveReview] = useState<ActiveReview | null>(null);
+
+  const rentalByReservationId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const r of rentals) map.set(r.reservation_id, r.id);
+    return map;
+  }, [rentals]);
 
   async function handleCancel(id: string) {
     try {
       await cancel(id);
       await mutate();
     } catch {}
-  }
-
-  function openReview(reservation: (typeof reservations)[number]) {
-    // The mock store keys reviews by `rental_id`; until real rentals exist we
-    // reuse the reservation id as a stand-in so the lookup is stable.
-    const existingApi = findReviewByRental(reservation.id);
-    setActiveReview({
-      vehicleId: reservation.vehicle.id,
-      rentalId: reservation.id,
-      vehicleLabel: `${reservation.vehicle.brand} ${reservation.vehicle.model}`,
-      existing: existingApi ? mapReview(existingApi) : null,
-    });
   }
 
   if (isLoading) return <LoadingSkeleton />;
@@ -86,58 +82,68 @@ export function CustomerBookingsTable() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {reservations.map((r) => (
-            <TableRow key={r.id}>
-              <TableCell className="px-5 py-4">
-                <p className="font-medium text-foreground">
-                  {r.vehicle.brand} {r.vehicle.model}
-                </p>
-                <p className="text-xs text-muted-foreground">{r.vehicle.license_plate}</p>
-              </TableCell>
-              <TableCell className="px-5 py-4 text-sm">
-                <p>{formatDate(r.start_date)}</p>
-                <p className="text-muted-foreground">
-                  {t('common.to').toLowerCase()} {formatDate(r.end_date)}
-                </p>
-              </TableCell>
-              <TableCell className="px-5 py-4">
-                <Badge variant={BOOKING_STATUS_VARIANT[r.status as BookingStatus] ?? 'outline'}>
-                  {t(`status.${r.status}` as TranslationKey)}
-                </Badge>
-              </TableCell>
-              <TableCell className="px-5 py-4 font-medium">
-                {Number(r.total_price).toFixed(0)} PLN
-              </TableCell>
-              <TableCell className="px-5 py-4 text-right">
-                {CANCELLABLE.has(r.status) && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                    disabled={cancellingId === r.id}
-                    onClick={() => handleCancel(r.id)}
-                  >
-                    {cancellingId === r.id ? t('bookings.cancelling') : t('bookings.action.cancel')}
-                  </Button>
-                )}
-                {REVIEWABLE.has(r.status) && (
-                  <Button variant="ghost" size="sm" onClick={() => openReview(r)}>
-                    {findReviewByRental(r.id)
-                      ? t('reviews.action.edit')
-                      : t('reviews.action.write')}
-                  </Button>
-                )}
-              </TableCell>
-            </TableRow>
-          ))}
+          {reservations.map((r) => {
+            const rentalId = rentalByReservationId.get(r.id);
+            return (
+              <TableRow key={r.id}>
+                <TableCell className="px-5 py-4">
+                  <p className="font-medium text-foreground">
+                    {r.vehicle.brand} {r.vehicle.model}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{r.vehicle.license_plate}</p>
+                </TableCell>
+                <TableCell className="px-5 py-4 text-sm">
+                  <p>{formatDate(r.start_date)}</p>
+                  <p className="text-muted-foreground">
+                    {t('common.to').toLowerCase()} {formatDate(r.end_date)}
+                  </p>
+                </TableCell>
+                <TableCell className="px-5 py-4">
+                  <Badge variant={BOOKING_STATUS_VARIANT[r.status as BookingStatus] ?? 'outline'}>
+                    {t(`status.${r.status}` as TranslationKey)}
+                  </Badge>
+                </TableCell>
+                <TableCell className="px-5 py-4 font-medium">
+                  {Number(r.total_price).toFixed(0)} PLN
+                </TableCell>
+                <TableCell className="px-5 py-4 text-right">
+                  {CANCELLABLE.has(r.status) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      disabled={cancellingId === r.id}
+                      onClick={() => handleCancel(r.id)}
+                    >
+                      {cancellingId === r.id
+                        ? t('bookings.cancelling')
+                        : t('bookings.action.cancel')}
+                    </Button>
+                  )}
+                  {r.status === 'completed' && rentalId && !reviewedRentalIds.has(rentalId) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        setActiveReview({
+                          rentalId,
+                          vehicleLabel: `${r.vehicle.brand} ${r.vehicle.model}`,
+                        })
+                      }
+                    >
+                      {t('reviews.action.write')}
+                    </Button>
+                  )}
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
       {activeReview && (
         <ReviewFormModal
-          vehicleId={activeReview.vehicleId}
           rentalId={activeReview.rentalId}
           vehicleLabel={activeReview.vehicleLabel}
-          existingReview={activeReview.existing}
           onClose={() => setActiveReview(null)}
         />
       )}

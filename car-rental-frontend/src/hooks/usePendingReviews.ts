@@ -1,38 +1,42 @@
-import { useEffect } from 'react';
 import useSWR from 'swr';
-import { listForModeration, subscribe, type ModerationQuery } from '@/data/reviews/mockStore';
-import { mapPaginatedReviews, type PaginatedReviews } from '@/types/review';
+import {
+  mapPaginatedReviews,
+  type PaginatedReviews,
+  type PaginatedReviewsApi,
+} from '@/types/review';
 
 interface UsePendingReviewsParams {
-  status: ModerationQuery['status'];
   page: number;
   pageSize?: number;
 }
 
-export function usePendingReviews({ status, page, pageSize = 10 }: UsePendingReviewsParams): {
+const fetcher = (url: string) =>
+  fetch(url, { credentials: 'include' }).then((res) => {
+    if (!res.ok) throw new Error(`Failed to fetch reviews (${res.status})`);
+    return res.json() as Promise<PaginatedReviewsApi>;
+  });
+
+/**
+ * Admin flat listing across all vehicles. The backend has no moderation
+ * pipeline (no pending/approved/rejected states) — the moderation page can
+ * only delete reviews, not approve / reject / flag.
+ */
+export function usePendingReviews({ page, pageSize = 10 }: UsePendingReviewsParams): {
   data: PaginatedReviews | null;
   isLoading: boolean;
+  error: Error | undefined;
   refresh: () => void;
   pageSize: number;
 } {
-  const { data, isLoading, mutate } = useSWR(
-    ['pending-reviews', status, page, pageSize],
-    async () => {
-      const api = listForModeration({
-        status,
-        offset: (page - 1) * pageSize,
-        limit: pageSize,
-      });
-      return mapPaginatedReviews(api);
-    },
-    { keepPreviousData: true }
-  );
+  const offset = (page - 1) * pageSize;
+  const key = `/api/reviews?offset=${offset}&limit=${pageSize}`;
 
-  useEffect(() => subscribe(() => mutate()), [mutate]);
+  const { data, isLoading, error, mutate } = useSWR(key, fetcher, { keepPreviousData: true });
 
   return {
-    data: data ?? null,
+    data: data ? mapPaginatedReviews(data) : null,
     isLoading,
+    error: error as Error | undefined,
     refresh: () => mutate(),
     pageSize,
   };

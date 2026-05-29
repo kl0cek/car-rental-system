@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import type { Vehicle } from '@/types/vehicle';
 import { CATEGORY_LABELS } from '@/data/vehicles/constants';
+import { usePriceQuote } from '@/hooks/usePriceQuote';
 
 interface PriceCalculatorProps {
   vehicle: Vehicle;
@@ -30,8 +31,17 @@ export function PriceCalculator({
           Math.ceil((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / 86400000)
         )
       : 0;
-  const baseTotal = days * vehicle.dailyBasePrice;
-  const finalTotal = baseTotal * vehicle.category.priceMultiplier;
+
+  const { quote, isLoading } = usePriceQuote(vehicle.id, dateFrom, dateTo);
+
+  // Fallback when user is not authenticated — show base × category only (no risk).
+  const fallbackBaseTotal = days * vehicle.dailyBasePrice;
+  const fallbackFinalTotal = fallbackBaseTotal * vehicle.category.priceMultiplier;
+
+  const baseSubtotal = quote ? Number(quote.base_subtotal) : fallbackFinalTotal;
+  const total = quote ? Number(quote.total) : fallbackFinalTotal;
+  const riskAdjustment = quote ? Number(quote.risk_adjustment) : 0;
+  const riskMultiplier = quote ? Number(quote.risk_multiplier) : 1;
 
   return (
     <div>
@@ -77,17 +87,40 @@ export function PriceCalculator({
             <span>
               {vehicle.dailyBasePrice.toFixed(0)} PLN/dzień × {days} {days === 1 ? 'dzień' : 'dni'}
             </span>
-            <span>{baseTotal.toFixed(0)} PLN</span>
+            <span>{fallbackBaseTotal.toFixed(0)} PLN</span>
           </div>
           <div className="flex justify-between text-muted-foreground">
             <span>Mnożnik kategorii ({CATEGORY_LABELS[vehicle.category.name]})</span>
             <span>×{vehicle.category.priceMultiplier.toFixed(2)}</span>
           </div>
+          {quote && (
+            <>
+              <div className="flex justify-between text-muted-foreground">
+                <span>Suma bez ryzyka</span>
+                <span>{baseSubtotal.toFixed(2)} PLN</span>
+              </div>
+              <div className="flex justify-between text-muted-foreground">
+                <span>
+                  {riskAdjustment >= 0 ? 'Dopłata za ryzyko' : 'Rabat lojalnościowy'} (×
+                  {riskMultiplier.toFixed(2)})
+                </span>
+                <span className={riskAdjustment < 0 ? 'text-emerald-600' : undefined}>
+                  {riskAdjustment >= 0 ? '+' : ''}
+                  {riskAdjustment.toFixed(2)} PLN
+                </span>
+              </div>
+            </>
+          )}
           <Separator className="my-1" />
           <div className="flex justify-between font-bold text-foreground text-base">
             <span>Łącznie</span>
-            <span>{finalTotal.toFixed(0)} PLN</span>
+            <span>{total.toFixed(2)} PLN</span>
           </div>
+          {!quote && !isLoading && (
+            <p className="text-xs text-muted-foreground pt-1">
+              * Zaloguj się, aby zobaczyć cenę z uwzględnieniem Twojego profilu ryzyka.
+            </p>
+          )}
         </div>
       ) : (
         <p className="text-sm text-muted-foreground text-center py-2">

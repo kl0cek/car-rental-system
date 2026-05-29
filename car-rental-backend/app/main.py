@@ -25,8 +25,11 @@ from app.routers import (
     admin_vehicles,
     auth,
     categories,
+    pricing,
     rentals,
     reservations,
+    reviews,
+    service_orders,
     users,
     vehicles,
 )
@@ -83,6 +86,10 @@ app.include_router(categories.router)
 app.include_router(vehicles.router)
 app.include_router(reservations.router)
 app.include_router(rentals.router)
+app.include_router(pricing.router)
+app.include_router(reviews.router)
+app.include_router(service_orders.router)
+app.include_router(service_orders.vehicle_router)
 app.include_router(users.router)
 app.include_router(admin.router)
 app.include_router(admin_vehicles.router)

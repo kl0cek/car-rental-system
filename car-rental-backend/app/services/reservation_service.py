@@ -15,7 +15,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.utils import date_to_utc_datetime
 from app.models.rental import Reservation, ReservationStatus
 from app.models.user import User, UserRole
-from app.repositories import reservation_repository, vehicle_repository
+from app.models.vehicle import VehicleStatus
+from app.repositories import reservation_repository, service_repository, vehicle_repository
 from app.schemas.reservation import (
     CreateReservationRequest,
     ReservationConfirmedEmailData,
@@ -37,6 +38,24 @@ async def create_reservation(
     vehicle = await vehicle_repository.get_by_id_for_update(db, body.vehicle_id)
     if vehicle is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vehicle not found")
+
+    # Operational lockout: a vehicle pulled off the floor by the service
+    # team (or permanently retired) must not be bookable, even when the
+    # date window is technically free.
+    if vehicle.status in (VehicleStatus.MAINTENANCE, VehicleStatus.OUT_OF_SERVICE):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Vehicle is currently unavailable (status: {vehicle.status})",
+        )
+
+    # Even when the vehicle is still AVAILABLE/RENTED, a planned service
+    # order may already exist for it. Block the reservation so the
+    # technician's slot isn't double-booked.
+    if await service_repository.has_active_service_for_vehicle(db, vehicle.id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Vehicle has a pending service order — cannot be reserved",
+        )
 
     conflicts = await vehicle_repository.count_conflicting_reservations(
         db, body.vehicle_id, body.start_date, body.end_date

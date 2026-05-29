@@ -107,8 +107,7 @@ entity "rental_price_breakdowns" as price_breakdowns {
     --
     * rental_id : uuid <<FK,UK>>
     * base_price : numeric(10,2) <<CK >= 0>>
-    * fuel_surcharge : numeric(10,2) <<CK >= 0>>
-    * risk_multiplier : numeric(6,4) <<CK >= 1>>
+    * risk_multiplier : numeric(6,4) <<CK >= 0>>
     * final_price : numeric(10,2) <<CK >= 0>>
     * calculated_at : timestamptz
     * created_at : timestamptz

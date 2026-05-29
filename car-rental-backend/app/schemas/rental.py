@@ -1,7 +1,7 @@
 """Schematy DTO dla wynajmu (odbiór i zwrot pojazdu).
 
-Walidują dane wprowadzane przez pracownika w panelu — przebieg, poziom
-paliwa, ewentualne uwagi o uszkodzeniach.
+Walidują dane wprowadzane przez pracownika w panelu — przebieg,
+poziom paliwa (tylko jako stan licznika) oraz uwagi o uszkodzeniach.
 """
 
 import uuid
@@ -28,7 +28,6 @@ class ReturnRequest(BaseModel):
 
 class RentalPriceBreakdownResponse(BaseModel):
     base_price: Decimal
-    fuel_surcharge: Decimal
     risk_multiplier: Decimal
     final_price: Decimal
     calculated_at: datetime

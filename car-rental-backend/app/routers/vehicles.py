@@ -7,14 +7,18 @@ sprawdzanie dostępności w zakresie dat oraz szczegóły pojazdu.
 import uuid
 from datetime import date
 from decimal import Decimal
+from typing import Annotated, Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi import status as http_status
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import ValidationError
 
+from app.db.mongodb import get_mongo_db
 from app.db.session import DbSession
 from app.models.category import CategoryName
 from app.models.vehicle import EngineType
+from app.schemas.review import PaginatedReviewResponse
 from app.schemas.vehicle import (
     AvailabilityRequest,
     AvailabilityResponse,
@@ -23,9 +27,11 @@ from app.schemas.vehicle import (
     VehicleDetailResponse,
     VehicleListParams,
 )
-from app.services import vehicle_service
+from app.services import review_service, vehicle_service
 
 router = APIRouter(prefix="/vehicles", tags=["vehicles"])
+
+MongoDep = Annotated[AsyncIOMotorDatabase[Any], Depends(get_mongo_db)]
 
 
 @router.get("", response_model=PaginatedVehicleResponse)
@@ -84,6 +90,19 @@ async def get_vehicle(vehicle_id: uuid.UUID, db: DbSession) -> VehicleDetailResp
             detail="Vehicle not found",
         )
     return result
+
+
+@router.get("/{vehicle_id}/reviews", response_model=PaginatedReviewResponse)
+async def list_vehicle_reviews(
+    vehicle_id: uuid.UUID,
+    db: DbSession,
+    mongo: MongoDep,
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=20, ge=1, le=100),
+) -> PaginatedReviewResponse:
+    return await review_service.list_vehicle_reviews(
+        db, mongo, vehicle_id, offset=offset, limit=limit
+    )
 
 
 @router.get("/{vehicle_id}/availability", response_model=AvailabilityResponse)

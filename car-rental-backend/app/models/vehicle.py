@@ -70,6 +70,11 @@ class Vehicle(Base):
         CheckConstraint("seats > 0", name="ck_vehicle_seats_positive"),
         CheckConstraint("trunk_capacity >= 0", name="ck_vehicle_trunk_capacity_non_negative"),
         CheckConstraint("mileage >= 0", name="ck_vehicle_mileage_non_negative"),
+        CheckConstraint(
+            "avg_rating IS NULL OR (avg_rating >= 1 AND avg_rating <= 5)",
+            name="ck_vehicle_avg_rating_range",
+        ),
+        CheckConstraint("ratings_count >= 0", name="ck_vehicle_ratings_count_non_negative"),
         Index(
             "uq_vehicles_vin_active",
             "vin",
@@ -100,6 +105,11 @@ class Vehicle(Base):
         Enum(VehicleStatus, native_enum=False), default=VehicleStatus.AVAILABLE, index=True
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Denormalized review aggregates maintained by review_service after each
+    # insert/delete in the MongoDB ``reviews`` collection. Stored here so the
+    # public catalog can sort/read them without hitting Mongo on every request.
+    avg_rating: Mapped[Decimal | None] = mapped_column(Numeric(3, 2), nullable=True)
+    ratings_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
     category_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("categories.id"), index=True)
 
