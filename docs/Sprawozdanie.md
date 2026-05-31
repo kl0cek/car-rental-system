@@ -438,8 +438,7 @@ class Vehicle(Base):
 ```
 
 > **Rysunek 6.** Katalog pojazdów z filtrami, oceną i ceną dzienną (odpowiada Listingom 1–2).
-> `// SCREENSHOT: /dashboard/vehicles — siatka kart pojazdów, panel filtrów (cena/miejsca/rok),`
-> `// gwiazdki oceny`
+![1780267886658](image/Sprawozdanie/1780267886658.png)
 
 ### 8.2. Uwierzytelnianie i bezpieczeństwo
 
@@ -492,11 +491,10 @@ trafia na blacklistę w Redisie, więc nie da się go użyć ponownie nawet po w
 jest chroniony przed enumeracją kont (zawsze HTTP 200) i 60-sekundowym throttlingiem.
 
 > **Rysunek 7.** Ekran logowania DriveEase (odpowiada Listingowi 4).
-> `// SCREENSHOT: strona "/" — formularz logowania (e-mail + hasło), przycisk Sign in, linki`
-> `// do rejestracji i "forgot password"`
+![1780267959035](image/Sprawozdanie/1780267959035.png)
 
 > **Rysunek 8.** Skrzynka Mailpit z mailem weryfikacyjnym po rejestracji.
-> `// SCREENSHOT: http://localhost:8025 — wiadomość "DriveEase - Verify your email" z linkiem`
+![1780268025201](image/Sprawozdanie/1780268025201.png)
 
 Autoryzacja po roli realizowana jest deklaratywnie przez zależność `require_roles`, a tożsamość
 użytkownika rozwiązywana jest z tokenu — najpierw z **cache w Redisie**, dopiero potem z bazy.
@@ -552,8 +550,7 @@ risk_adjustment = (total - base_subtotal).quantize(MONEY_QUANT)
 
 > **Rysunek 9.** Podsumowanie ceny w kreatorze rezerwacji — kwota bazowa i korekta za ryzyko
 > (odpowiada Listingom 6–7).
-> `// SCREENSHOT: /dashboard/bookings/new — krok z PriceBreakdownCard: cena/dzień, liczba dni,`
-> `// korekta ryzyka, suma`
+![1780268262689](image/Sprawozdanie/1780268262689.png)
 
 Sam `risk_score` jest **sterowany zdarzeniami** — przeliczany po każdym zwrocie pojazdu. Wynik
 zależy od wagi incydentów (drobny/poważny/krytyczny), **wykładniczego zaniku znaczenia w czasie**
@@ -584,8 +581,7 @@ razu uwzględniała nowy profil ryzyka.
 
 > **Rysunek 10.** Karta klienta w panelu pracownika — `risk_score`, statystyki i lista incydentów
 > (odpowiada Listingowi 8).
-> `// SCREENSHOT: /dashboard/customers/[id] — CustomerProfileCard z risk_score, CustomerStatsCard,`
-> `// CustomerIncidentsPanel`
+![1780268364062](image/Sprawozdanie/1780268364062.png)
 
 ### 8.4. Wynajem: odbiór, zwrot i historia
 
@@ -611,8 +607,8 @@ await risk_scoring.recompute_and_persist(db, reservation.user_id, get_redis())
 
 > **Rysunek 11.** Formularz zwrotu pojazdu (stan licznika, poziom paliwa, dopłaty)
 > (odpowiada Listingowi 9).
-> `// SCREENSHOT: /dashboard/rentals/[id]/return — ReturnForm; analogicznie pickup na`
-> `// /dashboard/bookings/[id]/pickup`
+
+![1780268423140](image/Sprawozdanie/1780268423140.png)
 
 ### 8.5. System recenzji
 
@@ -638,10 +634,12 @@ await _refresh_vehicle_rating(db, mongo, reservation.vehicle_id)  # avg + count 
 ```
 
 > **Rysunek 12.** Sekcja recenzji pojazdu i formularz wystawienia opinii (odpowiada Listingowi 10).
-> `// SCREENSHOT: karta pojazdu — ReviewsSection z listą opinii i gwiazdkami + modal ReviewFormModal`
+
+![1780268526807](image/Sprawozdanie/1780268526807.png)
 
 > **Rysunek 13.** Moderacja recenzji w panelu administratora (odpowiada Listingowi 10).
-> `// SCREENSHOT: /dashboard/admin/reviews — ModerationTable z możliwością usunięcia opinii`
+
+![1780268543274](image/Sprawozdanie/1780268543274.png)
 
 ### 8.6. Maile transakcyjne
 
@@ -651,6 +649,7 @@ wysyłki są logowane, ale nie przerywają obsługi żądania.
 
 **Listing 11.** Mail potwierdzający rezerwację (`app/core/email.py`)
 ```python
+
 def send_reservation_confirmed_email(to_email, first_name, vehicle_name,
                                      start_date, end_date, total_price):
     msg = EmailMessage()
@@ -665,7 +664,7 @@ def send_reservation_confirmed_email(to_email, first_name, vehicle_name,
 ```
 
 > **Rysunek 14.** Mail z potwierdzeniem rezerwacji w Mailpit (odpowiada Listingowi 11).
-> `// SCREENSHOT: http://localhost:8025 — wiadomość "Your reservation has been confirmed"`
+![1780268621232](image/Sprawozdanie/1780268621232.png)
 
 ---
 
@@ -823,7 +822,8 @@ export function useTranslation() {
 ```
 
 > **Rysunek 15.** Ustawienia konta w trybie ciemnym i języku polskim (odpowiada Listingom 16–17).
-> `// SCREENSHOT: /dashboard/settings — przełącznik motywu (dark) + język PL, interfejs po polsku`
+
+![1780268677361](image/Sprawozdanie/1780268677361.png)
 
 ### 9.6. Panele według ról
 
@@ -847,12 +847,10 @@ export function getFilteredNavigation(role?: UserRole): NavItem[] {
 
 > **Rysunek 16.** Pulpit pracownika — statystyki, nadchodzące zwroty, tabela rezerwacji
 > (odpowiada Listingowi 18).
-> `// SCREENSHOT: /dashboard jako employee@driveease.com — Sidebar z pełną nawigacją, StatsGrid,`
-> `// UpcomingReturns, StaffBookingTable`
+![1780268721239](image/Sprawozdanie/1780268721239.png)
 
 > **Rysunek 17.** Panel serwisanta — zlecenia serwisowe i statystyki (odpowiada Listingowi 18).
-> `// SCREENSHOT: /dashboard/service-orders jako technician@driveease.com — ServiceOrderTable,`
-> `// ServiceOrderStatsCards`
+![1780268777871](image/Sprawozdanie/1780268777871.png)
 
 ### 9.7. Logika domenowa po stronie klienta (czyste funkcje)
 
@@ -874,7 +872,7 @@ export function isPasswordValid(password: string): boolean {
 ```
 
 > **Rysunek 18.** Rejestracja z dynamicznym wskaźnikiem wymagań hasła (odpowiada Listingowi 19).
-> `// SCREENSHOT: /register — formularz z listą PasswordRequirements (spełnione/niespełnione)`
+![1780268824166](image/Sprawozdanie/1780268824166.png)
 
 ---
 
@@ -966,8 +964,7 @@ dostępna pod `http://localhost/api/docs`. Kolumna „Dostęp": *publiczny* — 
 | POST · PUT · DELETE | /admin/customers/{id}/notes… | pracownik/admin | notatki o kliencie |
 
 > **Rysunek 19.** Interaktywna dokumentacja API (Swagger UI).
-> `// SCREENSHOT: http://localhost/api/docs — rozwinięta lista endpointów pogrupowana tagami`
-
+![1780268842292](image/Sprawozdanie/1780268842292.png)
 ---
 
 ## 11. Wzorce i decyzje projektowe
@@ -1034,12 +1031,8 @@ paliwo) → po najmie realizuje **zwrot**: liczona jest cena finalna, zapisywane
 **Recenzja.** Po zakończonym wynajmie klient wystawia ocenę (1–5 + komentarz) → recenzja trafia do
 MongoDB, agregaty pojazdu są odświeżane → administrator może moderować/usunąć opinię.
 
-> **Rysunek 20.** Kreator rezerwacji (kroki: daty i pojazd → kontakt → potwierdzenie).
-> `// SCREENSHOT: /dashboard/bookings/new — StepIndicator + StepDatesAndVehicle z listą pojazdów`
-
-> **Rysunek 21.** Lista „moich rezerwacji" / historia wynajmów klienta.
-> `// SCREENSHOT: /dashboard/bookings jako klient — tabela rezerwacji ze statusami`
-
+> **Rysunek 20.** Lista „moich rezerwacji" / historia wynajmów klienta.
+![1780268943100](image/Sprawozdanie/1780268943100.png)
 ---
 
 ## 14. Testy
@@ -1065,10 +1058,8 @@ wejdzie na zasoby personelu). Celem tej trójwarstwowej strategii było wczesne 
 regresji: szybkie testy jednostkowe pilnują logiki domenowej, a testy e2e — że zintegrowany system
 (frontend + API + bazy) faktycznie działa z perspektywy użytkownika.
 
-> **Rysunek 22.** Zielone statusy CI dla Pull Requesta (lint, type-check, testy FE i BE).
-> `// SCREENSHOT: GitHub → Actions lub checklist w PR — zadania Frontend/Backend Lint, Type Check,`
-> `// Unit Tests ze statusem "passed"`
-
+> **Rysunek 21.** Zielone statusy CI dla Pull Requesta (lint, type-check, testy FE i BE gdzie dokonano zmian).
+![1780269130652](image/Sprawozdanie/1780269130652.png)
 ---
 
 ## 15. Wnioski
