@@ -89,7 +89,7 @@ entity "reset:{token}" as reset <<string>> #FDF7E8 {
       jednorazowy token resetu hasła
       (link w mailu)
     --
-    set : services/auth_service.request_reset
+    set : services/auth_service.forgot_password
     getdel : services/auth_service.reset_password
 }
 
@@ -106,7 +106,7 @@ entity "reset_cooldown:{user_id}" as reset_cd <<string>> #F4E8FD {
       ponowne żądanie resetu
       przed upływem 60s
     --
-    set : services/auth_service.request_reset
+    set : services/auth_service.forgot_password
 }
 
 ' ===== Encja "cień" z Postgresa =====

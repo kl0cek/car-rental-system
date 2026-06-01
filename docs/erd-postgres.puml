@@ -18,6 +18,7 @@ legend top right
     FK = Foreign Key
     UK = Unique Key
     CK = Check Constraint
+    UK* = częściowy indeks unikalny (WHERE ...)
 endlegend
 
 ' ===== Tabele =====
@@ -57,18 +58,30 @@ entity "vehicles" as vehicles {
     * brand : varchar(100)
     * model : varchar(100)
     * year : int
-    * license_plate : varchar(20) <<UK>>
-    * vin : varchar(17) <<UK>>
+    * license_plate : varchar(20) <<UK* active>>
+    * vin : varchar(17) <<UK* active>>
     * engine_type : enum [petrol|diesel|electric|hybrid]
     * horsepower : int <<CK > 0>>
     * seats : int <<CK > 0>>
     * trunk_capacity : int <<CK >= 0>>
     * daily_base_price : numeric(10,2)
-    * color : varchar(50)
+    * color : enum [white|black|grey|silver|blue|red|green|yellow|orange|brown|beige|other]
     * mileage : int <<CK >= 0>>
-      image_url : text
     * status : enum [available|rented|maintenance|out_of_service]
     * is_active : bool
+      avg_rating : numeric(3,2) <<CK 1..5>>
+    * ratings_count : int <<CK >= 0>>
+    * created_at : timestamptz
+    * updated_at : timestamptz
+}
+
+entity "vehicle_images" as vehicle_images {
+    * **id** : uuid <<PK>>
+    --
+    * vehicle_id : uuid <<FK>> (ON DELETE CASCADE)
+    * url : text
+    * position : int
+    * is_primary : bool <<UK* one primary / vehicle>>
     * created_at : timestamptz
     * updated_at : timestamptz
 }
@@ -114,13 +127,86 @@ entity "rental_price_breakdowns" as price_breakdowns {
     * updated_at : timestamptz
 }
 
+entity "incidents" as incidents {
+    * **id** : uuid <<PK>>
+    --
+    * customer_id : uuid <<FK>> (ON DELETE CASCADE)
+      rental_id : uuid <<FK>> (ON DELETE SET NULL)
+    * reported_by_id : uuid <<FK>>
+    * type : enum [damage|late_return|traffic_violation|complaint|other]
+    * severity : enum [minor|moderate|major]
+    * title : text
+    * description : text
+      cost : numeric(10,2) <<CK >= 0>>
+    * created_at : timestamptz
+    * updated_at : timestamptz
+}
+
+entity "service_orders" as service_orders {
+    * **id** : uuid <<PK>>
+    --
+    * vehicle_id : uuid <<FK>> (ON DELETE CASCADE)
+    * technician_id : uuid <<FK>>
+    * type : enum [inspection|repair|tire_swap|wash]
+    * status : enum [scheduled|in_progress|completed]
+    * description : text
+      cost : numeric(10,2) <<CK >= 0>>
+    * scheduled_date : timestamptz
+      completed_date : timestamptz
+    * created_at : timestamptz
+    * updated_at : timestamptz
+}
+
+entity "service_history" as service_history {
+    * **id** : uuid <<PK>>
+    --
+    * vehicle_id : uuid <<FK>> (ON DELETE CASCADE)
+    * service_order_id : uuid <<FK>> (ON DELETE CASCADE)
+    * notes : text
+    * parts_replaced : text[]
+    * mileage_at_service : int <<CK >= 0>>
+    * created_at : timestamptz
+    * updated_at : timestamptz
+}
+
+entity "customer_notes" as customer_notes {
+    * **id** : uuid <<PK>>
+    --
+    * customer_id : uuid <<FK>> (ON DELETE CASCADE)
+    * author_id : uuid <<FK>>
+    * body : text
+    * created_at : timestamptz
+    * updated_at : timestamptz
+}
+
 ' ===== Relacje =====
 
 categories ||--o{ vehicles : "kategoryzuje"
+vehicles ||--o{ vehicle_images : "ma zdjęcia"
 users ||--o{ reservations : "składa"
 vehicles ||--o{ reservations : "dotyczy"
 reservations ||--o| rentals : "realizowana przez"
 users ||--o{ rentals : "obsługuje\n(employee_id)"
 rentals ||--o| price_breakdowns : "rozbicie ceny"
+
+users ||--o{ incidents : "dotyczy\n(customer_id)"
+users ||--o{ incidents : "zgłasza\n(reported_by_id)"
+rentals ||--o{ incidents : "powiązany\n(rental_id, opc.)"
+
+vehicles ||--o{ service_orders : "serwisowany"
+users ||--o{ service_orders : "wykonuje\n(technician_id)"
+service_orders ||--o{ service_history : "dokumentowany przez"
+vehicles ||--o{ service_history : "historia serwisu"
+
+users ||--o{ customer_notes : "dotyczy\n(customer_id)"
+users ||--o{ customer_notes : "autor\n(author_id)"
+
+note bottom of vehicles
+    UK* na **vin** i **license_plate** to indeksy
+    częściowe: unikalność tylko WHERE is_active = true
+    (soft-delete nie blokuje ponownego wprowadzenia).
+    avg_rating / ratings_count są **zdenormalizowane** —
+    utrzymywane przez review_service po zmianie recenzji.
+end note
 
 @enduml

@@ -8,9 +8,6 @@
 | **Autor 2** | Kamil Pszeniczka | **Kierunek** ITE · **Nr albumu** 414342 |
 | **Grupa** | 3 | **Data** 01.06.2026 |
 
-> Pola „‹uzupełnić›” proszę uzupełnić przed oddaniem (nr albumu, grupa). Nr albumu i kierunek
-> Michała przyjęto za wcześniejszym sprawozdaniem — proszę zweryfikować.
-
 ---
 
 ## Spis treści
@@ -78,6 +75,7 @@ Z punktu widzenia dydaktycznego projekt miał pokazać:
 ## 3. Użyte technologie
 
 ### Frontend
+
 - **Next.js 16** (App Router) + **React 19**, **TypeScript 5**
 - **Tailwind CSS 4** + **shadcn/ui** (Radix UI) — system komponentów dostępnościowych
 - **SWR** — pobieranie danych, cache i rewalidacja po stronie klienta (warstwa hooków `use*`)
@@ -85,6 +83,7 @@ Z punktu widzenia dydaktycznego projekt miał pokazać:
 - **Jest** + **ts-jest** — testy jednostkowe; **ESLint** + **Prettier** — jakość kodu
 
 ### Backend
+
 - **FastAPI 0.115** (Python 3.12), serwer **Uvicorn**
 - **SQLAlchemy 2.0** (tryb asynchroniczny) + sterownik **asyncpg**, migracje **Alembic**
 - **Motor** — asynchroniczny klient MongoDB; **redis-py** (async) — Redis
@@ -93,6 +92,7 @@ Z punktu widzenia dydaktycznego projekt miał pokazać:
 - **pytest** + **pytest-asyncio** + **httpx** — testy; **Ruff** (lint/format), **mypy** (typy)
 
 ### Bazy danych (persystencja poliglotyczna)
+
 - **PostgreSQL 17** — dane transakcyjne (użytkownicy, pojazdy, rezerwacje, wynajmy, rozbicia
   cen, incydenty, serwis)
 - **MongoDB 7** — logi odbioru/zwrotu pojazdu (zdjęcia, podpis) oraz recenzje
@@ -100,6 +100,7 @@ Z punktu widzenia dydaktycznego projekt miał pokazać:
   (weryfikacja e-mail, reset hasła) z TTL
 
 ### Infrastruktura i DevOps
+
 - **Docker** + **Docker Compose** — uruchomienie całego środowiska jedną komendą
 - **nginx** (alpine) — reverse proxy: `/` → frontend, `/api` → backend, serwowanie awatarów
 - **Mailpit** — lokalny serwer SMTP do podglądu maili; **pgAdmin** — podgląd bazy PostgreSQL
@@ -331,12 +332,8 @@ Pola: `vehicle_id` (FK, CASCADE), `type` (inspection / repair / tire_swap / wash
 Wszystkie tabele dziedziczą po wspólnej klasie bazowej pola `id` (uuid), `created_at` i
 `updated_at` (timestamptz).
 
-> **Rysunek 2.** Diagram ERD bazy PostgreSQL (render `docs/erd-postgres.puml`).
-> `// SCREENSHOT: render PlantUML — tabele users/categories/vehicles/reservations/rentals/`
-> `// rental_price_breakdowns z kluczami i relacjami`
-
-> **Rysunek 3.** Podgląd schematu i danych w pgAdmin (`http://localhost:5050`).
-> `// SCREENSHOT: pgAdmin — drzewo bazy "driveease", otwarta tabela vehicles z rekordami z seeda`
+**Rysunek 1.** Diagram ERD bazy PostgreSQL (render `docs/erd-postgres.puml`).
+![alt text](image/PostgreSQL.png)
 
 ### 7.2. MongoDB — model dokumentowy
 
@@ -349,8 +346,8 @@ Dwie kolekcje:
   gwarantuje na poziomie bazy maksymalnie jedną opinię na wynajem. Dokument zawiera m.in.
   `user_id`, `vehicle_id`, `rental_id`, `rating`, `comment`, `created_at` i osadzonego autora.
 
-> **Rysunek 4.** Diagram kolekcji MongoDB i referencji cross-DB (render `docs/erd-mongo.puml`).
-> `// SCREENSHOT: render PlantUML — kolekcje rental_logs i reviews + referencje do PostgreSQL`
+**Rysunek 2.** Diagram kolekcji MongoDB i referencji cross-DB (render `docs/erd-mongo.puml`).
+![alt text](image/mongo.png)
 
 ### 7.3. Redis — model key-value
 
@@ -364,8 +361,8 @@ Redis pełni trzy role, wszystkie wpisy mają TTL i wygasają samoczynnie:
 | `reset:{token}` | string (user_id) | 1 h | jednorazowy token resetu hasła |
 | `reset_cooldown:{id}` | string | 60 s | anty-flood resetu hasła |
 
-> **Rysunek 5.** Mapa przestrzeni nazw kluczy Redis (render `docs/erd-redis.puml`).
-> `// SCREENSHOT: render PlantUML — namespace'y user:*, blacklist:*, verify:*, reset:*, reset_cooldown:*`
+**Rysunek 3.** Mapa przestrzeni nazw kluczy Redis (render `docs/erd-redis.puml`).
+![alt text](image/Redis.png)
 
 ### 7.4. Migracje (Alembic)
 
@@ -437,7 +434,7 @@ class Vehicle(Base):
     category_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("categories.id"), index=True)
 ```
 
-> **Rysunek 6.** Katalog pojazdów z filtrami, oceną i ceną dzienną (odpowiada Listingom 1–2).
+> **Rysunek 4.** Katalog pojazdów z filtrami, oceną i ceną dzienną (odpowiada Listingom 1–2).
 ![1780267886658](image/Sprawozdanie/1780267886658.png)
 
 ### 8.2. Uwierzytelnianie i bezpieczeństwo
@@ -490,10 +487,10 @@ Odświeżanie tokenów stosuje **rotację z natychmiastowym unieważnieniem** �
 trafia na blacklistę w Redisie, więc nie da się go użyć ponownie nawet po wycieku. Reset hasła
 jest chroniony przed enumeracją kont (zawsze HTTP 200) i 60-sekundowym throttlingiem.
 
-> **Rysunek 7.** Ekran logowania DriveEase (odpowiada Listingowi 4).
+**Rysunek 5.** Ekran logowania DriveEase (odpowiada Listingowi 4).
 ![1780267959035](image/Sprawozdanie/1780267959035.png)
 
-> **Rysunek 8.** Skrzynka Mailpit z mailem weryfikacyjnym po rejestracji.
+**Rysunek 6.** Skrzynka Mailpit z mailem weryfikacyjnym po rejestracji.
 ![1780268025201](image/Sprawozdanie/1780268025201.png)
 
 Autoryzacja po roli realizowana jest deklaratywnie przez zależność `require_roles`, a tożsamość
@@ -510,7 +507,7 @@ def require_roles(*allowed_roles: UserRole) -> Callable[..., Awaitable[User]]:
     return _check_role
 ```
 
-### 8.3. Dynamiczna wycena i scoring ryzyka *(funkcjonalność kluczowa)*
+### 8.3. Dynamiczna wycena i scoring ryzyka
 
 Cena wynajmu liczona jest według wzoru `base_price · category_multiplier · risk_factor · dni`.
 Mnożnik ryzyka odwzorowuje `risk_score` klienta (0–100) na przedział `[0.8, 1.5]` — klient z
@@ -548,8 +545,8 @@ total = (base_subtotal * risk_mult).quantize(MONEY_QUANT)
 risk_adjustment = (total - base_subtotal).quantize(MONEY_QUANT)
 ```
 
-> **Rysunek 9.** Podsumowanie ceny w kreatorze rezerwacji — kwota bazowa i korekta za ryzyko
-> (odpowiada Listingom 6–7).
+**Rysunek 7.** Podsumowanie ceny w kreatorze rezerwacji — kwota bazowa i korekta za ryzyko
+(odpowiada Listingom 6–7).
 ![1780268262689](image/Sprawozdanie/1780268262689.png)
 
 Sam `risk_score` jest **sterowany zdarzeniami** — przeliczany po każdym zwrocie pojazdu. Wynik
@@ -579,8 +576,8 @@ score = max(Decimal("0"), min(Decimal("100"), score)).quantize(Decimal("0.01"))
 Po zwrocie pojazdu wynik zapisywany jest i **unieważniany w cache Redisa**, aby kolejna wycena od
 razu uwzględniała nowy profil ryzyka.
 
-> **Rysunek 10.** Karta klienta w panelu pracownika — `risk_score`, statystyki i lista incydentów
-> (odpowiada Listingowi 8).
+**Rysunek 8.** Karta klienta w panelu pracownika — `risk_score`, statystyki i lista incydentów
+(odpowiada Listingowi 8).
 ![1780268364062](image/Sprawozdanie/1780268364062.png)
 
 ### 8.4. Wynajem: odbiór, zwrot i historia
@@ -605,8 +602,8 @@ await reservation_repository.update_status(db, reservation, ReservationStatus.CO
 await risk_scoring.recompute_and_persist(db, reservation.user_id, get_redis())
 ```
 
-> **Rysunek 11.** Formularz zwrotu pojazdu (stan licznika, poziom paliwa, dopłaty)
-> (odpowiada Listingowi 9).
+**Rysunek 9.** Formularz zwrotu pojazdu (stan licznika, poziom paliwa, dopłaty)
+(odpowiada Listingowi 9).
 
 ![1780268423140](image/Sprawozdanie/1780268423140.png)
 
@@ -633,11 +630,11 @@ except DuplicateKeyError:
 await _refresh_vehicle_rating(db, mongo, reservation.vehicle_id)  # avg + count → Postgres
 ```
 
-> **Rysunek 12.** Sekcja recenzji pojazdu i formularz wystawienia opinii (odpowiada Listingowi 10).
+**Rysunek 10.** Sekcja recenzji pojazdu i formularz wystawienia opinii (odpowiada Listingowi 10).
 
 ![1780268526807](image/Sprawozdanie/1780268526807.png)
 
-> **Rysunek 13.** Moderacja recenzji w panelu administratora (odpowiada Listingowi 10).
+**Rysunek 11.** Moderacja recenzji w panelu administratora (odpowiada Listingowi 10).
 
 ![1780268543274](image/Sprawozdanie/1780268543274.png)
 
@@ -663,7 +660,7 @@ def send_reservation_confirmed_email(to_email, first_name, vehicle_name,
     _send_email(msg)
 ```
 
-> **Rysunek 14.** Mail z potwierdzeniem rezerwacji w Mailpit (odpowiada Listingowi 11).
+**Rysunek 12.** Mail z potwierdzeniem rezerwacji w Mailpit (odpowiada Listingowi 11).
 ![1780268621232](image/Sprawozdanie/1780268621232.png)
 
 ---
@@ -821,7 +818,7 @@ export function useTranslation() {
 }
 ```
 
-> **Rysunek 15.** Ustawienia konta w trybie ciemnym i języku polskim (odpowiada Listingom 16–17).
+**Rysunek 13.** Ustawienia konta w trybie ciemnym i języku polskim (odpowiada Listingom 16–17).
 
 ![1780268677361](image/Sprawozdanie/1780268677361.png)
 
@@ -845,11 +842,11 @@ export function getFilteredNavigation(role?: UserRole): NavItem[] {
 // "Add vehicle" → ['admin']; "Vehicles" (katalog) → hideForStaff
 ```
 
-> **Rysunek 16.** Pulpit pracownika — statystyki, nadchodzące zwroty, tabela rezerwacji
-> (odpowiada Listingowi 18).
+**Rysunek 14.** Pulpit pracownika — statystyki, nadchodzące zwroty, tabela rezerwacji
+(odpowiada Listingowi 18).
 ![1780268721239](image/Sprawozdanie/1780268721239.png)
 
-> **Rysunek 17.** Panel serwisanta — zlecenia serwisowe i statystyki (odpowiada Listingowi 18).
+**Rysunek 15.** Panel serwisanta — zlecenia serwisowe i statystyki (odpowiada Listingowi 18).
 ![1780268777871](image/Sprawozdanie/1780268777871.png)
 
 ### 9.7. Logika domenowa po stronie klienta (czyste funkcje)
@@ -871,7 +868,7 @@ export function isPasswordValid(password: string): boolean {
 }
 ```
 
-> **Rysunek 18.** Rejestracja z dynamicznym wskaźnikiem wymagań hasła (odpowiada Listingowi 19).
+**Rysunek 16.** Rejestracja z dynamicznym wskaźnikiem wymagań hasła (odpowiada Listingowi 19).
 ![1780268824166](image/Sprawozdanie/1780268824166.png)
 
 ---
@@ -963,8 +960,10 @@ dostępna pod `http://localhost/api/docs`. Kolumna „Dostęp": *publiczny* — 
 | POST · DELETE | /admin/customers/{id}/incidents… | pracownik/admin | rejestr incydentów |
 | POST · PUT · DELETE | /admin/customers/{id}/notes… | pracownik/admin | notatki o kliencie |
 
-> **Rysunek 19.** Interaktywna dokumentacja API (Swagger UI).
+**Rysunek 17.** Interaktywna dokumentacja API (Swagger UI).
+
 ![1780268842292](image/Sprawozdanie/1780268842292.png)
+
 ---
 
 ## 11. Wzorce i decyzje projektowe
@@ -1031,7 +1030,8 @@ paliwo) → po najmie realizuje **zwrot**: liczona jest cena finalna, zapisywane
 **Recenzja.** Po zakończonym wynajmie klient wystawia ocenę (1–5 + komentarz) → recenzja trafia do
 MongoDB, agregaty pojazdu są odświeżane → administrator może moderować/usunąć opinię.
 
-> **Rysunek 20.** Lista „moich rezerwacji" / historia wynajmów klienta.
+**Rysunek 18.** Lista „moich rezerwacji" / historia wynajmów klienta.
+
 ![1780268943100](image/Sprawozdanie/1780268943100.png)
 ---
 
@@ -1058,7 +1058,8 @@ wejdzie na zasoby personelu). Celem tej trójwarstwowej strategii było wczesne 
 regresji: szybkie testy jednostkowe pilnują logiki domenowej, a testy e2e — że zintegrowany system
 (frontend + API + bazy) faktycznie działa z perspektywy użytkownika.
 
-> **Rysunek 21.** Zielone statusy CI dla Pull Requesta (lint, type-check, testy FE i BE gdzie dokonano zmian).
+**Rysunek 19.** Zielone statusy CI dla Pull Requesta (lint, type-check, testy FE i BE gdzie dokonano zmian).
+
 ![1780269130652](image/Sprawozdanie/1780269130652.png)
 ---
 
@@ -1176,9 +1177,9 @@ zwrotu; 10 — tworzenie recenzji; 11 — mail potwierdzenia; 12 — middleware 
 14 — hook wyceny (SWR); 15 — mutacja recenzji + inwalidacja; 16 — kontekst motyw/język;
 17 — hook tłumaczeń; 18 — filtrowanie nawigacji po roli; 19 — walidacja hasła.
 
-**Rysunki:** 1 — struktura plików; 2 — ERD PostgreSQL; 3 — pgAdmin; 4 — ERD MongoDB;
-5 — Redis (namespace); 6 — katalog pojazdów; 7 — logowanie; 8 — mail weryfikacyjny (Mailpit);
-9 — podsumowanie ceny; 10 — karta klienta (ryzyko/incydenty); 11 — zwrot pojazdu; 12 — recenzje;
-13 — moderacja recenzji; 14 — mail potwierdzenia (Mailpit); 15 — ustawienia (dark + PL);
-16 — pulpit pracownika; 17 — panel serwisanta; 18 — rejestracja (siła hasła); 19 — Swagger UI;
-20 — kreator rezerwacji; 21 — historia wynajmów; 22 — statusy CI.
+**Rysunki:** 1 — ERD PostgreSQL; 2 — ERD MongoDB;
+3 — Redis (namespace); 4 — katalog pojazdów; 5 — logowanie; 6 — mail weryfikacyjny (Mailpit);
+7 — podsumowanie ceny; 8 — karta klienta (ryzyko/incydenty); 9 — zwrot pojazdu; 10 — recenzje;
+11 — moderacja recenzji; 12 — mail potwierdzenia (Mailpit); 13 — ustawienia (dark + PL);
+14 — pulpit pracownika; 15 — panel serwisanta; 16 — rejestracja (siła hasła); 17 — Swagger UI;
+18 — kreator rezerwacji; 19 — historia wynajmów; 20 — statusy CI.

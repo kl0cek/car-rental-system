@@ -38,12 +38,26 @@ entity "rental_logs" as rental_logs <<collection>> {
 }
 
 entity "reviews" as reviews <<collection>> {
-    * **_id** : ObjectId <<PK>>
+    * **_id** : string (uuid) <<PK>>
     --
-    schemat luźny —
-    używana w agregacjach
-    średnich ocen pojazdów
-    (vehicle_service.py)
+    * user_id : string <<ref → pg.users.id>>
+    * vehicle_id : string <<ref → pg.vehicles.id>>
+    * rental_id : string <<ref → pg.rentals.id>>
+    * rating : int <<1..5>>
+      comment : string | null
+    * created_at : date
+    --
+    * author : object (osadzony)
+        * id : string
+        * first_name : string
+        * last_name : string
+          avatar_url : string | null
+    --
+    indeksy:
+      uq_reviews_rental_user
+        (rental_id, user_id) UNIQUE
+      (vehicle_id, created_at desc)
+      (user_id)
 }
 
 ' ===== Encje "cienie" z Postgresa (do pokazania referencji) =====
@@ -69,7 +83,9 @@ entity "vehicles (PG)" as pg_vehicles <<external>> #EEE {
 pg_rentals      ||..o{ rental_logs : "rental_id"
 pg_reservations ||..o{ rental_logs : "reservation_id"
 pg_users        ||..o{ rental_logs : "employee_id"
-pg_vehicles     ||..o{ reviews     : "(prawdopodobnie\nvehicle_id w dokumencie)"
+pg_vehicles     ||..o{ reviews     : "vehicle_id"
+pg_users        ||..o{ reviews     : "user_id"
+pg_rentals      ||..o{ reviews     : "rental_id"
 
 note bottom of rental_logs
     Wstawiane przez rental_service.log_pickup()
@@ -79,10 +95,18 @@ note bottom of rental_logs
 end note
 
 note bottom of reviews
-    Schemat nie jest definiowany w aplikacji —
-    kolekcja tylko czytana (agregacje $avg).
-    Pewnie wypełniana seedem lub zewnętrznym
-    procesem.
+    Kolekcja w pełni zarządzana przez aplikację
+    (review_repository.py / review_service.py):
+      • walidator **JSON Schema** (odpowiednik CHECK)
+        wymusza wymagane pola i rating 1..5,
+      • **compound unique index** (rental_id, user_id)
+        → 1 recenzja na wynajem (DuplicateKeyError → HTTP 409),
+      • insert = review_repository.insert,
+      • agregacja $avg = review_repository.aggregate_rating
+        (orkiestracja w review_service._refresh_vehicle_rating),
+        wynik zapisywany do vehicles.avg_rating / ratings_count.
+    Kolekcja + indeksy zakładane na starcie
+    (review_repository.ensure_collection, scripts/init_mongo.py).
 end note
 
 @enduml
