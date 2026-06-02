@@ -1,0 +1,112 @@
+@startuml ERD-Postgres-2
+!theme plain
+title Car Rental — PostgreSQL ERD (2/2): incydenty, serwis, notatki
+
+hide circle
+skinparam linetype ortho
+skinparam roundcorner 6
+skinparam shadowing false
+skinparam class {
+    BackgroundColor #FDFDFD
+    BorderColor #555555
+    ArrowColor #444444
+}
+
+legend top right
+    PK = Primary Key   FK = Foreign Key
+    CK = Check Constraint
+    --
+    Encje szare = zdefiniowane w
+    części 1/2 (erd-postgres-1),
+    tu tylko jako cel kluczy obcych.
+endlegend
+
+' ===== Encje "cienie" z części 1/2 (tylko cel FK) =====
+
+entity "users" as users <<ref 1/2>> #EEEEEE {
+    * **id** : uuid <<PK>>
+}
+
+entity "vehicles" as vehicles <<ref 1/2>> #EEEEEE {
+    * **id** : uuid <<PK>>
+}
+
+entity "rentals" as rentals <<ref 1/2>> #EEEEEE {
+    * **id** : uuid <<PK>>
+}
+
+' ===== Tabele tej części =====
+
+entity "incidents" as incidents {
+    * **id** : uuid <<PK>>
+    --
+    * customer_id : uuid <<FK>> (ON DELETE CASCADE)
+      rental_id : uuid <<FK>> (ON DELETE SET NULL)
+    * reported_by_id : uuid <<FK>>
+    * type : enum [damage|late_return|traffic_violation|complaint|other]
+    * severity : enum [minor|moderate|major]
+    * title : text
+    * description : text
+      cost : numeric(10,2) <<CK >= 0>>
+    * created_at : timestamptz
+    * updated_at : timestamptz
+}
+
+entity "service_orders" as service_orders {
+    * **id** : uuid <<PK>>
+    --
+    * vehicle_id : uuid <<FK>> (ON DELETE CASCADE)
+    * technician_id : uuid <<FK>>
+    * type : enum [inspection|repair|tire_swap|wash]
+    * status : enum [scheduled|in_progress|completed]
+    * description : text
+      cost : numeric(10,2) <<CK >= 0>>
+    * scheduled_date : timestamptz
+      completed_date : timestamptz
+    * created_at : timestamptz
+    * updated_at : timestamptz
+}
+
+entity "service_history" as service_history {
+    * **id** : uuid <<PK>>
+    --
+    * vehicle_id : uuid <<FK>> (ON DELETE CASCADE)
+    * service_order_id : uuid <<FK>> (ON DELETE CASCADE)
+    * notes : text
+    * parts_replaced : text[]
+    * mileage_at_service : int <<CK >= 0>>
+    * created_at : timestamptz
+    * updated_at : timestamptz
+}
+
+entity "customer_notes" as customer_notes {
+    * **id** : uuid <<PK>>
+    --
+    * customer_id : uuid <<FK>> (ON DELETE CASCADE)
+    * author_id : uuid <<FK>>
+    * body : text
+    * created_at : timestamptz
+    * updated_at : timestamptz
+}
+
+' ===== Relacje =====
+
+users ||--o{ incidents : "dotyczy\n(customer_id)"
+users ||--o{ incidents : "zgłasza\n(reported_by_id)"
+rentals ||--o{ incidents : "powiązany\n(rental_id, opc.)"
+
+vehicles ||--o{ service_orders : "serwisowany"
+users ||--o{ service_orders : "wykonuje\n(technician_id)"
+service_orders ||--o{ service_history : "dokumentowany przez"
+vehicles ||--o{ service_history : "historia serwisu"
+
+users ||--o{ customer_notes : "dotyczy\n(customer_id)"
+users ||--o{ customer_notes : "autor\n(author_id)"
+
+note bottom of incidents
+    severity (minor/moderate/major) wpływa na
+    users.risk_score → dynamiczna cena wynajmu
+    (services/risk_scoring.py).
+end note
+
+@enduml

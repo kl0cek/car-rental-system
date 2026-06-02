@@ -2,8 +2,8 @@
 
 | | | |
 |---|---|---|
-| **Przedmiot** | Zaawansowane Techniki Internetowe | **Semestr** 8 |
-| **Temat** | System wypożyczalni samochodów — *DriveEase* | **Rok** 4 |
+| **Przedmiot** | Zaawansowane Techniki Internetowe | **Semestr** 1 |
+| **Temat** | System wypożyczalni samochodów — *DriveEase* | **Stopien** 2 **Rok** 1 |
 | **Autor 1** | Michał Kowalik | **Kierunek** ITE · **Nr albumu** 415453 |
 | **Autor 2** | Kamil Pszeniczka | **Kierunek** ITE · **Nr albumu** 414342 |
 | **Grupa** | 3 | **Data** 01.06.2026 |
@@ -34,7 +34,7 @@
 
 ## 1. Podział zadań
 
-Projekt realizowany był w dwuosobowym zespole z wyraźnym podziałem warstw:
+Projekt realizowany był w dwuosobowym zespole z wyraźnym podziałem:
 
 - **Michał Kowalik — frontend + CI/CD:** aplikacja kliencka w Next.js (React, TypeScript),
   komponenty UI, panele zależne od roli, motyw jasny/ciemny, wielojęzyczność (PL/EN), warstwa
@@ -382,7 +382,7 @@ Encje opisane są jako modele SQLAlchemy. Poniżej model użytkownika z wyliczen
 
 **Listing 1.** Model `User` i role (`app/models/user.py`)
 ```python
-class UserRole(enum.StrEnum):
+class UserRole(enum.StrEnum):                  # role sterują autoryzacją (require_roles)
     CUSTOMER = "customer"
     EMPLOYEE = "employee"
     TECHNICIAN = "technician"
@@ -392,18 +392,20 @@ class UserRole(enum.StrEnum):
 class User(Base):
     __tablename__ = "users"
     __table_args__ = (
+        # twarde ograniczenie po stronie bazy — score zawsze w przedziale [0, 100]
         CheckConstraint("risk_score >= 0 AND risk_score <= 100",
                         name="ck_user_risk_score_range"),
     )
 
-    email: Mapped[str] = mapped_column(String(255), unique=True)
-    hashed_password: Mapped[str] = mapped_column(Text)
+    email: Mapped[str] = mapped_column(String(255), unique=True)        # login = unikalny e-mail
+    hashed_password: Mapped[str] = mapped_column(Text)                  # tylko hash bcrypt, nigdy jawne hasło
     first_name: Mapped[str] = mapped_column(String(100))
     last_name: Mapped[str] = mapped_column(String(100))
     role: Mapped[UserRole] = mapped_column(
-        Enum(UserRole, native_enum=False), default=UserRole.CUSTOMER, index=True)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+        Enum(UserRole, native_enum=False), default=UserRole.CUSTOMER, index=True)  # domyślnie klient
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)      # konto włączone / zablokowane
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)   # czy e-mail potwierdzony
+    # profil ryzyka 0..100 — podstawa dynamicznej ceny; indeks, bo czytany przy każdej wycenie
     risk_score: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=Decimal("0.00"), index=True)
 ```
 
@@ -415,7 +417,7 @@ egzemplarza fizycznego.
 
 **Listing 2.** Typ silnika i kluczowe pola pojazdu (`app/models/vehicle.py`)
 ```python
-class EngineType(enum.StrEnum):
+class EngineType(enum.StrEnum):     # typ silnika — przechowywany, lecz nie wpływa już na cenę
     PETROL = "petrol"
     DIESEL = "diesel"
     ELECTRIC = "electric"
@@ -427,11 +429,11 @@ class Vehicle(Base):
     brand: Mapped[str] = mapped_column(String(100), index=True)
     model: Mapped[str] = mapped_column(String(100))
     engine_type: Mapped[EngineType] = mapped_column(Enum(EngineType, native_enum=False), index=True)
-    daily_base_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), index=True)
+    daily_base_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), index=True)   # cena bazowa za dobę
     status: Mapped[VehicleStatus] = mapped_column(..., default=VehicleStatus.AVAILABLE, index=True)
-    avg_rating: Mapped[Decimal | None] = mapped_column(Numeric(3, 2), nullable=True)
-    ratings_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
-    category_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("categories.id"), index=True)
+    avg_rating: Mapped[Decimal | None] = mapped_column(Numeric(3, 2), nullable=True)     # zdenormalizowana ocena
+    ratings_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")   # liczba ocen (szybki katalog)
+    category_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("categories.id"), index=True)  # FK → kategoria cenowa
 ```
 
 > **Rysunek 4.** Katalog pojazdów z filtrami, oceną i ceną dzienną (odpowiada Listingom 1–2).
@@ -445,17 +447,18 @@ Hasła hashowane są algorytmem bcrypt; tokeny JWT podpisywane są kluczem z kon
 **Listing 3.** Generowanie tokenów JWT (`app/core/security.py`)
 ```python
 def _create_token(subject, token_type, expires_delta, extra=None) -> str:
-    expire = datetime.now(UTC) + expires_delta
-    payload = {"sub": subject, "exp": expire, "type": token_type}
+    expire = datetime.now(UTC) + expires_delta                      # moment wygaśnięcia tokenu
+    payload = {"sub": subject, "exp": expire, "type": token_type}   # sub = id usera, type = access/refresh
     if extra:
-        payload.update(extra)
+        payload.update(extra)                                       # dodatkowe pola, np. rola
+    # podpis kluczem serwera (HS256) — bez klucza nie da się sfałszować tokenu
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
 def create_access_token(subject: str, role: UserRole) -> str:
     return _create_token(subject, "access",
-                         timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
-                         {"role": role.value})
+                         timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),  # krótki TTL (np. 30 min)
+                         {"role": role.value})                                      # rola w ładunku tokenu
 ```
 
 Logowanie weryfikuje aktywność i potwierdzenie konta, a hashowanie/weryfikację hasła (operacje
@@ -468,18 +471,19 @@ async def login_user(body: LoginRequest, db: AsyncSession) -> tuple[TokenRespons
     if user is None:
         raise InvalidCredentialsError("User not found")
     if not user.is_active:
-        raise InvalidCredentialsError("Account is disabled")
+        raise InvalidCredentialsError("Account is disabled")          # konto zablokowane
     if not user.is_verified:
-        raise InvalidCredentialsError("Email address is not verified")
+        raise InvalidCredentialsError("Email address is not verified")  # wymagane potwierdzenie e-mail
 
     loop = get_running_loop()
+    # bcrypt jest CPU-bound → liczymy w puli wątków, by nie blokować pętli asyncio
     is_valid = await loop.run_in_executor(None, verify_password, body.password, user.hashed_password)
     if not is_valid:
         raise InvalidCredentialsError("Wrong password")
 
-    access_token = create_access_token(subject=str(user.id), role=user.role)
-    refresh_token = create_refresh_token(subject=str(user.id), role=user.role)
-    await user_repository.update_last_login(db, user, datetime.now(tz=UTC))
+    access_token = create_access_token(subject=str(user.id), role=user.role)    # krótki token dostępu
+    refresh_token = create_refresh_token(subject=str(user.id), role=user.role)  # długi token odświeżający
+    await user_repository.update_last_login(db, user, datetime.now(tz=UTC))      # zapis ostatniego logowania
     return TokenResponse(access_token=access_token, refresh_token=refresh_token), user
 ```
 
@@ -499,12 +503,12 @@ użytkownika rozwiązywana jest z tokenu — najpierw z **cache w Redisie**, dop
 **Listing 5.** Zależność autoryzująca po roli (`app/core/deps.py`)
 ```python
 def require_roles(*allowed_roles: UserRole) -> Callable[..., Awaitable[User]]:
-    async def _check_role(current_user: CurrentUser) -> User:
-        if current_user.role not in allowed_roles:
+    async def _check_role(current_user: CurrentUser) -> User:   # CurrentUser = user wyciągnięty z tokenu
+        if current_user.role not in allowed_roles:             # rola spoza dozwolonych?
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                                detail="Insufficient permissions")
+                                detail="Insufficient permissions")   # → 403 Forbidden
         return current_user
-    return _check_role
+    return _check_role          # zwracamy zależność wpinaną w endpoint przez Depends(require_roles(...))
 ```
 
 ### 8.3. Dynamiczna wycena i scoring ryzyka
@@ -535,14 +539,14 @@ mógł je czytelnie pokazać. Cała arytmetyka pieniężna używa typu `Decimal`
 
 **Listing 7.** Wyliczenie oferty cenowej (`app/services/pricing_service.py`)
 ```python
-days = _days_between(start_date, end_date)
-daily_base = vehicle.daily_base_price
-category_mult = vehicle.category.price_multiplier
-risk_mult = compute_risk_multiplier(current_user.risk_score)
+days = _days_between(start_date, end_date)               # liczba dni (min. 1)
+daily_base = vehicle.daily_base_price                    # cena bazowa pojazdu za dobę
+category_mult = vehicle.category.price_multiplier        # mnożnik kategorii (premium > economy)
+risk_mult = compute_risk_multiplier(current_user.risk_score)   # mnożnik z profilu ryzyka klienta
 
-base_subtotal = (daily_base * category_mult * Decimal(days)).quantize(MONEY_QUANT)
-total = (base_subtotal * risk_mult).quantize(MONEY_QUANT)
-risk_adjustment = (total - base_subtotal).quantize(MONEY_QUANT)
+base_subtotal = (daily_base * category_mult * Decimal(days)).quantize(MONEY_QUANT)  # cena BEZ ryzyka
+total = (base_subtotal * risk_mult).quantize(MONEY_QUANT)                           # cena Z ryzykiem
+risk_adjustment = (total - base_subtotal).quantize(MONEY_QUANT)  # ile dokłada/odejmuje ryzyko (dla UI)
 ```
 
 **Rysunek 7.** Podsumowanie ceny w kreatorze rezerwacji — kwota bazowa i korekta za ryzyko
@@ -588,16 +592,16 @@ klienta, a zdarzenie trafia do **logu w MongoDB**.
 
 **Listing 9.** Finalizacja zwrotu i przeliczenie ryzyka (`app/services/rental_service.py`)
 ```python
-base_price = (reservation.total_price + body.extra_charges).quantize(Decimal("0.01"))
+base_price = (reservation.total_price + body.extra_charges).quantize(Decimal("0.01"))  # cena + dopłaty (szkody itp.)
 customer = await user_repository.get_by_id(db, reservation.user_id)
-risk_multiplier = compute_risk_multiplier(customer.risk_score if customer else None)
-final_price = (base_price * risk_multiplier).quantize(Decimal("0.01"))
+risk_multiplier = compute_risk_multiplier(customer.risk_score if customer else None)   # mnożnik ryzyka klienta
+final_price = (base_price * risk_multiplier).quantize(Decimal("0.01"))                 # finalna kwota do zapłaty
 
-breakdown = await rental_repository.create_price_breakdown(
+breakdown = await rental_repository.create_price_breakdown(      # zapis składników ceny (audyt / transparentność)
     db, rental_id=rental.id, base_price=base_price,
     risk_multiplier=risk_multiplier, final_price=final_price)
 
-await reservation_repository.update_status(db, reservation, ReservationStatus.COMPLETED)
+await reservation_repository.update_status(db, reservation, ReservationStatus.COMPLETED)  # rezerwacja zakończona
 # Event-driven: przelicz risk_score z całej historii + unieważnij cache (redis)
 await risk_scoring.recompute_and_persist(db, reservation.user_id, get_redis())
 ```
@@ -616,18 +620,18 @@ w PostgreSQL (rekord pojazdu blokowany `SELECT ... FOR UPDATE`, by zserializowa�
 **Listing 10.** Tworzenie recenzji i odświeżenie agregatu (`app/services/review_service.py`)
 ```python
 if reservation.user_id != current_user.id:
-    raise HTTPException(403, "You can only review your own rentals")
+    raise HTTPException(403, "You can only review your own rentals")     # tylko własny wynajem
 if reservation.status != ReservationStatus.COMPLETED:
-    raise HTTPException(422, "You can only review a completed rental")
+    raise HTTPException(422, "You can only review a completed rental")   # tylko zakończony wynajem
 
 try:
-    doc = await review_repository.insert(mongo, user_id=current_user.id,
+    doc = await review_repository.insert(mongo, user_id=current_user.id,   # zapis recenzji do MongoDB
             vehicle_id=reservation.vehicle_id, rental_id=rental.id,
             rating=body.rating, comment=body.comment, ...)
-except DuplicateKeyError:
-    raise HTTPException(409, "A review already exists for this rental")
+except DuplicateKeyError:                                                  # unikalny indeks (rental_id, user_id)
+    raise HTTPException(409, "A review already exists for this rental")    # → 409: jedna opinia na wynajem
 
-await _refresh_vehicle_rating(db, mongo, reservation.vehicle_id)  # avg + count → Postgres
+await _refresh_vehicle_rating(db, mongo, reservation.vehicle_id)  # przelicz avg + count i zapisz do Postgresa
 ```
 
 **Rysunek 10.** Sekcja recenzji pojazdu i formularz wystawienia opinii (odpowiada Listingowi 10).
@@ -650,14 +654,14 @@ wysyłki są logowane, ale nie przerywają obsługi żądania.
 def send_reservation_confirmed_email(to_email, first_name, vehicle_name,
                                      start_date, end_date, total_price):
     msg = EmailMessage()
-    msg["Subject"] = "DriveEase - Your reservation has been confirmed"
+    msg["Subject"] = "DriveEase - Your reservation has been confirmed"   # temat wiadomości
     msg["From"] = settings.SMTP_FROM_EMAIL
     msg["To"] = to_email
-    msg.set_content(
+    msg.set_content(                                                     # treść tekstowa maila
         f"Hi {first_name},\n\nGreat news! Your reservation has been confirmed.\n\n"
         f"Vehicle: {vehicle_name}\nPick-up date: {start_date}\nReturn date: {end_date}\n"
         f"Total price: {total_price} PLN\n\nDriveEase Team")
-    _send_email(msg)
+    _send_email(msg)   # wysyłka SMTP; ewentualny błąd jest logowany, ale nie przerywa żądania
 ```
 
 **Rysunek 12.** Mail z potwierdzeniem rezerwacji w Mailpit (odpowiada Listingowi 11).
@@ -681,11 +685,11 @@ logowania/rejestracji na pulpit.
 
 **Listing 12.** Middleware ochrony tras (`src/proxy.ts`)
 ```typescript
-const PUBLIC_PATHS = ['/', '/register', '/forgot-password', '/reset-password', '/verify-email'];
+const PUBLIC_PATHS = ['/', '/register', '/forgot-password', '/reset-password', '/verify-email'];  // trasy bez logowania
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const accessToken = request.cookies.get('access_token')?.value;
+  const accessToken = request.cookies.get('access_token')?.value;   // sesja = ciasteczko httpOnly
   const isPublicPath = PUBLIC_PATHS.includes(pathname);
 
   // Zalogowany na stronie logowania → pulpit
@@ -696,7 +700,7 @@ export function proxy(request: NextRequest) {
   if (!isPublicPath && !accessToken) {
     return NextResponse.redirect(new URL('/', request.url));
   }
-  return NextResponse.next();
+  return NextResponse.next();   // dostęp dozwolony — renderuj stronę
 }
 ```
 
@@ -710,24 +714,24 @@ Sesja użytkownika udostępniana jest globalnie przez `AuthProvider`, który wys
 ```typescript
 const refreshUser = useCallback(async () => {
   try {
-    const res = await fetch('/api/users/me', { credentials: 'include' });
-    if (res.ok) setUser(mapUserFromApi(await res.json()));
-    else setUser(null);
+    const res = await fetch('/api/users/me', { credentials: 'include' });  // pobierz profil po ciasteczku sesji
+    if (res.ok) setUser(mapUserFromApi(await res.json()));   // mapowanie odpowiedzi API → model UI
+    else setUser(null);                                      // brak / nieważna sesja
   } catch {
     setUser(null);
   } finally {
-    setIsLoading(false);
+    setIsLoading(false);   // koniec ładowania (pokaż UI)
   }
 }, []);
 
 const login = useCallback(async (email: string, password: string) => {
   const res = await fetch('/api/auth/login', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    credentials: 'include', body: JSON.stringify({ email, password }),
+    credentials: 'include', body: JSON.stringify({ email, password }),   // backend ustawia ciasteczka sesji
   });
-  if (!res.ok) throw new Error((await res.json()).detail ?? 'Login failed');
+  if (!res.ok) throw new Error((await res.json()).detail ?? 'Login failed');  // komunikat błędu z API
   setUser(mapUserFromApi(await res.json()));
-  await refreshUser();
+  await refreshUser();   // domknij stan sesji
 }, [refreshUser]);
 ```
 
@@ -741,13 +745,13 @@ backendu opisuje Listing 7.
 **Listing 14.** Hook wyceny oparty o SWR (`src/hooks/usePriceQuote.ts`)
 ```typescript
 export function usePriceQuote(vehicleId: string | null, startDate: string, endDate: string) {
-  const enabled = !!vehicleId && !!startDate && !!endDate && startDate !== endDate;
+  const enabled = !!vehicleId && !!startDate && !!endDate && startDate !== endDate;  // komplet parametrów?
   const key = enabled
     ? `/api/pricing/quote?vehicle_id=${vehicleId}&start_date=${startDate}&end_date=${endDate}`
     : null;                                   // null → SWR nie wysyła zapytania
 
-  const { data, isLoading, error } = useSWR<PriceBreakdown>(key, fetcher);
-  return { quote: data ?? null, isLoading: enabled && isLoading, error };
+  const { data, isLoading, error } = useSWR<PriceBreakdown>(key, fetcher);  // cache + automatyczna rewalidacja
+  return { quote: data ?? null, isLoading: enabled && isLoading, error };   // gotowy wynik dla komponentu
 }
 ```
 
@@ -761,11 +765,11 @@ oceny").
 **Listing 15.** Mutacja recenzji z inwalidacją cache (`src/hooks/useReviewMutations.ts`)
 ```typescript
 function revalidateReviewLists(): void {
-  globalMutate((key) =>
+  globalMutate((key) =>                                   // unieważnij wszystkie pasujące klucze SWR
     typeof key === 'string' &&
-    ((key.startsWith('/api/vehicles/') && key.includes('/reviews')) ||
-      key.startsWith('/api/reviews') ||
-      key.startsWith('/api/users/me/rentals')));
+    ((key.startsWith('/api/vehicles/') && key.includes('/reviews')) ||   // listy recenzji per pojazd
+      key.startsWith('/api/reviews') ||                                  // moderacja (admin)
+      key.startsWith('/api/users/me/rentals')));                         // "wynajmy do oceny"
 }
 
 const submit = useCallback(async (payload: CreateReviewPayload) => {
@@ -775,8 +779,8 @@ const submit = useCallback(async (payload: CreateReviewPayload) => {
     body: JSON.stringify({ rental_id: payload.rentalId, rating: payload.rating,
                            comment: payload.comment }),
   });
-  if (!res.ok) throw new Error(await readError(res));
-  revalidateReviewLists();                    // odśwież listy po zapisie
+  if (!res.ok) throw new Error(await readError(res));   // wyciągnij detal błędu z odpowiedzi API
+  revalidateReviewLists();                    // odśwież listy po zapisie (bez ręcznego reloadu)
   return mapReview(await res.json());
 }, []);
 ```
@@ -793,12 +797,12 @@ export type Language = 'en' | 'pl';
 
 const setTheme = (t: Theme) => {
   setThemeState(t);
-  localStorage.setItem('theme', t);
-  document.documentElement.classList.toggle('dark', t === 'dark');
+  localStorage.setItem('theme', t);                                   // utrwal wybór między sesjami
+  document.documentElement.classList.toggle('dark', t === 'dark');    // przełącz klasę .dark (Tailwind)
 };
 const setLanguage = (l: Language) => {
   setLanguageState(l);
-  localStorage.setItem('language', l);
+  localStorage.setItem('language', l);   // zapamiętaj język interfejsu
 };
 ```
 
@@ -808,11 +812,11 @@ wspiera interpolację zmiennych.
 **Listing 17.** Hook tłumaczeń (`src/i18n/useTranslation.ts`)
 ```typescript
 export function useTranslation() {
-  const { language } = useSettings();
-  const dict = translations[language];
+  const { language } = useSettings();          // aktualny język z kontekstu ustawień
+  const dict = translations[language];         // wybór słownika PL / EN
   const t = (key: TranslationKey, vars?: Record<string, string | number>): string => {
-    const value = dict[key] ?? key;
-    return vars ? tFormat(value, vars) : value;
+    const value = dict[key] ?? key;            // brak tłumaczenia → pokaż klucz (bezpieczny fallback)
+    return vars ? tFormat(value, vars) : value;  // interpolacja zmiennych, np. {count}
   };
   return { t, language };
 }
@@ -830,11 +834,11 @@ Nawigacja boczna jest **filtrowana po roli** — klient widzi katalog i swoje re
 **Listing 18.** Filtrowanie nawigacji po roli (`src/data/dashboard/constants.ts`)
 ```typescript
 export function getFilteredNavigation(role?: UserRole): NavItem[] {
-  const staff = isStaffRole(role);
+  const staff = isStaffRole(role);                  // employee / technician / admin?
   return navigation.filter((item) => {
-    if (item.roles && (!role || !item.roles.includes(role))) return false;
-    if (item.staffOnly && !staff) return false;
-    if (item.hideForStaff && staff) return false;
+    if (item.roles && (!role || !item.roles.includes(role))) return false;  // pozycja dla konkretnych ról
+    if (item.staffOnly && !staff) return false;     // tylko dla personelu
+    if (item.hideForStaff && staff) return false;   // ukryj przed personelem (katalog klienta)
     return true;
   });
 }
@@ -858,13 +862,13 @@ czystymi funkcjami — łatwymi do przetestowania jednostkowo (rozdz. 14).
 ```typescript
 export function getPasswordRequirements(password: string): PasswordRequirement[] {
   return [
-    { label: 'pwd.min8', met: password.length >= 8 },
-    { label: 'pwd.number', met: /\d/.test(password) },
-    { label: 'pwd.uppercase', met: /[A-Z]/.test(password) },
+    { label: 'pwd.min8', met: password.length >= 8 },         // min. 8 znaków
+    { label: 'pwd.number', met: /\d/.test(password) },        // co najmniej 1 cyfra
+    { label: 'pwd.uppercase', met: /[A-Z]/.test(password) },  // co najmniej 1 wielka litera
   ];
 }
 export function isPasswordValid(password: string): boolean {
-  return getPasswordRequirements(password).every((r) => r.met);
+  return getPasswordRequirements(password).every((r) => r.met);  // wszystkie wymagania spełnione
 }
 ```
 
@@ -1091,8 +1095,8 @@ przypominające** o nadchodzącym wynajmie nie zostały dodane — wymagałyby u
 **Możliwe usprawnienia:** (1) przywrócenie komponentu cenowego zależnego od kosztów energii/paliwa
 jako osobnego, konfigurowalnego modyfikatora obok ryzyka; (2) zadania w tle (scheduler) na maile
 przypominające i okresową rekonsyliację zdenormalizowanych agregatów ocen; (3) płatności online;
-(4) rozbudowa testów e2e o ścieżki płatności i serwisu; (5) obserwowalność (metryki, tracing).
-Projekt spełnił cele dydaktyczne — pokazał spójne połączenie nowoczesnego frontendu, asynchronicznego
+(4) obserwowalność (metryki, tracing).
+Projekt spełnił cele dydaktyczne — pokazał spójne połączenie frontendu, asynchronicznego
 API, wielu baz danych, konteneryzacji i automatyzacji jakości (CI, lint, typy, testy).
 
 ---
