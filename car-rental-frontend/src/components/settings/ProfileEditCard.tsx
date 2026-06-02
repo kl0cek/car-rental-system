@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { SettingsCard } from './SettingsCard';
-import { useUpdateProfile } from '@/hooks/useUpdateProfile';
+import { useUpdateProfile } from '@/hooks/settings/useUpdateProfile';
 import type { User as UserType } from '@/types/auth';
 import { useTranslation } from '@/i18n/useTranslation';
 

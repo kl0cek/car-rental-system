@@ -11,8 +11,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { useVehicleReviews } from '@/hooks/useVehicleReviews';
-import { useVehicleDetail } from '@/hooks/useVehicleDetail';
+import { useVehicleReviews } from '@/hooks/reviews/useVehicleReviews';
+import { useVehicleDetail } from '@/hooks/vehicles/useVehicleDetail';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { ReviewSort } from '@/types/review';
 import type { TranslationKey } from '@/i18n/translations';

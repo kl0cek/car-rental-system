@@ -13,11 +13,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useTranslation } from '@/i18n/useTranslation';
-import { useFleetVehicles } from '@/hooks/useFleetVehicles';
+import { useFleetVehicles } from '@/hooks/fleet/useFleetVehicles';
 import {
   useCreateServiceOrder,
   useUpdateServiceOrder,
-} from '@/hooks/useServiceOrderMutations';
+} from '@/hooks/service-orders/useServiceOrderMutations';
 import { SERVICE_TYPES, type ServiceOrder, type ServiceType } from '@/types/serviceOrder';
 import type { TranslationKey } from '@/i18n/translations';
 

@@ -2,7 +2,7 @@
 
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { useRangeSlider } from '@/hooks/useRangeSlider';
+import { useRangeSlider } from '@/hooks/shared/useRangeSlider';
 import { YEAR_MIN, YEAR_MAX } from '@/types/vehicle';
 
 interface YearRangeFilterProps {

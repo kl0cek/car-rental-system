@@ -5,7 +5,7 @@ import { X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useTranslation } from '@/i18n/useTranslation';
-import { useCreateReview } from '@/hooks/useReviewMutations';
+import { useCreateReview } from '@/hooks/reviews/useReviewMutations';
 import { StarRating } from './StarRating';
 
 interface ReviewFormModalProps {

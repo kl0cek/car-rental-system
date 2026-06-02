@@ -4,7 +4,7 @@ import { CalendarClock, Hammer, CheckCircle2, ListChecks } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslation } from '@/i18n/useTranslation';
-import { useServiceOrderStats } from '@/hooks/useServiceOrderStats';
+import { useServiceOrderStats } from '@/hooks/service-orders/useServiceOrderStats';
 
 export function ServiceOrderStatsCards() {
   const { t } = useTranslation();

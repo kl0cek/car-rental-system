@@ -5,7 +5,7 @@ import { Search } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { CustomerTable } from '@/components/customers/CustomerTable';
-import { useCustomers } from '@/hooks/useCustomers';
+import { useCustomers } from '@/hooks/customers/useCustomers';
 import { useTranslation } from '@/i18n/useTranslation';
 
 export default function CustomersPage() {

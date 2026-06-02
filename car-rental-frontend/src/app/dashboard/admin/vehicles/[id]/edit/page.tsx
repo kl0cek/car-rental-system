@@ -5,7 +5,7 @@ import { Pencil, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from '@/i18n/useTranslation';
-import { useVehicleDetail } from '@/hooks/useVehicleDetail';
+import { useVehicleDetail } from '@/hooks/vehicles/useVehicleDetail';
 import { EditVehicleForm } from '@/components/admin/EditVehicleForm';
 
 interface EditVehiclePageProps {

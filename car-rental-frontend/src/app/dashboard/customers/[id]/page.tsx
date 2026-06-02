@@ -12,7 +12,7 @@ import { CustomerRentalsList } from '@/components/customers/detail/CustomerRenta
 import { CustomerIncidentsPanel } from '@/components/customers/detail/CustomerIncidentsPanel';
 import { CustomerNotesPanel } from '@/components/customers/detail/CustomerNotesPanel';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCustomerDetail } from '@/hooks/useCustomerDetail';
+import { useCustomerDetail } from '@/hooks/customers/useCustomerDetail';
 import { isStaffRole } from '@/data/dashboard/constants';
 import { useTranslation } from '@/i18n/useTranslation';
 

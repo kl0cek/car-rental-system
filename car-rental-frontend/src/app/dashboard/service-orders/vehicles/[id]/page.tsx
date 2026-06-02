@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from '@/i18n/useTranslation';
-import { useVehicleDetail } from '@/hooks/useVehicleDetail';
+import { useVehicleDetail } from '@/hooks/vehicles/useVehicleDetail';
 import { VehicleServiceTimeline } from '@/components/service-orders/VehicleServiceTimeline';
 
 const ALLOWED_ROLES = new Set(['technician', 'admin']);

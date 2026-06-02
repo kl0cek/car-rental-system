@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useVehicles, type VehicleSearchParams } from '@/hooks/useVehicles';
+import { useVehicles, type VehicleSearchParams } from '@/hooks/vehicles/useVehicles';
 import { PRICE_MIN, PRICE_MAX, YEAR_MIN, YEAR_MAX } from '@/types/vehicle';
 import type { Vehicle } from '@/types/vehicle';
 import { SectionHeader } from './SectionHeader';

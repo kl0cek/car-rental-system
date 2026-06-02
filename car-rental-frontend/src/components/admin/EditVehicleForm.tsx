@@ -16,9 +16,9 @@ import {
 } from '@/components/ui/select';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/translations';
-import { useUpdateVehicle, type UpdateVehicleInput } from '@/hooks/useUpdateVehicle';
-import { useVehicleImages } from '@/hooks/useVehicleImages';
-import { useCategories } from '@/hooks/useCategories';
+import { useUpdateVehicle, type UpdateVehicleInput } from '@/hooks/vehicles/useUpdateVehicle';
+import { useVehicleImages } from '@/hooks/vehicles/useVehicleImages';
+import { useCategories } from '@/hooks/vehicles/useCategories';
 import { ENGINE_TYPES, STATUS_CONFIG, VEHICLE_COLORS } from '@/data/vehicles/constants';
 import type { EngineType, VehicleColor, VehicleDetail, VehicleStatus } from '@/types/vehicle';
 

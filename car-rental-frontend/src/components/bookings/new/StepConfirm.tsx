@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ErrorAlert } from '@/components/auth/ErrorAlert';
-import { useCreateReservation } from '@/hooks/useCreateReservation';
+import { useCreateReservation } from '@/hooks/reservations/useCreateReservation';
 import { formatDate } from '@/lib/formatters';
 import type { Vehicle } from '@/types/vehicle';
 import type { ReservationApi } from '@/types/booking';

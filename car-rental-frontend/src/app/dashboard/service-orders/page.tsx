@@ -10,7 +10,7 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { ServiceOrderStatsCards } from '@/components/service-orders/ServiceOrderStatsCards';
 import { ServiceOrderTable } from '@/components/service-orders/ServiceOrderTable';
 import { ServiceOrderFormModal } from '@/components/service-orders/ServiceOrderFormModal';
-import { useServiceOrders } from '@/hooks/useServiceOrders';
+import { useServiceOrders } from '@/hooks/service-orders/useServiceOrders';
 import type { ServiceOrder, ServiceOrderStatus } from '@/types/serviceOrder';
 
 const ALLOWED_ROLES = new Set(['technician', 'admin']);

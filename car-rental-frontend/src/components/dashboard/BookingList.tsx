@@ -1,8 +1,8 @@
 'use client';
 
-import { useReservations } from '@/hooks/useReservations';
-import { useHiddenRows } from '@/hooks/useHiddenRows';
-import { useCancelReservation } from '@/hooks/useCancelReservation';
+import { useReservations } from '@/hooks/reservations/useReservations';
+import { useHiddenRows } from '@/hooks/shared/useHiddenRows';
+import { useCancelReservation } from '@/hooks/reservations/useCancelReservation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';

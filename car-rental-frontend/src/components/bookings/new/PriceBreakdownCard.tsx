@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent } from '@/components/ui/card';
-import { usePriceQuote } from '@/hooks/usePriceQuote';
+import { usePriceQuote } from '@/hooks/bookings/usePriceQuote';
 
 interface PriceBreakdownCardProps {
   vehicleId: string;

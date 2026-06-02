@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useAdminReservations } from '@/src/hooks/useAdminReservations';
-import { useConfirmReservation } from '@/src/hooks/useConfirmReservation';
+import { useAdminReservations } from '@/hooks/reservations/useAdminReservations';
+import { useConfirmReservation } from '@/hooks/reservations/useConfirmReservation';
 import { Badge } from '@/src/components/ui/badge';
 import { Button } from '@/src/components/ui/button';
 import {

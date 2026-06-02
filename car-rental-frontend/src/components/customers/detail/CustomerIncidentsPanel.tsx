@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { formatDate } from '@/lib/formatters';
-import { useCustomerIncidentMutations } from '@/hooks/useCustomerDetail';
+import { useCustomerIncidentMutations } from '@/hooks/customers/useCustomerDetail';
 import type {
   CustomerRentalSummary,
   Incident,

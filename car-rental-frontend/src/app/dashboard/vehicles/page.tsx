@@ -8,7 +8,7 @@ import { VehicleDetailPanel } from '@/src/components/vehicles/DetailPanel/Vehicl
 import { VehicleFilters, type FiltersState } from '@/components/vehicles/VehicleFilters';
 import { VehiclePagination } from '@/components/vehicles/VehiclePagination';
 import { VehiclesHeader } from '@/components/vehicles/VehiclesHeader';
-import { useVehicles } from '@/hooks/useVehicles';
+import { useVehicles } from '@/hooks/vehicles/useVehicles';
 import { PRICE_MIN, PRICE_MAX, YEAR_MIN, YEAR_MAX, PAGE_SIZE } from '@/types/vehicle';
 import type { Vehicle } from '@/types/vehicle';
 import { useTranslation } from '@/i18n/useTranslation';

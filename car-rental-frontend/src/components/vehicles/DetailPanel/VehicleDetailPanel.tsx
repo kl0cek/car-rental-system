@@ -12,8 +12,8 @@ import { VehicleSpecs } from './VehicleSpec';
 import { AvailabilityCalendar } from './AvailabilityCalendar';
 import { PriceCalculator } from './PriceCalculator';
 import { ReviewsSection } from '@/components/reviews/ReviewsSection';
-import { useVehicleAvailability } from '@/hooks/useVehicleAvailability';
-import { useCreateReservation } from '@/hooks/useCreateReservation';
+import { useVehicleAvailability } from '@/hooks/vehicles/useVehicleAvailability';
+import { useCreateReservation } from '@/hooks/reservations/useCreateReservation';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/translations';
 

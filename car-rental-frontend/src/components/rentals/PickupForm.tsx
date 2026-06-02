@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ErrorAlert } from '@/components/auth/ErrorAlert';
-import { usePickupRental, type PickupPayload } from '@/hooks/usePickupRental';
+import { usePickupRental, type PickupPayload } from '@/hooks/rentals/usePickupRental';
 import type { RentalResponse } from '@/types/rental';
 
 interface PickupFormProps {

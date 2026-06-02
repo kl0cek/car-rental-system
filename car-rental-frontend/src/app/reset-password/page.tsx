@@ -8,7 +8,7 @@ import { AuthSubmitButton } from '@/components/auth/AuthSubmitButton';
 import { ErrorAlert } from '@/components/auth/ErrorAlert';
 import { StatusMessage } from '@/components/auth/StatusMessage';
 import { PasswordField } from '@/components/home/PasswordField';
-import { useResetPassword } from '@/src/hooks/useResetPassword';
+import { useResetPassword } from '@/hooks/auth/useResetPassword';
 import { useTranslation } from '@/i18n/useTranslation';
 
 function ResetPasswordForm() {

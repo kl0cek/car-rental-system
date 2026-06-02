@@ -13,7 +13,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate } from '@/lib/formatters';
 import { useTranslation } from '@/i18n/useTranslation';
-import { useDeleteReview } from '@/hooks/useReviewMutations';
+import { useDeleteReview } from '@/hooks/reviews/useReviewMutations';
 import type { Review } from '@/types/review';
 import { StarRating } from './StarRating';
 

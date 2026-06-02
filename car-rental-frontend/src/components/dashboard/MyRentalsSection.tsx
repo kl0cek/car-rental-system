@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate } from '@/lib/formatters';
-import { useMyRentals } from '@/hooks/useMyRentals';
+import { useMyRentals } from '@/hooks/rentals/useMyRentals';
 import { BOOKING_STATUS_VARIANT } from '@/types/booking';
 import type { BookingStatus } from '@/types/booking';
 import { useTranslation } from '@/i18n/useTranslation';

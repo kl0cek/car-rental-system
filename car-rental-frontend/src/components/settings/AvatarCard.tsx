@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SettingsCard } from './SettingsCard';
-import { useUploadAvatar } from '@/hooks/useUploadAvatar';
+import { useUploadAvatar } from '@/hooks/settings/useUploadAvatar';
 import { getInitials } from '@/lib/formatters';
 import type { User } from '@/types/auth';
 import { useTranslation } from '@/i18n/useTranslation';

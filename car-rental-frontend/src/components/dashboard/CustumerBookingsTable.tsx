@@ -2,10 +2,10 @@
 
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { useMyReservations } from '@/src/hooks/useMyReservations';
-import { useCancelReservation } from '@/src/hooks/useCancelReservation';
-import { useMyRentals } from '@/hooks/useMyRentals';
-import { useMyReviewedRentalIds } from '@/hooks/useMyReviewedRentalIds';
+import { useMyReservations } from '@/hooks/reservations/useMyReservations';
+import { useCancelReservation } from '@/hooks/reservations/useCancelReservation';
+import { useMyRentals } from '@/hooks/rentals/useMyRentals';
+import { useMyReviewedRentalIds } from '@/hooks/reviews/useMyReviewedRentalIds';
 import {
   Table,
   TableBody,

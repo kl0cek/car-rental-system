@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from '@/i18n/useTranslation';
-import { usePendingReviews } from '@/hooks/usePendingReviews';
+import { usePendingReviews } from '@/hooks/reviews/usePendingReviews';
 import { ModerationTable } from '@/components/reviews/ModerationTable';
 import { isStaffRole } from '@/data/dashboard/constants';
 

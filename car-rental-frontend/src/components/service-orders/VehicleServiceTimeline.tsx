@@ -4,7 +4,7 @@ import { Clock, Wrench } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslation } from '@/i18n/useTranslation';
-import { useVehicleServiceTimeline } from '@/hooks/useVehicleServiceTimeline';
+import { useVehicleServiceTimeline } from '@/hooks/service-orders/useVehicleServiceTimeline';
 import { ServiceOrderStatusBadge } from './ServiceOrderStatusBadge';
 import type { ServiceType } from '@/types/serviceOrder';
 import type { TranslationKey } from '@/i18n/translations';

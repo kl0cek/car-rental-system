@@ -9,7 +9,7 @@ import {
   type BookingFormState,
 } from '@/components/bookings/new/wizardSteps';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useWizardStep } from '@/hooks/useWizardStep';
+import { useWizardStep } from '@/hooks/bookings/useWizardStep';
 import type { Vehicle } from '@/types/vehicle';
 import { useTranslation } from '@/i18n/useTranslation';
 

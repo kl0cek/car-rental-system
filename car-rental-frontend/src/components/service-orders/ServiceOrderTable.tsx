@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useTranslation } from '@/i18n/useTranslation';
-import { useUpdateServiceOrderStatus } from '@/hooks/useServiceOrderMutations';
+import { useUpdateServiceOrderStatus } from '@/hooks/service-orders/useServiceOrderMutations';
 import { ServiceOrderStatusBadge } from './ServiceOrderStatusBadge';
 import type { ServiceOrder, ServiceOrderStatus, ServiceType } from '@/types/serviceOrder';
 import type { TranslationKey } from '@/i18n/translations';

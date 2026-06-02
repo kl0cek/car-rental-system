@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import type { Vehicle } from '@/types/vehicle';
 import { CATEGORY_LABELS } from '@/data/vehicles/constants';
-import { usePriceQuote } from '@/hooks/usePriceQuote';
+import { usePriceQuote } from '@/hooks/bookings/usePriceQuote';
 
 interface PriceCalculatorProps {
   vehicle: Vehicle;

@@ -5,7 +5,7 @@ import { Loader2, Pencil, Plus, Trash2, X, NotebookText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/formatters';
-import { useCustomerNoteMutations } from '@/hooks/useCustomerDetail';
+import { useCustomerNoteMutations } from '@/hooks/customers/useCustomerDetail';
 import type { CustomerNote } from '@/types/customer';
 import { useTranslation } from '@/i18n/useTranslation';
 

@@ -11,7 +11,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { MiniCalendar } from './MiniCalendar';
-import { useVehicleBookedDates } from '@/hooks/useVehicleBookedDates';
+import { useVehicleBookedDates } from '@/hooks/vehicles/useVehicleBookedDates';
 import type { Vehicle } from '@/types/vehicle';
 
 interface AvailabilityCalendarProps {
