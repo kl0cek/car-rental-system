@@ -37,17 +37,18 @@ async def get_by_id(db: AsyncSession, reservation_id: uuid.UUID) -> Reservation 
 
 
 async def get_by_id_for_update(db: AsyncSession, reservation_id: uuid.UUID) -> Reservation | None:
-    stmt = (
-        select(Reservation)
-        .options(
-            joinedload(Reservation.vehicle).selectinload(Vehicle.images),
-            joinedload(Reservation.user),
-        )
-        .where(Reservation.id == reservation_id)
-        .with_for_update()
+    """Zablokuj wiersz rezerwacji, a następnie zwróć ją z eager-loadem pojazdu/użytkownika.
+
+    Blokada i eager-load są celowo rozdzielone na dwa zapytania: połączenie
+    `FOR UPDATE` z `joinedload` (czyli LEFT OUTER JOIN) jest odrzucane przez
+    PostgreSQL — "FOR UPDATE cannot be applied to the nullable side of an outer join".
+    Najpierw więc blokujemy sam wiersz `reservations` (bez joinów), potem dociągamy
+    relacje przez `get_by_id`. Ten sam wzorzec stosuje `vehicle_repository`.
+    """
+    await db.execute(
+        select(Reservation).where(Reservation.id == reservation_id).with_for_update()
     )
-    result = await db.execute(stmt)
-    return result.scalar_one_or_none()
+    return await get_by_id(db, reservation_id)
 
 
 async def get_list_by_user(
