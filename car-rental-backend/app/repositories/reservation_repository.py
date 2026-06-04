@@ -45,9 +45,7 @@ async def get_by_id_for_update(db: AsyncSession, reservation_id: uuid.UUID) -> R
     Najpierw więc blokujemy sam wiersz `reservations` (bez joinów), potem dociągamy
     relacje przez `get_by_id`. Ten sam wzorzec stosuje `vehicle_repository`.
     """
-    await db.execute(
-        select(Reservation).where(Reservation.id == reservation_id).with_for_update()
-    )
+    await db.execute(select(Reservation).where(Reservation.id == reservation_id).with_for_update())
     return await get_by_id(db, reservation_id)
 
 
