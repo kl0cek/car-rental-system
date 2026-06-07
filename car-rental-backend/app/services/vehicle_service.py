@@ -12,15 +12,11 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any
 
+import asyncpg
 from fastapi import HTTPException, UploadFile, status
 from PIL import Image, UnidentifiedImageError
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, selectinload
 
-from app.db.session import schedule_post_commit
-from app.models.category import Category
+from app.db.session import Db, schedule_post_commit
 from app.models.vehicle import Vehicle, VehicleStatus
 from app.models.vehicle_image import VehicleImage
 from app.repositories import vehicle_repository
@@ -89,7 +85,7 @@ PUBLIC_CATALOG_STATUSES: list[VehicleStatus] = [
 
 async def list_vehicles(
     params: VehicleListParams,
-    db: AsyncSession,
+    db: Db,
 ) -> PaginatedVehicleResponse:
     # Public catalog must never surface MAINTENANCE / OUT_OF_SERVICE vehicles —
     # whitelist the visible statuses here so the router doesn't have to know
@@ -125,7 +121,7 @@ async def list_vehicles(
 
 async def get_vehicle_detail(
     vehicle_id: uuid.UUID,
-    db: AsyncSession,
+    db: Db,
 ) -> VehicleDetailResponse | None:
     vehicle = await vehicle_repository.get_by_id(db, vehicle_id)
     if vehicle is None:
@@ -135,7 +131,7 @@ async def get_vehicle_detail(
 
 async def get_vehicle_admin_detail(
     vehicle_id: uuid.UUID,
-    db: AsyncSession,
+    db: Db,
 ) -> VehicleAdminDetailResponse | None:
     vehicle = await vehicle_repository.get_by_id(db, vehicle_id)
     if vehicle is None:
@@ -146,7 +142,7 @@ async def get_vehicle_admin_detail(
 async def check_availability(
     vehicle_id: uuid.UUID,
     body: AvailabilityRequest,
-    db: AsyncSession,
+    db: Db,
 ) -> AvailabilityResponse | None:
     vehicle = await vehicle_repository.get_by_id(db, vehicle_id)
     if vehicle is None:
@@ -242,7 +238,7 @@ async def _unlink_image_now(image_url: str | None) -> None:
         await asyncio.to_thread(_safe_unlink, path)
 
 
-def _schedule_image_unlink(db: AsyncSession, image_url: str | None) -> None:
+def _schedule_image_unlink(db: Db, image_url: str | None) -> None:
     """Defer unlink until the request transaction commits successfully."""
     path = _local_image_path(image_url)
     if path is None:
@@ -254,9 +250,9 @@ def _schedule_image_unlink(db: AsyncSession, image_url: str | None) -> None:
     schedule_post_commit(db, _hook)
 
 
-async def _ensure_category_exists(db: AsyncSession, category_id: uuid.UUID) -> None:
-    result = await db.execute(select(Category.id).where(Category.id == category_id))
-    if result.scalar_one_or_none() is None:
+async def _ensure_category_exists(db: Db, category_id: uuid.UUID) -> None:
+    exists = await db.fetchval("SELECT id FROM categories WHERE id = $1", category_id)
+    if exists is None:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Invalid category_id: category does not exist",
@@ -281,45 +277,23 @@ _VEHICLE_CONSTRAINT_RESPONSES: dict[str, tuple[int, str]] = {
 }
 
 
-def _integrity_error_to_http(exc: IntegrityError) -> HTTPException:
+def _integrity_error_to_http(exc: asyncpg.PostgresError) -> HTTPException:
     """Translate a DB integrity violation into the right HTTP error.
 
-    Prefer the asyncpg constraint name (which is stable) over substring
-    matching against the rendered SQL message (which can change between
-    PostgreSQL versions or locales). Fall back to substring matching so the
-    handler still does something sensible against other DB drivers or when
-    asyncpg's diag isn't populated.
+    Prefer the asyncpg constraint name (stable) over substring matching against
+    the rendered SQL message (which can change between PostgreSQL versions or
+    locales). Fall back to substring matching when the name isn't populated.
     """
-    orig = getattr(exc, "orig", None)
+    constraint_name = getattr(exc, "constraint_name", None)
 
-    # asyncpg surfaces the original UniqueViolationError/ForeignKeyViolationError
-    # as the chained ``__cause__`` of the DBAPI wrapper; older versions store
-    # it directly on ``orig``. Walk both.
-    constraint_name: str | None = None
-    for candidate in (orig, getattr(orig, "__cause__", None)):
-        if candidate is None:
-            continue
-        # asyncpg PostgresError exposes constraint_name directly
-        name = getattr(candidate, "constraint_name", None)
-        if isinstance(name, str) and name:
-            constraint_name = name
-            break
-        # Some drivers expose it under .diag.constraint_name
-        diag = getattr(candidate, "diag", None)
-        diag_name = getattr(diag, "constraint_name", None) if diag is not None else None
-        if isinstance(diag_name, str) and diag_name:
-            constraint_name = diag_name
-            break
-
-    if constraint_name is not None:
+    if isinstance(constraint_name, str) and constraint_name:
         mapped = _VEHICLE_CONSTRAINT_RESPONSES.get(constraint_name)
         if mapped is not None:
             status_code, detail = mapped
             return HTTPException(status_code=status_code, detail=detail)
 
-    # Resilience fallback: substring match. Useful for non-asyncpg drivers
-    # (e.g. sqlite in tests) where constraint_name may be unavailable.
-    msg = str(orig if orig is not None else exc).lower()
+    # Resilience fallback: substring match against the error message.
+    msg = str(exc).lower()
     if "vin" in msg:
         return HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -341,7 +315,7 @@ def _integrity_error_to_http(exc: IntegrityError) -> HTTPException:
     )
 
 
-async def _detail_payload(db: AsyncSession, vehicle: Vehicle) -> dict[str, Any]:
+async def _detail_payload(db: Db, vehicle: Vehicle) -> dict[str, Any]:
     """Shared field bag for both public and admin detail responses."""
     booked_dates = await vehicle_repository.get_booked_dates(db, vehicle.id)
     # avg_rating / ratings_count are persisted on the vehicle row by
@@ -373,14 +347,12 @@ async def _detail_payload(db: AsyncSession, vehicle: Vehicle) -> dict[str, Any]:
     }
 
 
-async def _build_detail_response(db: AsyncSession, vehicle: Vehicle) -> VehicleDetailResponse:
+async def _build_detail_response(db: Db, vehicle: Vehicle) -> VehicleDetailResponse:
     # Public response — VIN and license plate intentionally excluded.
     return VehicleDetailResponse.model_validate(await _detail_payload(db, vehicle))
 
 
-async def _build_admin_detail_response(
-    db: AsyncSession, vehicle: Vehicle
-) -> VehicleAdminDetailResponse:
+async def _build_admin_detail_response(db: Db, vehicle: Vehicle) -> VehicleAdminDetailResponse:
     payload = await _detail_payload(db, vehicle)
     payload["license_plate"] = vehicle.license_plate
     payload["vin"] = vehicle.vin
@@ -388,7 +360,7 @@ async def _build_admin_detail_response(
 
 
 async def create_vehicle(
-    db: AsyncSession,
+    db: Db,
     body: VehicleCreate,
     images: list[UploadFile] | None,
 ) -> VehicleAdminDetailResponse:
@@ -434,23 +406,20 @@ async def create_vehicle(
 
         for index, url in enumerate(persisted_urls):
             await vehicle_repository.add_image(db, vehicle.id, url, is_primary=(index == 0))
-    except IntegrityError as exc:
-        await db.rollback()
+    except asyncpg.PostgresError as exc:
+        # Transakcję wycofa get_db przy propagacji wyjątku; pliki czyścimy od razu,
+        # bo żaden wiersz pojazdu nie zostanie zacommitowany.
         for url in persisted_urls:
             await _unlink_image_now(url)
         raise _integrity_error_to_http(exc)
 
-    stmt = (
-        select(Vehicle)
-        .options(joinedload(Vehicle.category), selectinload(Vehicle.images))
-        .where(Vehicle.id == vehicle.id)
-    )
-    vehicle = (await db.execute(stmt)).scalar_one()
-    return await _build_admin_detail_response(db, vehicle)
+    refreshed = await vehicle_repository.get_by_id(db, vehicle.id)
+    assert refreshed is not None, "freshly-created vehicle vanished mid-transaction"
+    return await _build_admin_detail_response(db, refreshed)
 
 
 async def update_vehicle(
-    db: AsyncSession,
+    db: Db,
     vehicle_id: uuid.UUID,
     body: VehicleUpdate,
 ) -> VehicleAdminDetailResponse | None:
@@ -468,21 +437,14 @@ async def update_vehicle(
 
     try:
         vehicle = await vehicle_repository.update(db, vehicle)
-    except IntegrityError as exc:
-        await db.rollback()
+    except asyncpg.PostgresError as exc:
         raise _integrity_error_to_http(exc)
 
-    stmt = (
-        select(Vehicle)
-        .options(joinedload(Vehicle.category), selectinload(Vehicle.images))
-        .where(Vehicle.id == vehicle.id)
-    )
-    vehicle = (await db.execute(stmt)).scalar_one()
     return await _build_admin_detail_response(db, vehicle)
 
 
 async def add_vehicle_image(
-    db: AsyncSession,
+    db: Db,
     vehicle_id: uuid.UUID,
     image: UploadFile,
     is_primary: bool,
@@ -494,8 +456,7 @@ async def add_vehicle_image(
     url = await _persist_vehicle_image(image, vehicle_id)
     try:
         await vehicle_repository.add_image(db, vehicle_id, url, is_primary=is_primary)
-    except IntegrityError as exc:
-        await db.rollback()
+    except asyncpg.PostgresError as exc:
         await _unlink_image_now(url)
         raise _integrity_error_to_http(exc)
 
@@ -503,7 +464,7 @@ async def add_vehicle_image(
 
 
 async def delete_vehicle_image(
-    db: AsyncSession,
+    db: Db,
     vehicle_id: uuid.UUID,
     image_id: uuid.UUID,
 ) -> VehicleAdminDetailResponse | None:
@@ -518,7 +479,7 @@ async def delete_vehicle_image(
 
 
 async def set_vehicle_primary_image(
-    db: AsyncSession,
+    db: Db,
     vehicle_id: uuid.UUID,
     image_id: uuid.UUID,
 ) -> VehicleAdminDetailResponse | None:
@@ -531,7 +492,7 @@ async def set_vehicle_primary_image(
 
 
 async def reorder_vehicle_images(
-    db: AsyncSession,
+    db: Db,
     vehicle_id: uuid.UUID,
     ordered_ids: list[uuid.UUID],
 ) -> VehicleAdminDetailResponse | None:
@@ -551,7 +512,7 @@ async def reorder_vehicle_images(
 
 
 async def bulk_update_status(
-    db: AsyncSession,
+    db: Db,
     ids: list[uuid.UUID],
     new_status: VehicleStatus,
 ) -> VehicleBulkStatusResponse:
@@ -559,7 +520,7 @@ async def bulk_update_status(
     return VehicleBulkStatusResponse(updated=updated, not_found=missing)
 
 
-async def delete_vehicle(db: AsyncSession, vehicle_id: uuid.UUID) -> bool:
+async def delete_vehicle(db: Db, vehicle_id: uuid.UUID) -> bool:
     """Soft-delete a vehicle. Returns False if not found, raises 409 if blocked."""
     vehicle = await vehicle_repository.get_by_id(db, vehicle_id)
     if vehicle is None:

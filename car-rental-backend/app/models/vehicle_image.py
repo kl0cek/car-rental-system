@@ -1,41 +1,35 @@
-"""Model zdjęcia pojazdu (1:N).
+"""Model zdjęcia pojazdu (dataclass, bez ORM).
 
 Każdy pojazd może mieć wiele zdjęć z określoną kolejnością wyświetlania
-(`position`) i dokładnie jednym zdjęciem oznaczonym jako podstawowe
-(`is_primary` — wymuszane częściowym indeksem unikatowym).
+(`position`) i dokładnie jednym zdjęciem podstawowym (`is_primary` —
+wymuszane częściowym indeksem unikatowym ``WHERE is_primary = true``).
 """
 
 from __future__ import annotations
 
 import uuid
-from typing import TYPE_CHECKING
+from collections.abc import Mapping
+from dataclasses import dataclass
+from typing import Any
 
-from sqlalchemy import Boolean, ForeignKey, Index, Integer, Text, Uuid, text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.db.base import Base
-
-if TYPE_CHECKING:
-    from app.models.vehicle import Vehicle
+from app.db.base import Entity
 
 
-class VehicleImage(Base):
-    __tablename__ = "vehicle_images"
-    __table_args__ = (
-        Index(
-            "uq_vehicle_images_one_primary_per_vehicle",
-            "vehicle_id",
-            unique=True,
-            postgresql_where=text("is_primary = true"),
-        ),
-        Index("ix_vehicle_images_vehicle_id_position", "vehicle_id", "position"),
-    )
+@dataclass(kw_only=True)
+class VehicleImage(Entity):
+    vehicle_id: uuid.UUID
+    url: str
+    position: int = 0
+    is_primary: bool = False
 
-    vehicle_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("vehicles.id", ondelete="CASCADE"), index=True
-    )
-    url: Mapped[str] = mapped_column(Text)
-    position: Mapped[int] = mapped_column(Integer, default=0)
-    is_primary: Mapped[bool] = mapped_column(Boolean, default=False)
-
-    vehicle: Mapped[Vehicle] = relationship(back_populates="images")
+    @classmethod
+    def from_row(cls, row: Mapping[str, Any]) -> VehicleImage:
+        return cls(
+            id=row["id"],
+            vehicle_id=row["vehicle_id"],
+            url=row["url"],
+            position=row["position"],
+            is_primary=row["is_primary"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
+        )

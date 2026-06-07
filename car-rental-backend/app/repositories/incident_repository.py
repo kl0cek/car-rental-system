@@ -1,56 +1,62 @@
-"""Repozytorium incydentów odnotowanych przez pracownika dla klienta."""
+"""Repozytorium incydentów odnotowanych przez pracownika dla klienta (SQL)."""
 
 import uuid
 
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
-
+from app.db.session import Db
 from app.models.incident import Incident
+from app.repositories import _relations
 
 
-async def list_for_customer(
-    db: AsyncSession,
-    customer_id: uuid.UUID,
-) -> list[Incident]:
-    stmt = (
-        select(Incident)
-        .options(joinedload(Incident.reported_by))
-        .where(Incident.customer_id == customer_id)
-        .order_by(Incident.created_at.desc())
+async def _attach_reporter(db: Db, incidents: list[Incident]) -> None:
+    if not incidents:
+        return
+    users = await _relations.load_users_for(db, [i.reported_by_id for i in incidents])
+    for incident in incidents:
+        incident.reported_by = users.get(incident.reported_by_id)
+
+
+async def list_for_customer(db: Db, customer_id: uuid.UUID) -> list[Incident]:
+    rows = await db.fetch(
+        "SELECT * FROM incidents WHERE customer_id = $1 ORDER BY created_at DESC", customer_id
     )
-    return list((await db.execute(stmt)).scalars())
+    incidents = [Incident.from_row(r) for r in rows]
+    await _attach_reporter(db, incidents)
+    return incidents
 
 
-async def get_by_id(
-    db: AsyncSession,
-    incident_id: uuid.UUID,
-) -> Incident | None:
-    stmt = (
-        select(Incident).options(joinedload(Incident.reported_by)).where(Incident.id == incident_id)
+async def get_by_id(db: Db, incident_id: uuid.UUID) -> Incident | None:
+    row = await db.fetchrow("SELECT * FROM incidents WHERE id = $1", incident_id)
+    if row is None:
+        return None
+    incident = Incident.from_row(row)
+    await _attach_reporter(db, [incident])
+    return incident
+
+
+async def count_for_customer(db: Db, customer_id: uuid.UUID) -> int:
+    total = await db.fetchval("SELECT count(*) FROM incidents WHERE customer_id = $1", customer_id)
+    return int(total or 0)
+
+
+async def create(db: Db, incident: Incident) -> Incident:
+    row = await db.fetchrow(
+        "INSERT INTO incidents (id, customer_id, rental_id, reported_by_id, type, severity, "
+        "title, description, cost) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *",
+        incident.id,
+        incident.customer_id,
+        incident.rental_id,
+        incident.reported_by_id,
+        incident.type.value,
+        incident.severity.value,
+        incident.title,
+        incident.description,
+        incident.cost,
     )
-    return (await db.execute(stmt)).scalar_one_or_none()
+    assert row is not None
+    created = Incident.from_row(row)
+    await _attach_reporter(db, [created])
+    return created
 
 
-async def count_for_customer(
-    db: AsyncSession,
-    customer_id: uuid.UUID,
-) -> int:
-    stmt = select(func.count(Incident.id)).where(Incident.customer_id == customer_id)
-    return (await db.execute(stmt)).scalar_one()
-
-
-async def create(db: AsyncSession, incident: Incident) -> Incident:
-    db.add(incident)
-    await db.flush()
-    # Re-fetch with reported_by eager-loaded for the response DTO.
-    # The row was just inserted in this transaction, so get_by_id cannot return
-    # None — assert narrows the type and would only fire on a real bug.
-    refreshed = await get_by_id(db, incident.id)
-    assert refreshed is not None, "freshly-inserted incident vanished mid-transaction"
-    return refreshed
-
-
-async def delete(db: AsyncSession, incident: Incident) -> None:
-    await db.delete(incident)
-    await db.flush()
+async def delete(db: Db, incident: Incident) -> None:
+    await db.execute("DELETE FROM incidents WHERE id = $1", incident.id)

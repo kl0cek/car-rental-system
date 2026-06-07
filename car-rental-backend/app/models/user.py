@@ -1,23 +1,20 @@
-"""Model użytkownika i wyliczenie ról.
+"""Model użytkownika i wyliczenie ról (dataclass, bez ORM).
 
 Obejmuje dane logowania, dane profilowe oraz `risk_score` używany przy
-dynamicznym wyliczaniu ceny wynajmu na podstawie historii.
+dynamicznym wyliczaniu ceny wynajmu na podstawie historii. ``from_row``
+mapuje rekord asyncpg (tabela ``users``) na obiekt domenowy.
 """
 
 from __future__ import annotations
 
 import enum
+from collections.abc import Mapping
+from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
-from typing import TYPE_CHECKING
+from typing import Any
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, Enum, Numeric, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.db.base import Base
-
-if TYPE_CHECKING:
-    from app.models.rental import Reservation
+from app.db.base import Entity
 
 
 class UserRole(enum.StrEnum):
@@ -27,29 +24,35 @@ class UserRole(enum.StrEnum):
     ADMIN = "admin"
 
 
-class User(Base):
-    __tablename__ = "users"
-    __table_args__ = (
-        CheckConstraint(
-            "risk_score >= 0 AND risk_score <= 100",
-            name="ck_user_risk_score_range",
-        ),
-    )
+@dataclass(kw_only=True)
+class User(Entity):
+    email: str
+    hashed_password: str
+    first_name: str
+    last_name: str
+    role: UserRole = UserRole.CUSTOMER
+    is_active: bool = True
+    is_verified: bool = False
+    phone: str | None = None
+    avatar_url: str | None = None
+    risk_score: Decimal = Decimal("0.00")
+    last_login_at: datetime | None = None
 
-    email: Mapped[str] = mapped_column(String(255), unique=True)
-    hashed_password: Mapped[str] = mapped_column(Text)
-    first_name: Mapped[str] = mapped_column(String(100))
-    last_name: Mapped[str] = mapped_column(String(100))
-    role: Mapped[UserRole] = mapped_column(
-        Enum(UserRole, native_enum=False), default=UserRole.CUSTOMER, index=True
-    )
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
-    phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
-    avatar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
-    risk_score: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=Decimal("0.00"), index=True)
-    last_login_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True, index=True
-    )
-
-    reservations: Mapped[list[Reservation]] = relationship(back_populates="user")
+    @classmethod
+    def from_row(cls, row: Mapping[str, Any]) -> User:
+        return cls(
+            id=row["id"],
+            email=row["email"],
+            hashed_password=row["hashed_password"],
+            first_name=row["first_name"],
+            last_name=row["last_name"],
+            role=UserRole(row["role"]),
+            is_active=row["is_active"],
+            is_verified=row["is_verified"],
+            phone=row["phone"],
+            avatar_url=row["avatar_url"],
+            risk_score=row["risk_score"],
+            last_login_at=row["last_login_at"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
+        )

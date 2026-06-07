@@ -11,15 +11,15 @@ import uuid
 from io import BytesIO
 from pathlib import Path
 
+import asyncpg
 from fastapi import HTTPException, UploadFile, status
 from PIL import Image, UnidentifiedImageError
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.core.exceptions import EmailAlreadyRegisteredError
 from app.core.user_cache import invalidate_user_cache
 from app.db.redis import get_redis
+from app.db.session import Db
 from app.models.rental import Rental, Reservation
 from app.models.user import User
 from app.repositories import rental_repository, reservation_repository, user_repository
@@ -36,7 +36,7 @@ IMAGE_FORMAT_EXTENSIONS = {"JPEG": ".jpg", "PNG": ".png", "WEBP": ".webp"}
 MAX_AVATAR_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
 
 
-async def update_user(db: AsyncSession, user: User) -> User:
+async def update_user(db: Db, user: User) -> User:
     user = await user_repository.update(db, user)
     redis = get_redis()
     await invalidate_user_cache(redis, user.id)
@@ -44,7 +44,7 @@ async def update_user(db: AsyncSession, user: User) -> User:
 
 
 async def update_profile(
-    db: AsyncSession,
+    db: Db,
     current_user: User,
     body: UserProfileUpdate,
 ) -> tuple[User, str | None]:
@@ -81,8 +81,9 @@ async def update_profile(
 
     try:
         user = await update_user(db, db_user)
-    except IntegrityError:
-        await db.rollback()
+    except asyncpg.UniqueViolationError:
+        # Wyścig: między pre-checkiem a UPDATE ktoś zajął ten email.
+        # Transakcję wycofa get_db przy propagacji wyjątku.
         raise EmailAlreadyRegisteredError(body.email or db_user.email)
 
     return user, verification_token
@@ -107,7 +108,7 @@ def _validate_and_detect_image(contents: bytes) -> str:
 
 
 async def upload_avatar(
-    db: AsyncSession,
+    db: Db,
     current_user: User,
     file: UploadFile,
 ) -> User:
@@ -147,7 +148,7 @@ def _safe_unlink(path: Path) -> None:
 
 
 async def list_user_rentals(
-    db: AsyncSession,
+    db: Db,
     current_user: User,
     params: UserRentalsListParams,
 ) -> tuple[list[Rental], int]:
@@ -165,7 +166,7 @@ async def list_user_rentals(
 
 
 async def list_admin_reservations(
-    db: AsyncSession,
+    db: Db,
     params: AdminReservationListParams,
 ) -> tuple[list[Reservation], int]:
     return await reservation_repository.get_admin_list(
@@ -183,7 +184,7 @@ async def list_admin_reservations(
 
 
 async def list_admin_users(
-    db: AsyncSession,
+    db: Db,
     params: AdminUserListParams,
 ) -> tuple[list[User], int]:
     return await user_repository.get_admin_list(

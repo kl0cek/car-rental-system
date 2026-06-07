@@ -10,9 +10,9 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from fastapi import HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.utils import date_to_utc_datetime
+from app.db.session import Db
 from app.models.rental import Reservation, ReservationStatus
 from app.models.user import User, UserRole
 from app.models.vehicle import VehicleStatus
@@ -29,7 +29,7 @@ def _calculate_price(daily_base_price: Decimal, price_multiplier: Decimal, days:
 
 
 async def create_reservation(
-    db: AsyncSession,
+    db: Db,
     current_user: User,
     body: CreateReservationRequest,
 ) -> Reservation:
@@ -82,7 +82,7 @@ async def create_reservation(
 
 
 async def list_user_reservations(
-    db: AsyncSession,
+    db: Db,
     current_user: User,
     params: ReservationListParams,
 ) -> tuple[list[Reservation], int]:
@@ -96,7 +96,7 @@ async def list_user_reservations(
 
 
 async def cancel_reservation(
-    db: AsyncSession,
+    db: Db,
     current_user: User,
     reservation_id: uuid.UUID,
 ) -> Reservation:
@@ -128,7 +128,7 @@ async def cancel_reservation(
 
 
 async def confirm_reservation(
-    db: AsyncSession,
+    db: Db,
     reservation_id: uuid.UUID,
 ) -> tuple[Reservation, ReservationConfirmedEmailData]:
     reservation = await reservation_repository.get_by_id(db, reservation_id)

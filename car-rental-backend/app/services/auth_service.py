@@ -10,8 +10,6 @@ import uuid
 from asyncio import get_running_loop
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.config import settings
 from app.core.exceptions import (
     EmailAlreadyRegisteredError,
@@ -28,6 +26,7 @@ from app.core.security import (
 from app.core.token_blacklist import blacklist_token, is_token_blacklisted
 from app.core.user_cache import invalidate_user_cache
 from app.db.redis import get_redis
+from app.db.session import Db
 from app.models.user import User
 from app.repositories import user_repository
 from app.schemas.auth import (
@@ -40,7 +39,7 @@ from app.schemas.auth import (
 )
 
 
-async def register_user(body: RegisterRequest, db: AsyncSession) -> tuple[User, str]:
+async def register_user(body: RegisterRequest, db: Db) -> tuple[User, str]:
     existing = await user_repository.get_by_email(db, body.email)
     if existing is not None:
         raise EmailAlreadyRegisteredError(body.email)
@@ -70,7 +69,7 @@ async def register_user(body: RegisterRequest, db: AsyncSession) -> tuple[User, 
     return user, token
 
 
-async def login_user(body: LoginRequest, db: AsyncSession) -> tuple[TokenResponse, User]:
+async def login_user(body: LoginRequest, db: Db) -> tuple[TokenResponse, User]:
     user = await user_repository.get_by_email(db, body.email)
     if user is None:
         raise InvalidCredentialsError("User not found")
@@ -97,7 +96,7 @@ async def login_user(body: LoginRequest, db: AsyncSession) -> tuple[TokenRespons
     return TokenResponse(access_token=access_token, refresh_token=refresh_token), user
 
 
-async def refresh_tokens(body: RefreshRequest, db: AsyncSession) -> tuple[TokenResponse, User]:
+async def refresh_tokens(body: RefreshRequest, db: Db) -> tuple[TokenResponse, User]:
     payload = decode_token(body.refresh_token)
 
     if payload.get("type") != "refresh":
@@ -139,7 +138,7 @@ async def logout_user_tokens(access_token: str | None, refresh_token: str | None
         await blacklist_token(redis, access_token, access_ttl)
 
 
-async def verify_email(token: str, db: AsyncSession) -> None:
+async def verify_email(token: str, db: Db) -> None:
     # getdel jest atomowe — token można wykorzystać tylko raz, nawet przy współbieżnych żądaniach
     redis = get_redis()
     user_id_raw = await redis.getdel(f"verify:{token}")
@@ -157,7 +156,7 @@ async def verify_email(token: str, db: AsyncSession) -> None:
     await user_repository.update(db, user)
 
 
-async def forgot_password(body: ForgotPasswordRequest, db: AsyncSession) -> str | None:
+async def forgot_password(body: ForgotPasswordRequest, db: Db) -> str | None:
     """Returns reset token if user exists, None otherwise.
 
     Always returns silently to prevent email enumeration.
@@ -181,7 +180,7 @@ async def forgot_password(body: ForgotPasswordRequest, db: AsyncSession) -> str 
     return token
 
 
-async def reset_password(body: ResetPasswordRequest, db: AsyncSession) -> None:
+async def reset_password(body: ResetPasswordRequest, db: Db) -> None:
     redis = get_redis()
     user_id_raw = await redis.getdel(f"reset:{body.token}")
     if user_id_raw is None:

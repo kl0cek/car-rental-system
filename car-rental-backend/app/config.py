@@ -55,5 +55,15 @@ class Settings(BaseSettings):
         "extra": "ignore",
     }
 
+    @property
+    def postgres_dsn(self) -> str:
+        """DSN w formacie akceptowanym przez asyncpg.
+
+        Konfiguracja używa historycznie URL-a SQLAlchemy
+        (``postgresql+asyncpg://``); asyncpg.connect/create_pool oczekuje
+        czystego ``postgresql://`` — usuwamy więc sufiks sterownika.
+        """
+        return self.DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
+
 
 settings = Settings()

@@ -1,22 +1,18 @@
-"""Model kategorii pojazdu (ekonomiczna, komfort, premium, SUV, van).
+"""Model kategorii pojazdu (dataclass, bez ORM).
 
-`price_multiplier` to mnożnik bazowej ceny dziennej pojazdu zależny
-od kategorii.
+`price_multiplier` to mnożnik bazowej ceny dziennej pojazdu zależny od
+kategorii (ekonomiczna, komfort, premium, SUV, van).
 """
 
 from __future__ import annotations
 
 import enum
+from collections.abc import Mapping
+from dataclasses import dataclass
 from decimal import Decimal
-from typing import TYPE_CHECKING
+from typing import Any
 
-from sqlalchemy import Enum, Numeric, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.db.base import Base
-
-if TYPE_CHECKING:
-    from app.models.vehicle import Vehicle
+from app.db.base import Entity
 
 
 class CategoryName(enum.StrEnum):
@@ -27,11 +23,19 @@ class CategoryName(enum.StrEnum):
     VAN = "van"
 
 
-class Category(Base):
-    __tablename__ = "categories"
+@dataclass(kw_only=True)
+class Category(Entity):
+    name: CategoryName
+    description: str | None = None
+    price_multiplier: Decimal = Decimal("1.000")
 
-    name: Mapped[CategoryName] = mapped_column(Enum(CategoryName, native_enum=False), unique=True)
-    description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    price_multiplier: Mapped[Decimal] = mapped_column(Numeric(5, 3), default=Decimal("1.000"))
-
-    vehicles: Mapped[list[Vehicle]] = relationship(back_populates="category")
+    @classmethod
+    def from_row(cls, row: Mapping[str, Any]) -> Category:
+        return cls(
+            id=row["id"],
+            name=CategoryName(row["name"]),
+            description=row["description"],
+            price_multiplier=row["price_multiplier"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
+        )

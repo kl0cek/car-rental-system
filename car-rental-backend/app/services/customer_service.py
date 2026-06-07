@@ -9,18 +9,17 @@ import uuid
 from decimal import Decimal
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import contains_eager, joinedload
 
 from app.db.redis import get_redis
+from app.db.session import Db
 from app.models.customer_note import CustomerNote
 from app.models.incident import Incident
-from app.models.rental import Rental, Reservation, ReservationStatus
+from app.models.rental import ReservationStatus
 from app.models.user import User, UserRole
 from app.repositories import (
     customer_note_repository,
     incident_repository,
+    rental_repository,
     user_repository,
 )
 from app.schemas.customer import (
@@ -37,7 +36,7 @@ from app.schemas.customer import (
 from app.services import risk_scoring
 
 
-async def _ensure_customer(db: AsyncSession, customer_id: uuid.UUID) -> User:
+async def _ensure_customer(db: Db, customer_id: uuid.UUID) -> User:
     user = await user_repository.get_by_id(db, customer_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found")
@@ -51,26 +50,18 @@ async def _ensure_customer(db: AsyncSession, customer_id: uuid.UUID) -> User:
     return user
 
 
-async def _load_rental_history(
-    db: AsyncSession, customer_id: uuid.UUID
-) -> list[CustomerRentalSummary]:
-    stmt = (
-        select(Rental)
-        .join(Rental.reservation)
-        .options(
-            # contains_eager reuses the explicit .join() above instead of issuing
-            # a second join through joinedload.
-            contains_eager(Rental.reservation).joinedload(Reservation.vehicle),
-            joinedload(Rental.price_breakdown),
-        )
-        .where(Reservation.user_id == customer_id)
-        .order_by(Rental.pickup_date.desc())
+async def _load_rental_history(db: Db, customer_id: uuid.UUID) -> list[CustomerRentalSummary]:
+    # Reużywamy repozytorium wynajmów (dociąga rezerwację + pojazd + breakdown).
+    # Limit 10000 jest praktyczną górną granicą historii pojedynczego klienta.
+    rentals, _ = await rental_repository.get_list_by_user(
+        db, customer_id, offset=0, limit=10000, sort_by="pickup_date", sort_order="desc"
     )
-    rentals = list((await db.execute(stmt)).scalars().unique())
 
     summaries: list[CustomerRentalSummary] = []
     for rental in rentals:
         reservation = rental.reservation
+        if reservation is None or reservation.vehicle is None:
+            continue
         vehicle = reservation.vehicle
         summaries.append(
             CustomerRentalSummary(
@@ -89,33 +80,33 @@ async def _load_rental_history(
     return summaries
 
 
-async def _compute_stats(db: AsyncSession, customer_id: uuid.UUID) -> CustomerStats:
-    # All counts and sums in two scalar queries to keep response time bounded
-    # on customers with thousands of reservations.
-    reservations_stmt = select(
-        func.count(Reservation.id).label("total"),
-        func.coalesce(func.sum(Reservation.total_price), 0).label("spent"),
-        func.count(Reservation.id)
-        .filter(Reservation.status == ReservationStatus.COMPLETED)
-        .label("completed"),
-        func.count(Reservation.id)
-        .filter(Reservation.status == ReservationStatus.CANCELLED)
-        .label("cancelled"),
-    ).where(Reservation.user_id == customer_id)
-    row = (await db.execute(reservations_stmt)).one()
+async def _compute_stats(db: Db, customer_id: uuid.UUID) -> CustomerStats:
+    # Wszystkie liczniki i suma jednym zapytaniem (FILTER), by czas odpowiedzi był
+    # ograniczony nawet dla klientów z tysiącami rezerwacji.
+    row = await db.fetchrow(
+        "SELECT count(*) AS total, "
+        "coalesce(sum(total_price), 0) AS spent, "
+        "count(*) FILTER (WHERE status = $2) AS completed, "
+        "count(*) FILTER (WHERE status = $3) AS cancelled "
+        "FROM reservations WHERE user_id = $1",
+        customer_id,
+        ReservationStatus.COMPLETED.value,
+        ReservationStatus.CANCELLED.value,
+    )
+    assert row is not None
 
     incident_count = await incident_repository.count_for_customer(db, customer_id)
 
     return CustomerStats(
-        total_rentals=row.total or 0,
-        completed_rentals=row.completed or 0,
-        cancelled_rentals=row.cancelled or 0,
-        total_spent=Decimal(row.spent or 0).quantize(Decimal("0.01")),
+        total_rentals=row["total"] or 0,
+        completed_rentals=row["completed"] or 0,
+        cancelled_rentals=row["cancelled"] or 0,
+        total_spent=Decimal(row["spent"] or 0).quantize(Decimal("0.01")),
         incident_count=incident_count,
     )
 
 
-async def get_customer_detail(db: AsyncSession, customer_id: uuid.UUID) -> CustomerDetailResponse:
+async def get_customer_detail(db: Db, customer_id: uuid.UUID) -> CustomerDetailResponse:
     user = await _ensure_customer(db, customer_id)
 
     rentals = await _load_rental_history(db, customer_id)
@@ -133,7 +124,7 @@ async def get_customer_detail(db: AsyncSession, customer_id: uuid.UUID) -> Custo
 
 
 async def create_incident(
-    db: AsyncSession,
+    db: Db,
     customer_id: uuid.UUID,
     reporter: User,
     body: IncidentCreate,
@@ -143,12 +134,13 @@ async def create_incident(
     if body.rental_id is not None:
         # Confirm the rental belongs to this customer — otherwise we'd silently
         # let staff associate an incident with anybody's rental.
-        rental_stmt = (
-            select(Rental.id)
-            .join(Rental.reservation)
-            .where(Rental.id == body.rental_id, Reservation.user_id == customer_id)
+        owner = await db.fetchval(
+            "SELECT r.id FROM rentals r JOIN reservations res ON res.id = r.reservation_id "
+            "WHERE r.id = $1 AND res.user_id = $2",
+            body.rental_id,
+            customer_id,
         )
-        if (await db.execute(rental_stmt)).scalar_one_or_none() is None:
+        if owner is None:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="rental_id does not belong to this customer",
@@ -171,7 +163,7 @@ async def create_incident(
 
 
 async def delete_incident(
-    db: AsyncSession,
+    db: Db,
     customer_id: uuid.UUID,
     incident_id: uuid.UUID,
 ) -> None:
@@ -184,7 +176,7 @@ async def delete_incident(
 
 
 async def create_note(
-    db: AsyncSession,
+    db: Db,
     customer_id: uuid.UUID,
     author: User,
     body: CustomerNoteCreate,
@@ -196,7 +188,7 @@ async def create_note(
 
 
 async def update_note(
-    db: AsyncSession,
+    db: Db,
     customer_id: uuid.UUID,
     note_id: uuid.UUID,
     body: CustomerNoteUpdate,
@@ -210,7 +202,7 @@ async def update_note(
 
 
 async def delete_note(
-    db: AsyncSession,
+    db: Db,
     customer_id: uuid.UUID,
     note_id: uuid.UUID,
 ) -> None:

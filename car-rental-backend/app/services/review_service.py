@@ -21,13 +21,10 @@ from typing import Any
 from fastapi import HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pymongo.errors import DuplicateKeyError
-from sqlalchemy import select, update
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
 
+from app.db.session import Db
 from app.models.rental import Rental, Reservation, ReservationStatus
 from app.models.user import User, UserRole
-from app.models.vehicle import Vehicle
 from app.repositories import review_repository
 from app.schemas.review import (
     CreateReviewRequest,
@@ -64,7 +61,7 @@ def _to_response(doc: dict[str, Any]) -> ReviewResponse:
 
 
 async def _refresh_vehicle_rating(
-    db: AsyncSession,
+    db: Db,
     mongo: AsyncIOMotorDatabase[Any],
     vehicle_id: uuid.UUID,
 ) -> None:
@@ -87,30 +84,30 @@ async def _refresh_vehicle_rating(
     # concurrent writer has either committed its Mongo insert before we
     # aggregated (we'll see it) or is queued behind our lock (it'll re-read
     # the post-our-commit state).
-    await db.execute(select(Vehicle.id).where(Vehicle.id == vehicle_id).with_for_update())
+    await db.execute("SELECT id FROM vehicles WHERE id = $1 FOR UPDATE", vehicle_id)
     avg, count = await review_repository.aggregate_rating(mongo, vehicle_id)
     avg_decimal = None if avg is None else Decimal(str(avg))
     await db.execute(
-        update(Vehicle)
-        .where(Vehicle.id == vehicle_id)
-        .values(avg_rating=avg_decimal, ratings_count=count)
+        "UPDATE vehicles SET avg_rating = $2, ratings_count = $3, updated_at = now() WHERE id = $1",
+        vehicle_id,
+        avg_decimal,
+        count,
     )
 
 
-async def _load_rental_for_review(
-    db: AsyncSession, rental_id: uuid.UUID
-) -> tuple[Rental, Reservation]:
-    """Fetch the rental with its reservation eager-loaded, or 404."""
-    stmt = select(Rental).options(joinedload(Rental.reservation)).where(Rental.id == rental_id)
-    result = await db.execute(stmt)
-    rental = result.scalar_one_or_none()
-    if rental is None:
+async def _load_rental_for_review(db: Db, rental_id: uuid.UUID) -> tuple[Rental, Reservation]:
+    """Fetch the rental with its reservation, or 404."""
+    rental_row = await db.fetchrow("SELECT * FROM rentals WHERE id = $1", rental_id)
+    if rental_row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rental not found")
-    return rental, rental.reservation
+    rental = Rental.from_row(rental_row)
+    res_row = await db.fetchrow("SELECT * FROM reservations WHERE id = $1", rental.reservation_id)
+    assert res_row is not None, "rental references a missing reservation (FK)"
+    return rental, Reservation.from_row(res_row)
 
 
 async def create_review(
-    db: AsyncSession,
+    db: Db,
     mongo: AsyncIOMotorDatabase[Any],
     current_user: User,
     body: CreateReviewRequest,
@@ -151,7 +148,7 @@ async def create_review(
 
 
 async def list_vehicle_reviews(
-    db: AsyncSession,
+    db: Db,
     mongo: AsyncIOMotorDatabase[Any],
     vehicle_id: uuid.UUID,
     *,
@@ -160,8 +157,8 @@ async def list_vehicle_reviews(
 ) -> PaginatedReviewResponse:
     # 404 on unknown vehicle so the contract matches GET /vehicles/{id};
     # otherwise typos silently return an empty page.
-    exists = await db.scalar(
-        select(Vehicle.id).where(Vehicle.id == vehicle_id, Vehicle.is_active.is_(True))
+    exists = await db.fetchval(
+        "SELECT id FROM vehicles WHERE id = $1 AND is_active = true", vehicle_id
     )
     if exists is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vehicle not found")
@@ -201,7 +198,7 @@ async def list_all_reviews(
 
 
 async def delete_review(
-    db: AsyncSession,
+    db: Db,
     mongo: AsyncIOMotorDatabase[Any],
     current_user: User,
     review_id: uuid.UUID,

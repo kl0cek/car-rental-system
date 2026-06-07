@@ -22,8 +22,8 @@ import uuid
 from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.session import Db
 from app.models.service_order import ServiceOrder, ServiceOrderStatus
 from app.models.user import User, UserRole
 from app.models.vehicle import VehicleStatus
@@ -68,7 +68,7 @@ def _ensure_can_manage(current_user: User, order: ServiceOrder) -> None:
 
 
 async def _resolve_technician(
-    db: AsyncSession,
+    db: Db,
     current_user: User,
     requested_id: uuid.UUID | None,
 ) -> uuid.UUID:
@@ -102,7 +102,7 @@ async def _resolve_technician(
 
 
 async def _vehicle_has_blocking_workload(
-    db: AsyncSession,
+    db: Db,
     vehicle_id: uuid.UUID,
 ) -> bool:
     """True if any reservation/active rental would conflict with maintenance."""
@@ -110,7 +110,7 @@ async def _vehicle_has_blocking_workload(
 
 
 async def create_order(
-    db: AsyncSession,
+    db: Db,
     current_user: User,
     body: ServiceOrderCreate,
 ) -> ServiceOrder:
@@ -171,7 +171,7 @@ async def create_order(
 
 
 async def update_order(
-    db: AsyncSession,
+    db: Db,
     current_user: User,
     order_id: uuid.UUID,
     body: ServiceOrderUpdate,
@@ -204,7 +204,7 @@ async def update_order(
 
 
 async def update_status(
-    db: AsyncSession,
+    db: Db,
     current_user: User,
     order_id: uuid.UUID,
     body: ServiceOrderStatusUpdate,
@@ -244,7 +244,7 @@ async def update_status(
     return refreshed
 
 
-async def _release_vehicle_if_idle(db: AsyncSession, vehicle_id: uuid.UUID) -> None:
+async def _release_vehicle_if_idle(db: Db, vehicle_id: uuid.UUID) -> None:
     """Flip the vehicle back to AVAILABLE once no open service work remains."""
     if await service_repository.has_active_service_for_vehicle(db, vehicle_id):
         return
@@ -257,7 +257,7 @@ async def _release_vehicle_if_idle(db: AsyncSession, vehicle_id: uuid.UUID) -> N
         await vehicle_repository.update(db, vehicle)
 
 
-async def get_order(db: AsyncSession, order_id: uuid.UUID) -> ServiceOrder:
+async def get_order(db: Db, order_id: uuid.UUID) -> ServiceOrder:
     order = await service_repository.get_order_by_id(db, order_id)
     if order is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Service order not found")
@@ -265,7 +265,7 @@ async def get_order(db: AsyncSession, order_id: uuid.UUID) -> ServiceOrder:
 
 
 async def list_orders(
-    db: AsyncSession,
+    db: Db,
     current_user: User,
     params: ServiceOrderListParams,
 ) -> tuple[list[ServiceOrder], int]:
@@ -289,7 +289,7 @@ async def list_orders(
     )
 
 
-async def get_stats(db: AsyncSession) -> ServiceOrderStats:
+async def get_stats(db: Db) -> ServiceOrderStats:
     counts = await service_repository.count_by_status(db)
     scheduled = counts.get(ServiceOrderStatus.SCHEDULED, 0)
     in_progress = counts.get(ServiceOrderStatus.IN_PROGRESS, 0)
@@ -303,7 +303,7 @@ async def get_stats(db: AsyncSession) -> ServiceOrderStats:
 
 
 async def list_vehicle_timeline(
-    db: AsyncSession,
+    db: Db,
     vehicle_id: uuid.UUID,
 ) -> list[ServiceOrder]:
     """All service orders for a vehicle, newest scheduled first."""
@@ -314,7 +314,7 @@ async def list_vehicle_timeline(
 
 
 async def add_history_entry(
-    db: AsyncSession,
+    db: Db,
     current_user: User,
     body: ServiceHistoryCreate,
 ) -> ServiceOrder:

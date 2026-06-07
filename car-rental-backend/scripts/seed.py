@@ -31,14 +31,194 @@ NOW = datetime.now(UTC)
 
 
 # ===========================================================================
+# Bulk-insert helpers (czysty SQL przez asyncpg, kolumny created_at/updated_at
+# wypełnia baza DEFAULT now()). Obiekty są dataclassami — czytamy ich pola,
+# a wartości enumów zapisujemy jako .value.
+# ===========================================================================
+async def _insert_users(conn: object, users: list) -> None:
+    await conn.executemany(  # type: ignore[attr-defined]
+        "INSERT INTO users (id, email, hashed_password, first_name, last_name, role, "
+        "is_active, is_verified, phone, avatar_url, risk_score, last_login_at) "
+        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+        [
+            (
+                u.id,
+                u.email,
+                u.hashed_password,
+                u.first_name,
+                u.last_name,
+                u.role.value,
+                u.is_active,
+                u.is_verified,
+                u.phone,
+                u.avatar_url,
+                u.risk_score,
+                u.last_login_at,
+            )
+            for u in users
+        ],
+    )
+
+
+async def _insert_categories(conn: object, categories: list) -> None:
+    await conn.executemany(  # type: ignore[attr-defined]
+        "INSERT INTO categories (id, name, description, price_multiplier) VALUES ($1, $2, $3, $4)",
+        [(c.id, c.name.value, c.description, c.price_multiplier) for c in categories],
+    )
+
+
+async def _insert_vehicles(conn: object, vehicles: list) -> None:
+    await conn.executemany(  # type: ignore[attr-defined]
+        "INSERT INTO vehicles (id, brand, model, year, license_plate, vin, engine_type, "
+        "horsepower, seats, trunk_capacity, daily_base_price, color, mileage, status, "
+        "is_active, avg_rating, ratings_count, category_id) "
+        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)",
+        [
+            (
+                v.id,
+                v.brand,
+                v.model,
+                v.year,
+                v.license_plate,
+                v.vin,
+                v.engine_type.value,
+                v.horsepower,
+                v.seats,
+                v.trunk_capacity,
+                v.daily_base_price,
+                v.color.value,
+                v.mileage,
+                v.status.value,
+                v.is_active,
+                v.avg_rating,
+                v.ratings_count,
+                v.category_id,
+            )
+            for v in vehicles
+        ],
+    )
+
+
+async def _insert_vehicle_images(conn: object, images: list) -> None:
+    await conn.executemany(  # type: ignore[attr-defined]
+        "INSERT INTO vehicle_images (id, vehicle_id, url, position, is_primary) "
+        "VALUES ($1, $2, $3, $4, $5)",
+        [(i.id, i.vehicle_id, i.url, i.position, i.is_primary) for i in images],
+    )
+
+
+async def _insert_reservations(conn: object, reservations: list) -> None:
+    await conn.executemany(  # type: ignore[attr-defined]
+        "INSERT INTO reservations (id, user_id, vehicle_id, start_date, end_date, status, "
+        "total_price) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+        [
+            (r.id, r.user_id, r.vehicle_id, r.start_date, r.end_date, r.status.value, r.total_price)
+            for r in reservations
+        ],
+    )
+
+
+async def _insert_rentals(conn: object, rentals: list) -> None:
+    await conn.executemany(  # type: ignore[attr-defined]
+        "INSERT INTO rentals (id, reservation_id, pickup_date, return_date, mileage_start, "
+        "mileage_end, fuel_level_start, fuel_level_end, damage_notes, employee_id) "
+        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+        [
+            (
+                r.id,
+                r.reservation_id,
+                r.pickup_date,
+                r.return_date,
+                r.mileage_start,
+                r.mileage_end,
+                r.fuel_level_start,
+                r.fuel_level_end,
+                r.damage_notes,
+                r.employee_id,
+            )
+            for r in rentals
+        ],
+    )
+
+
+async def _insert_price_breakdowns(conn: object, breakdowns: list) -> None:
+    await conn.executemany(  # type: ignore[attr-defined]
+        "INSERT INTO rental_price_breakdowns (id, rental_id, base_price, risk_multiplier, "
+        "final_price) VALUES ($1, $2, $3, $4, $5)",
+        [(b.id, b.rental_id, b.base_price, b.risk_multiplier, b.final_price) for b in breakdowns],
+    )
+
+
+async def _insert_incidents(conn: object, incidents: list) -> None:
+    await conn.executemany(  # type: ignore[attr-defined]
+        "INSERT INTO incidents (id, customer_id, rental_id, reported_by_id, type, severity, "
+        "title, description, cost) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+        [
+            (
+                i.id,
+                i.customer_id,
+                i.rental_id,
+                i.reported_by_id,
+                i.type.value,
+                i.severity.value,
+                i.title,
+                i.description,
+                i.cost,
+            )
+            for i in incidents
+        ],
+    )
+
+
+async def _insert_service_orders(conn: object, orders: list) -> None:
+    await conn.executemany(  # type: ignore[attr-defined]
+        "INSERT INTO service_orders (id, vehicle_id, type, status, description, cost, "
+        "scheduled_date, completed_date, technician_id) "
+        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+        [
+            (
+                o.id,
+                o.vehicle_id,
+                o.type.value,
+                o.status.value,
+                o.description,
+                o.cost,
+                o.scheduled_date,
+                o.completed_date,
+                o.technician_id,
+            )
+            for o in orders
+        ],
+    )
+
+
+async def _insert_service_history(conn: object, entries: list) -> None:
+    await conn.executemany(  # type: ignore[attr-defined]
+        "INSERT INTO service_history (id, vehicle_id, service_order_id, notes, parts_replaced, "
+        "mileage_at_service) VALUES ($1, $2, $3, $4, $5, $6)",
+        [
+            (
+                e.id,
+                e.vehicle_id,
+                e.service_order_id,
+                e.notes,
+                e.parts_replaced,
+                e.mileage_at_service,
+            )
+            for e in entries
+        ],
+    )
+
+
+# ===========================================================================
 # PostgreSQL seed
 # ===========================================================================
 async def seed_postgres(*, drop: bool = False) -> None:
-    from sqlalchemy import text
+    import asyncpg
 
+    from app.config import settings
     from app.core.security import hash_password
-    from app.db.base import Base
-    from app.db.engine import async_engine, async_session_factory
+    from app.db.bootstrap import SCHEMA_PATH
     from app.models.category import Category, CategoryName
     from app.models.incident import Incident, IncidentSeverity, IncidentType
     from app.models.rental import Rental, RentalPriceBreakdown, Reservation, ReservationStatus
@@ -48,14 +228,12 @@ async def seed_postgres(*, drop: bool = False) -> None:
     from app.models.vehicle import EngineType, Vehicle, VehicleColor, VehicleStatus
     from app.models.vehicle_image import VehicleImage
 
+    conn = await asyncpg.connect(settings.postgres_dsn)
     if drop:
-        async with async_engine.begin() as conn:
-            await conn.execute(text("DROP SCHEMA public CASCADE"))
-            await conn.execute(text("CREATE SCHEMA public"))
+        await conn.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
         print("[PG] Dropped all tables")
-
-    async with async_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # Schemat z jawnego pliku DDL (ten sam, którego używa bootstrap aplikacji).
+    await conn.execute(SCHEMA_PATH.read_text(encoding="utf-8"))
     print("[PG] Tables created")
 
     # --- Users ---
@@ -609,34 +787,25 @@ async def seed_postgres(*, drop: bool = False) -> None:
         for i, url in enumerate(vehicle_image_urls)
     ]
 
-    async with async_session_factory() as session:
-        # Check if data already exists
-        result = await session.execute(text("SELECT count(*) FROM users"))
-        count = result.scalar()
-        if count and count > 0:
-            print(f"[PG] Skipping — {count} users already exist (use --drop to reset)")
-            return
+    # Check if data already exists
+    count = await conn.fetchval("SELECT count(*) FROM users")
+    if count and count > 0:
+        print(f"[PG] Skipping — {count} users already exist (use --drop to reset)")
+        await conn.close()
+        return
 
-        session.add_all(users)
-        await session.flush()
-        session.add_all(categories)
-        await session.flush()
-        session.add_all(vehicles)
-        await session.flush()
-        session.add_all(vehicle_images)
-        await session.flush()
-        session.add_all(reservations)
-        await session.flush()
-        session.add_all(active_rentals)
-        await session.flush()
-        session.add_all(price_breakdowns)
-        await session.flush()
-        session.add_all(incidents_pg)
-        await session.flush()
-        session.add_all(service_orders)
-        await session.flush()
-        session.add_all(service_history)
-        await session.commit()
+    # Jedna transakcja, kolejność zgodna z zależnościami kluczy obcych.
+    async with conn.transaction():
+        await _insert_users(conn, users)
+        await _insert_categories(conn, categories)
+        await _insert_vehicles(conn, vehicles)
+        await _insert_vehicle_images(conn, vehicle_images)
+        await _insert_reservations(conn, reservations)
+        await _insert_rentals(conn, active_rentals)
+        await _insert_price_breakdowns(conn, price_breakdowns)
+        await _insert_incidents(conn, incidents_pg)
+        await _insert_service_orders(conn, service_orders)
+        await _insert_service_history(conn, service_history)
 
     print(
         f"[PG] Seeded: {len(users)} users, {len(categories)} categories, "
@@ -647,7 +816,7 @@ async def seed_postgres(*, drop: bool = False) -> None:
         f"{len(service_orders)} service orders, {len(service_history)} service history entries"
     )
 
-    await async_engine.dispose()
+    await conn.close()
 
 
 # ===========================================================================
@@ -885,10 +1054,9 @@ async def _backfill_vehicle_review_aggregates(mongo_db: object) -> None:
     Mirrors the runtime behaviour of ``review_service._refresh_vehicle_rating``
     but in a single bulk pass so the seed leaves both databases consistent.
     """
-    from sqlalchemy import update as sa_update
+    import asyncpg
 
-    from app.db.engine import async_engine, async_session_factory
-    from app.models.vehicle import Vehicle
+    from app.config import settings
 
     pipeline = [
         {
@@ -901,18 +1069,19 @@ async def _backfill_vehicle_review_aggregates(mongo_db: object) -> None:
     ]
     aggregates = await mongo_db.reviews.aggregate(pipeline).to_list(length=None)  # type: ignore[attr-defined]
 
-    async with async_session_factory() as session:
-        for row in aggregates:
-            await session.execute(
-                sa_update(Vehicle)
-                .where(Vehicle.id == uuid.UUID(row["_id"]))
-                .values(
-                    avg_rating=Decimal(str(round(row["avg"], 2))),
-                    ratings_count=int(row["count"]),
+    conn = await asyncpg.connect(settings.postgres_dsn)
+    try:
+        async with conn.transaction():
+            for row in aggregates:
+                await conn.execute(
+                    "UPDATE vehicles SET avg_rating = $2, ratings_count = $3, "
+                    "updated_at = now() WHERE id = $1",
+                    uuid.UUID(row["_id"]),
+                    Decimal(str(round(row["avg"], 2))),
+                    int(row["count"]),
                 )
-            )
-        await session.commit()
-    await async_engine.dispose()
+    finally:
+        await conn.close()
 
 
 # ===========================================================================

@@ -13,9 +13,9 @@ from typing import Any
 
 from fastapi import HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.redis import get_redis
+from app.db.session import Db
 from app.models.rental import Rental, ReservationStatus
 from app.models.user import User
 from app.models.vehicle import Vehicle
@@ -88,7 +88,7 @@ def build_user_rental_item(rental: Rental) -> UserRentalItem:
 
 
 async def pickup_rental(
-    db: AsyncSession,
+    db: Db,
     current_user: User,
     reservation_id: uuid.UUID,
     body: PickupRequest,
@@ -125,7 +125,7 @@ async def pickup_rental(
 
 
 async def return_rental(
-    db: AsyncSession,
+    db: Db,
     current_user: User,
     rental_id: uuid.UUID,
     body: ReturnRequest,

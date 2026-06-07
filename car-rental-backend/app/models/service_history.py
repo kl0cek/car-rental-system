@@ -1,55 +1,37 @@
-"""Model wpisu w historii serwisowej pojazdu.
+"""Model wpisu w historii serwisowej pojazdu (dataclass, bez ORM).
 
 Każdy wpis dokumentuje wykonaną czynność serwisową — notatki technika,
-listę wymienionych części oraz przebieg pojazdu w momencie serwisu.
-Powiązany 1:N z konkretnym ``ServiceOrder``; przy usunięciu zlecenia
-historia również jest usuwana (cascade).
+listę wymienionych części (``parts_replaced`` → kolumna ``TEXT[]``) oraz
+przebieg pojazdu w momencie serwisu. Powiązany 1:N z ``ServiceOrder``.
 """
 
 from __future__ import annotations
 
 import uuid
-from typing import TYPE_CHECKING
+from collections.abc import Mapping
+from dataclasses import dataclass, field
+from typing import Any
 
-from sqlalchemy import JSON, CheckConstraint, ForeignKey, Integer, Text, Uuid
-from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.db.base import Base
-
-# ``parts_replaced`` is a list of free-text part identifiers. On PostgreSQL
-# (production) it is a native ``TEXT[]`` — queryable with array operators
-# and indexable with GIN if we ever need to filter by part. On SQLite
-# (test only) we fall back to JSON, since SQLite has no array type.
-# ``with_variant`` keeps the production schema unchanged while letting the
-# aiosqlite-backed test fixture create the table at all.
-_PartsReplacedType = ARRAY(Text()).with_variant(JSON(), "sqlite")
-
-if TYPE_CHECKING:
-    from app.models.service_order import ServiceOrder
-    from app.models.vehicle import Vehicle
+from app.db.base import Entity
 
 
-class ServiceHistory(Base):
-    __tablename__ = "service_history"
-    __table_args__ = (
-        CheckConstraint(
-            "mileage_at_service >= 0",
-            name="ck_service_history_mileage_non_negative",
-        ),
-    )
+@dataclass(kw_only=True)
+class ServiceHistory(Entity):
+    vehicle_id: uuid.UUID
+    service_order_id: uuid.UUID
+    notes: str
+    mileage_at_service: int
+    parts_replaced: list[str] = field(default_factory=list)
 
-    vehicle_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("vehicles.id", ondelete="CASCADE"), index=True
-    )
-    service_order_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("service_orders.id", ondelete="CASCADE"), index=True
-    )
-    notes: Mapped[str] = mapped_column(Text)
-    parts_replaced: Mapped[list[str]] = mapped_column(
-        _PartsReplacedType, nullable=False, server_default="{}"
-    )
-    mileage_at_service: Mapped[int] = mapped_column(Integer)
-
-    vehicle: Mapped[Vehicle] = relationship()
-    service_order: Mapped[ServiceOrder] = relationship(back_populates="history_entries")
+    @classmethod
+    def from_row(cls, row: Mapping[str, Any]) -> ServiceHistory:
+        return cls(
+            id=row["id"],
+            vehicle_id=row["vehicle_id"],
+            service_order_id=row["service_order_id"],
+            notes=row["notes"],
+            parts_replaced=list(row["parts_replaced"] or []),
+            mileage_at_service=row["mileage_at_service"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
+        )

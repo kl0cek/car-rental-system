@@ -18,8 +18,8 @@ from datetime import date
 from decimal import Decimal
 
 from fastapi import HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.session import Db
 from app.models.user import User
 from app.repositories import vehicle_repository
 from app.schemas.pricing import PriceBreakdownResponse
@@ -33,7 +33,7 @@ def _days_between(start: date, end: date) -> int:
 
 
 async def quote_price(
-    db: AsyncSession,
+    db: Db,
     *,
     current_user: User,
     vehicle_id: uuid.UUID,

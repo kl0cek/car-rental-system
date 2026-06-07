@@ -1,32 +1,37 @@
-"""Notatki pracownika o kliencie.
+"""Notatki pracownika o kliencie (dataclass, bez ORM).
 
 Wewnętrzne adnotacje widoczne tylko dla staffu — np. ustalenia
-telefoniczne, preferencje klienta, ostrzeżenia. Niewidoczne dla
-samego klienta w jego panelu.
+telefoniczne, preferencje klienta, ostrzeżenia. ``author`` (autor notatki)
+dociąga repozytorium osobnym zapytaniem.
 """
 
 from __future__ import annotations
 
 import uuid
-from typing import TYPE_CHECKING
+from collections.abc import Mapping
+from dataclasses import dataclass
+from typing import Any
 
-from sqlalchemy import ForeignKey, Text, Uuid
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.db.base import Base
-
-if TYPE_CHECKING:
-    from app.models.user import User
+from app.db.base import Entity
+from app.models.user import User
 
 
-class CustomerNote(Base):
-    __tablename__ = "customer_notes"
+@dataclass(kw_only=True)
+class CustomerNote(Entity):
+    customer_id: uuid.UUID
+    author_id: uuid.UUID
+    body: str
 
-    customer_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="CASCADE"), index=True
-    )
-    author_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"), index=True)
-    body: Mapped[str] = mapped_column(Text)
+    # Relacja dociągana przez repozytorium:
+    author: User | None = None
 
-    customer: Mapped[User] = relationship(foreign_keys=[customer_id])
-    author: Mapped[User] = relationship(foreign_keys=[author_id])
+    @classmethod
+    def from_row(cls, row: Mapping[str, Any]) -> CustomerNote:
+        return cls(
+            id=row["id"],
+            customer_id=row["customer_id"],
+            author_id=row["author_id"],
+            body=row["body"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
+        )

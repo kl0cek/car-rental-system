@@ -6,7 +6,6 @@ pełna lista z mnożnikami jest publiczna.
 """
 
 from fastapi import APIRouter
-from sqlalchemy import select
 
 from app.db.session import DbSession
 from app.models.category import Category
@@ -17,5 +16,5 @@ router = APIRouter(prefix="/categories", tags=["categories"])
 
 @router.get("", response_model=list[CategoryResponse])
 async def list_categories(db: DbSession) -> list[CategoryResponse]:
-    result = await db.execute(select(Category).order_by(Category.name))
-    return [CategoryResponse.model_validate(c) for c in result.scalars()]
+    rows = await db.fetch("SELECT * FROM categories ORDER BY name")
+    return [CategoryResponse.model_validate(Category.from_row(r)) for r in rows]

@@ -1,37 +1,25 @@
-"""Modele rezerwacji, wynajmu i rozbicia ceny.
+"""Modele rezerwacji, wynajmu i rozbicia ceny (dataclass, bez ORM).
 
-`Reservation` to zamówienie klienta, `Rental` to faktyczne wydanie
-pojazdu (powstaje gdy pracownik potwierdzi odbiór), a
-`RentalPriceBreakdown` przechowuje składniki ostatecznej ceny
-(cena bazowa, mnożnik kategorii, mnożnik ryzyka).
+`Reservation` to zamówienie klienta, `Rental` to faktyczne wydanie pojazdu
+(powstaje gdy pracownik potwierdzi odbiór), a `RentalPriceBreakdown`
+przechowuje składniki ostatecznej ceny (cena bazowa, mnożnik ryzyka).
+Pola relacyjne (``vehicle``/``user``/``rental``/``reservation``/
+``price_breakdown``) wypełnia repozytorium osobnymi zapytaniami.
 """
 
 from __future__ import annotations
 
 import enum
 import uuid
+from collections.abc import Mapping
+from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
-from typing import TYPE_CHECKING
+from typing import Any
 
-from sqlalchemy import (
-    CheckConstraint,
-    DateTime,
-    Enum,
-    ForeignKey,
-    Integer,
-    Numeric,
-    Text,
-    Uuid,
-    func,
-)
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.db.base import Base
-
-if TYPE_CHECKING:
-    from app.models.user import User
-    from app.models.vehicle import Vehicle
+from app.db.base import Entity
+from app.models.user import User
+from app.models.vehicle import Vehicle
 
 
 class ReservationStatus(enum.StrEnum):
@@ -42,82 +30,86 @@ class ReservationStatus(enum.StrEnum):
     CANCELLED = "cancelled"
 
 
-class Reservation(Base):
-    __tablename__ = "reservations"
+@dataclass(kw_only=True)
+class Reservation(Entity):
+    user_id: uuid.UUID
+    vehicle_id: uuid.UUID
+    start_date: datetime
+    end_date: datetime
+    status: ReservationStatus = ReservationStatus.PENDING
+    total_price: Decimal
 
-    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"), index=True)
-    vehicle_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("vehicles.id"), index=True)
-    start_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
-    end_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
-    status: Mapped[ReservationStatus] = mapped_column(
-        Enum(ReservationStatus, native_enum=False),
-        default=ReservationStatus.PENDING,
-        index=True,
-    )
-    total_price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    # Relacje dociągane przez repozytorium:
+    vehicle: Vehicle | None = None
+    user: User | None = None
+    rental: Rental | None = None
 
-    user: Mapped[User] = relationship(back_populates="reservations")
-    vehicle: Mapped[Vehicle] = relationship(back_populates="reservations")
-    rental: Mapped[Rental | None] = relationship(back_populates="reservation", uselist=False)
-
-
-class Rental(Base):
-    __tablename__ = "rentals"
-    __table_args__ = (
-        CheckConstraint("mileage_start >= 0", name="ck_rental_mileage_start_non_negative"),
-        CheckConstraint(
-            "mileage_end IS NULL OR mileage_end >= mileage_start",
-            name="ck_rental_mileage_end_gte_start",
-        ),
-        CheckConstraint(
-            "fuel_level_start >= 0 AND fuel_level_start <= 100",
-            name="ck_rental_fuel_level_start_range",
-        ),
-        CheckConstraint(
-            "fuel_level_end IS NULL OR (fuel_level_end >= 0 AND fuel_level_end <= 100)",
-            name="ck_rental_fuel_level_end_range",
-        ),
-        CheckConstraint(
-            "return_date IS NULL OR return_date > pickup_date",
-            name="ck_rental_return_after_pickup",
-        ),
-    )
-
-    reservation_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("reservations.id"), unique=True
-    )
-    pickup_date: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    return_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    mileage_start: Mapped[int] = mapped_column(Integer)
-    mileage_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    fuel_level_start: Mapped[Decimal] = mapped_column(Numeric(5, 2))
-    fuel_level_end: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
-    damage_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
-    employee_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"), index=True)
-
-    reservation: Mapped[Reservation] = relationship(back_populates="rental")
-    employee: Mapped[User] = relationship(foreign_keys=[employee_id])
-    price_breakdown: Mapped[RentalPriceBreakdown | None] = relationship(
-        back_populates="rental", uselist=False
-    )
+    @classmethod
+    def from_row(cls, row: Mapping[str, Any]) -> Reservation:
+        return cls(
+            id=row["id"],
+            user_id=row["user_id"],
+            vehicle_id=row["vehicle_id"],
+            start_date=row["start_date"],
+            end_date=row["end_date"],
+            status=ReservationStatus(row["status"]),
+            total_price=row["total_price"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
+        )
 
 
-class RentalPriceBreakdown(Base):
-    __tablename__ = "rental_price_breakdowns"
-    __table_args__ = (
-        CheckConstraint("base_price >= 0", name="ck_price_breakdown_base_price_non_negative"),
-        CheckConstraint(
-            "risk_multiplier >= 0", name="ck_price_breakdown_risk_multiplier_non_negative"
-        ),
-        CheckConstraint("final_price >= 0", name="ck_price_breakdown_final_price_non_negative"),
-    )
+@dataclass(kw_only=True)
+class Rental(Entity):
+    reservation_id: uuid.UUID
+    pickup_date: datetime
+    mileage_start: int
+    fuel_level_start: Decimal
+    employee_id: uuid.UUID
+    return_date: datetime | None = None
+    mileage_end: int | None = None
+    fuel_level_end: Decimal | None = None
+    damage_notes: str | None = None
 
-    rental_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("rentals.id"), unique=True)
-    base_price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
-    risk_multiplier: Mapped[Decimal] = mapped_column(Numeric(6, 4))
-    final_price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
-    calculated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    # Relacje dociągane przez repozytorium:
+    reservation: Reservation | None = None
+    price_breakdown: RentalPriceBreakdown | None = None
 
-    rental: Mapped[Rental] = relationship(back_populates="price_breakdown")
+    @classmethod
+    def from_row(cls, row: Mapping[str, Any]) -> Rental:
+        return cls(
+            id=row["id"],
+            reservation_id=row["reservation_id"],
+            pickup_date=row["pickup_date"],
+            return_date=row["return_date"],
+            mileage_start=row["mileage_start"],
+            mileage_end=row["mileage_end"],
+            fuel_level_start=row["fuel_level_start"],
+            fuel_level_end=row["fuel_level_end"],
+            damage_notes=row["damage_notes"],
+            employee_id=row["employee_id"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
+        )
+
+
+@dataclass(kw_only=True)
+class RentalPriceBreakdown(Entity):
+    rental_id: uuid.UUID
+    base_price: Decimal
+    risk_multiplier: Decimal
+    final_price: Decimal
+    calculated_at: datetime | None = None
+
+    @classmethod
+    def from_row(cls, row: Mapping[str, Any]) -> RentalPriceBreakdown:
+        return cls(
+            id=row["id"],
+            rental_id=row["rental_id"],
+            base_price=row["base_price"],
+            risk_multiplier=row["risk_multiplier"],
+            final_price=row["final_price"],
+            calculated_at=row["calculated_at"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
+        )

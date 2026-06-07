@@ -1,90 +1,97 @@
-"""Repozytorium zleceń serwisowych i historii serwisu.
+"""Repozytorium zleceń serwisowych i historii serwisu — czysty SQL (asyncpg).
 
-Zawiera wyłącznie operacje CRUD i odczytowe — logika biznesowa
-(automatyczna zmiana statusu pojazdu, blokada rezerwacji, walidacja
-kolejności statusów) trafia do warstwy serwisowej.
+Wyłącznie operacje CRUD i odczytowe — logika biznesowa (zmiana statusu
+pojazdu, walidacja kolejności statusów) jest w warstwie serwisowej.
+Pojazd, technik i historia dociągane są osobnymi zapytaniami.
 """
 
 import uuid
 from datetime import datetime
+from typing import Any
 
-from sqlalchemy import Select, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, selectinload
-
+from app.db.session import Db
 from app.models.service_history import ServiceHistory
 from app.models.service_order import ServiceOrder, ServiceOrderStatus, ServiceType
+from app.repositories import _relations
 
 SORTABLE_COLUMNS = {
-    "scheduled_date": ServiceOrder.scheduled_date,
-    "completed_date": ServiceOrder.completed_date,
-    "created_at": ServiceOrder.created_at,
-    "cost": ServiceOrder.cost,
+    "scheduled_date": "scheduled_date",
+    "completed_date": "completed_date",
+    "created_at": "created_at",
+    "cost": "cost",
 }
 
-
-def _apply_filters(
-    stmt: Select[tuple[ServiceOrder]],
-    *,
-    status: ServiceOrderStatus | None,
-    status_in: list[ServiceOrderStatus] | None,
-    vehicle_id: uuid.UUID | None,
-    technician_id: uuid.UUID | None,
-    type_: ServiceType | None,
-    scheduled_from: datetime | None,
-    scheduled_to: datetime | None,
-) -> Select[tuple[ServiceOrder]]:
-    if status is not None:
-        stmt = stmt.where(ServiceOrder.status == status)
-    if status_in:
-        stmt = stmt.where(ServiceOrder.status.in_(status_in))
-    if vehicle_id is not None:
-        stmt = stmt.where(ServiceOrder.vehicle_id == vehicle_id)
-    if technician_id is not None:
-        stmt = stmt.where(ServiceOrder.technician_id == technician_id)
-    if type_ is not None:
-        stmt = stmt.where(ServiceOrder.type == type_)
-    if scheduled_from is not None:
-        stmt = stmt.where(ServiceOrder.scheduled_date >= scheduled_from)
-    if scheduled_to is not None:
-        stmt = stmt.where(ServiceOrder.scheduled_date <= scheduled_to)
-    return stmt
+_ACTIVE_STATUSES = [ServiceOrderStatus.SCHEDULED.value, ServiceOrderStatus.IN_PROGRESS.value]
 
 
-async def create_order(db: AsyncSession, order: ServiceOrder) -> ServiceOrder:
-    db.add(order)
-    await db.flush()
-    await db.refresh(order)
+async def _load_history_map(
+    db: Db, order_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, list[ServiceHistory]]:
+    if not order_ids:
+        return {}
+    rows = await db.fetch(
+        "SELECT * FROM service_history WHERE service_order_id = ANY($1::uuid[]) "
+        "ORDER BY created_at DESC",
+        list(set(order_ids)),
+    )
+    result: dict[uuid.UUID, list[ServiceHistory]] = {}
+    for row in rows:
+        result.setdefault(row["service_order_id"], []).append(ServiceHistory.from_row(row))
+    return result
+
+
+async def _attach_orders(db: Db, orders: list[ServiceOrder], *, with_history: bool) -> None:
+    if not orders:
+        return
+    vehicles = await _relations.load_vehicles_for(db, [o.vehicle_id for o in orders])
+    technicians = await _relations.load_users_for(db, [o.technician_id for o in orders])
+    for order in orders:
+        order.vehicle = vehicles.get(order.vehicle_id)
+        order.technician = technicians.get(order.technician_id)
+    if with_history:
+        history = await _load_history_map(db, [o.id for o in orders])
+        for order in orders:
+            order.history_entries = history.get(order.id, [])
+
+
+async def create_order(db: Db, order: ServiceOrder) -> ServiceOrder:
+    row = await db.fetchrow(
+        "INSERT INTO service_orders (id, vehicle_id, type, status, description, cost, "
+        "scheduled_date, completed_date, technician_id) "
+        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *",
+        order.id,
+        order.vehicle_id,
+        order.type.value,
+        order.status.value,
+        order.description,
+        order.cost,
+        order.scheduled_date,
+        order.completed_date,
+        order.technician_id,
+    )
+    assert row is not None
+    created = ServiceOrder.from_row(row)
+    await _attach_orders(db, [created], with_history=True)
+    return created
+
+
+async def get_order_by_id(db: Db, order_id: uuid.UUID) -> ServiceOrder | None:
+    row = await db.fetchrow("SELECT * FROM service_orders WHERE id = $1", order_id)
+    if row is None:
+        return None
+    order = ServiceOrder.from_row(row)
+    await _attach_orders(db, [order], with_history=True)
     return order
 
 
-async def get_order_by_id(
-    db: AsyncSession,
-    order_id: uuid.UUID,
-) -> ServiceOrder | None:
-    stmt = (
-        select(ServiceOrder)
-        .options(
-            joinedload(ServiceOrder.vehicle),
-            joinedload(ServiceOrder.technician),
-            selectinload(ServiceOrder.history_entries),
-        )
-        .where(ServiceOrder.id == order_id)
-    )
-    return (await db.execute(stmt)).scalar_one_or_none()
-
-
-async def get_order_by_id_for_update(
-    db: AsyncSession,
-    order_id: uuid.UUID,
-) -> ServiceOrder | None:
-    """Lock the row so concurrent status transitions cannot interleave."""
-    await db.execute(select(ServiceOrder.id).where(ServiceOrder.id == order_id).with_for_update())
+async def get_order_by_id_for_update(db: Db, order_id: uuid.UUID) -> ServiceOrder | None:
+    """Zablokuj wiersz, by równoległe zmiany statusu się nie przeplotły."""
+    await db.execute("SELECT id FROM service_orders WHERE id = $1 FOR UPDATE", order_id)
     return await get_order_by_id(db, order_id)
 
 
 async def list_orders(
-    db: AsyncSession,
+    db: Db,
     *,
     offset: int = 0,
     limit: int = 20,
@@ -98,126 +105,129 @@ async def list_orders(
     scheduled_from: datetime | None = None,
     scheduled_to: datetime | None = None,
 ) -> tuple[list[ServiceOrder], int]:
-    base = select(ServiceOrder)
-    base = _apply_filters(
-        base,
-        status=status,
-        status_in=status_in,
-        vehicle_id=vehicle_id,
-        technician_id=technician_id,
-        type_=type_,
-        scheduled_from=scheduled_from,
-        scheduled_to=scheduled_to,
-    )
+    conditions: list[str] = []
+    args: list[Any] = []
 
-    count_stmt = select(func.count()).select_from(base.subquery())
-    total = (await db.execute(count_stmt)).scalar_one()
+    def add(template: str, value: Any) -> None:
+        args.append(value)
+        conditions.append(template.format(n=len(args)))
 
-    sort_col = SORTABLE_COLUMNS.get(sort_by, ServiceOrder.scheduled_date)
-    order = sort_col.asc() if sort_order == "asc" else sort_col.desc()
-    # ``completed_date`` and ``cost`` are nullable — keep NULLs at the tail when
-    # sorting descending so the user-visible "no value yet" rows don't dominate.
+    if status is not None:
+        add("status = ${n}", status.value)
+    if status_in:
+        add("status = ANY(${n}::text[])", [s.value for s in status_in])
+    if vehicle_id is not None:
+        add("vehicle_id = ${n}", vehicle_id)
+    if technician_id is not None:
+        add("technician_id = ${n}", technician_id)
+    if type_ is not None:
+        add("type = ${n}", type_.value)
+    if scheduled_from is not None:
+        add("scheduled_date >= ${n}", scheduled_from)
+    if scheduled_to is not None:
+        add("scheduled_date <= ${n}", scheduled_to)
+
+    where = (" WHERE " + " AND ".join(conditions)) if conditions else ""
+
+    total = await db.fetchval(f"SELECT count(*) FROM service_orders{where}", *args)
+
+    sort_col = SORTABLE_COLUMNS.get(sort_by, "scheduled_date")
+    direction = "ASC" if sort_order == "asc" else "DESC"
+    nulls = ""
     if sort_by in ("completed_date", "cost"):
-        order = order.nulls_last() if sort_order == "desc" else order.nulls_first()
+        nulls = " NULLS LAST" if sort_order == "desc" else " NULLS FIRST"
 
-    stmt = (
-        base.options(
-            joinedload(ServiceOrder.vehicle),
-            joinedload(ServiceOrder.technician),
-        )
-        .order_by(order)
-        .offset(offset)
-        .limit(limit)
+    rows = await db.fetch(
+        f"SELECT * FROM service_orders{where} ORDER BY {sort_col} {direction}{nulls} "
+        f"LIMIT ${len(args) + 1} OFFSET ${len(args) + 2}",
+        *args,
+        limit,
+        offset,
     )
-    result = await db.execute(stmt)
-    return list(result.scalars().unique()), total
+    orders = [ServiceOrder.from_row(r) for r in rows]
+    await _attach_orders(db, orders, with_history=False)
+    return orders, int(total or 0)
 
 
-async def list_orders_for_vehicle(
-    db: AsyncSession,
-    vehicle_id: uuid.UUID,
-) -> list[ServiceOrder]:
-    stmt = (
-        select(ServiceOrder)
-        .options(
-            joinedload(ServiceOrder.technician),
-            selectinload(ServiceOrder.history_entries),
-        )
-        .where(ServiceOrder.vehicle_id == vehicle_id)
-        .order_by(ServiceOrder.scheduled_date.desc())
+async def list_orders_for_vehicle(db: Db, vehicle_id: uuid.UUID) -> list[ServiceOrder]:
+    rows = await db.fetch(
+        "SELECT * FROM service_orders WHERE vehicle_id = $1 ORDER BY scheduled_date DESC",
+        vehicle_id,
     )
-    return list((await db.execute(stmt)).scalars().unique())
+    orders = [ServiceOrder.from_row(r) for r in rows]
+    await _attach_orders(db, orders, with_history=True)
+    return orders
 
 
-async def update_order(db: AsyncSession, order: ServiceOrder) -> ServiceOrder:
-    await db.flush()
-    await db.refresh(order)
-    return order
+async def update_order(db: Db, order: ServiceOrder) -> ServiceOrder:
+    row = await db.fetchrow(
+        "UPDATE service_orders SET type = $2, status = $3, description = $4, cost = $5, "
+        "scheduled_date = $6, completed_date = $7, technician_id = $8, updated_at = now() "
+        "WHERE id = $1 RETURNING *",
+        order.id,
+        order.type.value,
+        order.status.value,
+        order.description,
+        order.cost,
+        order.scheduled_date,
+        order.completed_date,
+        order.technician_id,
+    )
+    assert row is not None
+    updated = ServiceOrder.from_row(row)
+    await _attach_orders(db, [updated], with_history=True)
+    return updated
 
 
-async def delete_order(db: AsyncSession, order: ServiceOrder) -> None:
-    await db.delete(order)
-    await db.flush()
+async def delete_order(db: Db, order: ServiceOrder) -> None:
+    await db.execute("DELETE FROM service_orders WHERE id = $1", order.id)
 
 
-async def count_by_status(db: AsyncSession) -> dict[ServiceOrderStatus, int]:
-    """Return total order count grouped by status — feeds the panel statistics."""
-    stmt = select(ServiceOrder.status, func.count(ServiceOrder.id)).group_by(ServiceOrder.status)
-    rows = (await db.execute(stmt)).all()
+async def count_by_status(db: Db) -> dict[ServiceOrderStatus, int]:
+    """Liczba zleceń pogrupowana po statusie — zasila karty statystyk panelu."""
+    rows = await db.fetch("SELECT status, count(*) AS n FROM service_orders GROUP BY status")
     counts: dict[ServiceOrderStatus, int] = {s: 0 for s in ServiceOrderStatus}
-    for status_value, count in rows:
-        counts[status_value] = count
+    for row in rows:
+        counts[ServiceOrderStatus(row["status"])] = int(row["n"])
     return counts
 
 
-async def has_active_service_for_vehicle(
-    db: AsyncSession,
-    vehicle_id: uuid.UUID,
-) -> bool:
-    """True if vehicle has any SCHEDULED/IN_PROGRESS service order.
-
-    Used by the reservation flow so we don't accept bookings on a car the
-    technician panel has already pulled off the road.
-    """
-    stmt = (
-        select(ServiceOrder.id)
-        .where(
-            ServiceOrder.vehicle_id == vehicle_id,
-            ServiceOrder.status.in_(
-                (ServiceOrderStatus.SCHEDULED, ServiceOrderStatus.IN_PROGRESS),
-            ),
-        )
-        .limit(1)
+async def has_active_service_for_vehicle(db: Db, vehicle_id: uuid.UUID) -> bool:
+    """True, jeśli pojazd ma jakiekolwiek zlecenie SCHEDULED/IN_PROGRESS."""
+    row = await db.fetchrow(
+        "SELECT 1 FROM service_orders WHERE vehicle_id = $1 AND status = ANY($2::text[]) LIMIT 1",
+        vehicle_id,
+        _ACTIVE_STATUSES,
     )
-    return (await db.execute(stmt)).scalar_one_or_none() is not None
+    return row is not None
 
 
-async def create_history(db: AsyncSession, entry: ServiceHistory) -> ServiceHistory:
-    db.add(entry)
-    await db.flush()
-    await db.refresh(entry)
-    return entry
-
-
-async def list_history_for_vehicle(
-    db: AsyncSession,
-    vehicle_id: uuid.UUID,
-) -> list[ServiceHistory]:
-    stmt = (
-        select(ServiceHistory)
-        .where(ServiceHistory.vehicle_id == vehicle_id)
-        .order_by(ServiceHistory.created_at.desc())
+async def create_history(db: Db, entry: ServiceHistory) -> ServiceHistory:
+    row = await db.fetchrow(
+        "INSERT INTO service_history (id, vehicle_id, service_order_id, notes, parts_replaced, "
+        "mileage_at_service) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
+        entry.id,
+        entry.vehicle_id,
+        entry.service_order_id,
+        entry.notes,
+        entry.parts_replaced,
+        entry.mileage_at_service,
     )
-    return list((await db.execute(stmt)).scalars())
+    assert row is not None
+    return ServiceHistory.from_row(row)
 
 
-async def list_history_for_order(
-    db: AsyncSession,
-    order_id: uuid.UUID,
-) -> list[ServiceHistory]:
-    stmt = (
-        select(ServiceHistory)
-        .where(ServiceHistory.service_order_id == order_id)
-        .order_by(ServiceHistory.created_at.desc())
+async def list_history_for_vehicle(db: Db, vehicle_id: uuid.UUID) -> list[ServiceHistory]:
+    rows = await db.fetch(
+        "SELECT * FROM service_history WHERE vehicle_id = $1 ORDER BY created_at DESC",
+        vehicle_id,
     )
-    return list((await db.execute(stmt)).scalars())
+    return [ServiceHistory.from_row(r) for r in rows]
+
+
+async def list_history_for_order(db: Db, order_id: uuid.UUID) -> list[ServiceHistory]:
+    rows = await db.fetch(
+        "SELECT * FROM service_history WHERE service_order_id = $1 ORDER BY created_at DESC",
+        order_id,
+    )
+    return [ServiceHistory.from_row(r) for r in rows]

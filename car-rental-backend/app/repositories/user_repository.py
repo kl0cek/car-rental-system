@@ -1,89 +1,87 @@
-"""Repozytorium użytkowników — wszystkie zapytania SQL dotyczące tabeli `users`.
+"""Repozytorium użytkowników — czysty SQL na tabeli ``users`` (asyncpg).
 
-Warstwa repozytorium izoluje serwisy od SQLAlchemy: zwraca obiekty
-modeli i przyjmuje proste argumenty, dzięki czemu logika biznesowa
-nie wie nic o sposobie persystencji.
+Warstwa repozytorium izoluje serwisy od szczegółów persystencji: zwraca
+obiekty domenowe (``User``) i przyjmuje proste argumenty. Zapytania są
+parametryzowane ($1, $2, ...) — bez sklejania wartości w string.
 """
 
 import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import Select, func, or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.db.session import Db
 from app.models.user import User, UserRole
 
+# Whitelist kolumn dozwolonych w ORDER BY (ochrona przed SQL injection w sort_by).
 SORTABLE_COLUMNS = {
-    "created_at": User.created_at,
-    "last_login_at": User.last_login_at,
-    "risk_score": User.risk_score,
-    "email": User.email,
-    "last_name": User.last_name,
+    "created_at": "created_at",
+    "last_login_at": "last_login_at",
+    "risk_score": "risk_score",
+    "email": "email",
+    "last_name": "last_name",
 }
 
-
-async def get_by_id(db: AsyncSession, user_id: uuid.UUID) -> User | None:
-    result = await db.execute(select(User).where(User.id == user_id))
-    return result.scalar_one_or_none()
-
-
-async def get_by_email(db: AsyncSession, email: str) -> User | None:
-    result = await db.execute(select(User).where(User.email == email))
-    return result.scalar_one_or_none()
+_INSERT_COLS = (
+    "id, email, hashed_password, first_name, last_name, role, is_active, "
+    "is_verified, phone, avatar_url, risk_score, last_login_at"
+)
 
 
-async def create(db: AsyncSession, user: User) -> User:
-    db.add(user)
-    await db.flush()
-    await db.refresh(user)
-    return user
+async def get_by_id(db: Db, user_id: uuid.UUID) -> User | None:
+    row = await db.fetchrow("SELECT * FROM users WHERE id = $1", user_id)
+    return User.from_row(row) if row else None
 
 
-async def update(db: AsyncSession, user: User) -> User:
-    await db.flush()
-    await db.refresh(user)
-    return user
+async def get_by_email(db: Db, email: str) -> User | None:
+    row = await db.fetchrow("SELECT * FROM users WHERE email = $1", email)
+    return User.from_row(row) if row else None
 
 
-def _apply_admin_filters(
-    stmt: Select[tuple[User]],
-    *,
-    role: UserRole | None,
-    is_active: bool | None,
-    is_verified: bool | None,
-    min_risk_score: Decimal | None,
-    max_risk_score: Decimal | None,
-    active_since: datetime | None,
-    search: str | None,
-) -> Select[tuple[User]]:
-    if role is not None:
-        stmt = stmt.where(User.role == role)
-    if is_active is not None:
-        stmt = stmt.where(User.is_active.is_(is_active))
-    if is_verified is not None:
-        stmt = stmt.where(User.is_verified.is_(is_verified))
-    if min_risk_score is not None:
-        stmt = stmt.where(User.risk_score >= min_risk_score)
-    if max_risk_score is not None:
-        stmt = stmt.where(User.risk_score <= max_risk_score)
-    if active_since is not None:
-        stmt = stmt.where(User.last_login_at >= active_since)
-    if search:
-        escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        pattern = f"%{escaped}%"
-        stmt = stmt.where(
-            or_(
-                User.email.ilike(pattern, escape="\\"),
-                User.first_name.ilike(pattern, escape="\\"),
-                User.last_name.ilike(pattern, escape="\\"),
-            )
-        )
-    return stmt
+async def create(db: Db, user: User) -> User:
+    row = await db.fetchrow(
+        f"INSERT INTO users ({_INSERT_COLS}) "
+        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *",
+        user.id,
+        user.email,
+        user.hashed_password,
+        user.first_name,
+        user.last_name,
+        user.role.value,
+        user.is_active,
+        user.is_verified,
+        user.phone,
+        user.avatar_url,
+        user.risk_score,
+        user.last_login_at,
+    )
+    assert row is not None
+    return User.from_row(row)
+
+
+async def update(db: Db, user: User) -> User:
+    row = await db.fetchrow(
+        "UPDATE users SET email = $2, hashed_password = $3, first_name = $4, last_name = $5, "
+        "role = $6, is_active = $7, is_verified = $8, phone = $9, avatar_url = $10, "
+        "risk_score = $11, last_login_at = $12, updated_at = now() WHERE id = $1 RETURNING *",
+        user.id,
+        user.email,
+        user.hashed_password,
+        user.first_name,
+        user.last_name,
+        user.role.value,
+        user.is_active,
+        user.is_verified,
+        user.phone,
+        user.avatar_url,
+        user.risk_score,
+        user.last_login_at,
+    )
+    assert row is not None
+    return User.from_row(row)
 
 
 async def get_admin_list(
-    db: AsyncSession,
+    db: Db,
     *,
     offset: int = 0,
     limit: int = 20,
@@ -97,32 +95,55 @@ async def get_admin_list(
     active_since: datetime | None = None,
     search: str | None = None,
 ) -> tuple[list[User], int]:
-    base = select(User)
-    base = _apply_admin_filters(
-        base,
-        role=role,
-        is_active=is_active,
-        is_verified=is_verified,
-        min_risk_score=min_risk_score,
-        max_risk_score=max_risk_score,
-        active_since=active_since,
-        search=search,
-    )
+    conditions: list[str] = []
+    args: list[object] = []
 
-    count_stmt = select(func.count()).select_from(base.subquery())
-    total = (await db.execute(count_stmt)).scalar_one()
+    def add(template: str, value: object) -> None:
+        args.append(value)
+        conditions.append(template.format(n=len(args)))
 
-    sort_col = SORTABLE_COLUMNS.get(sort_by, User.created_at)
-    order = sort_col.asc() if sort_order == "asc" else sort_col.desc()
-    # last_login_at is nullable — ensure NULLs are last when descending, first when ascending
+    if role is not None:
+        add("role = ${n}", role.value)
+    if is_active is not None:
+        add("is_active = ${n}", is_active)
+    if is_verified is not None:
+        add("is_verified = ${n}", is_verified)
+    if min_risk_score is not None:
+        add("risk_score >= ${n}", min_risk_score)
+    if max_risk_score is not None:
+        add("risk_score <= ${n}", max_risk_score)
+    if active_since is not None:
+        add("last_login_at >= ${n}", active_since)
+    if search:
+        escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        args.append(f"%{escaped}%")
+        n = len(args)
+        conditions.append(f"(email ILIKE ${n} OR first_name ILIKE ${n} OR last_name ILIKE ${n})")
+
+    where = (" WHERE " + " AND ".join(conditions)) if conditions else ""
+
+    total = await db.fetchval(f"SELECT count(*) FROM users{where}", *args)
+
+    sort_col = SORTABLE_COLUMNS.get(sort_by, "created_at")
+    direction = "ASC" if sort_order == "asc" else "DESC"
+    nulls = ""
     if sort_by == "last_login_at":
-        order = order.nulls_last() if sort_order == "desc" else order.nulls_first()
+        nulls = " NULLS LAST" if sort_order == "desc" else " NULLS FIRST"
 
-    stmt = base.order_by(order).offset(offset).limit(limit)
-    result = await db.execute(stmt)
-    return list(result.scalars().unique()), total
+    rows = await db.fetch(
+        f"SELECT * FROM users{where} ORDER BY {sort_col} {direction}{nulls} "
+        f"LIMIT ${len(args) + 1} OFFSET ${len(args) + 2}",
+        *args,
+        limit,
+        offset,
+    )
+    return [User.from_row(r) for r in rows], int(total or 0)
 
 
-async def update_last_login(db: AsyncSession, user: User, when: datetime) -> None:
+async def update_last_login(db: Db, user: User, when: datetime) -> None:
+    await db.execute(
+        "UPDATE users SET last_login_at = $2, updated_at = now() WHERE id = $1",
+        user.id,
+        when,
+    )
     user.last_login_at = when
-    await db.flush()

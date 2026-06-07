@@ -1,81 +1,89 @@
-"""Repozytorium rezerwacji — zapytania o `reservations` z eager-load pojazdu.
+"""Repozytorium rezerwacji — czysty SQL (asyncpg).
 
-Obsługuje listing rezerwacji per użytkownik, paginację oraz wyszukiwanie
-po statusach (np. aktywne / nadchodzące).
+Listing per użytkownik, listing admina z filtrami, tworzenie i zmiana
+statusu. Pojazd (z kategorią i zdjęciami) oraz użytkownik dociągani są
+osobnymi zapytaniami (odpowiednik joinedload/selectinload).
 """
 
 import uuid
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
-
+from app.db.session import Db
 from app.models.rental import Reservation, ReservationStatus
-from app.models.vehicle import Vehicle
+from app.repositories import _relations
 
 SORTABLE_COLUMNS = {
-    "created_at": Reservation.created_at,
-    "start_date": Reservation.start_date,
-    "end_date": Reservation.end_date,
-    "total_price": Reservation.total_price,
+    "created_at": "created_at",
+    "start_date": "start_date",
+    "end_date": "end_date",
+    "total_price": "total_price",
 }
 
 
-async def get_by_id(db: AsyncSession, reservation_id: uuid.UUID) -> Reservation | None:
-    stmt = (
-        select(Reservation)
-        .options(
-            joinedload(Reservation.vehicle).selectinload(Vehicle.images),
-            joinedload(Reservation.user),
-        )
-        .where(Reservation.id == reservation_id)
-    )
-    result = await db.execute(stmt)
-    return result.scalar_one_or_none()
+async def _attach(db: Db, reservations: list[Reservation], *, with_user: bool) -> None:
+    if not reservations:
+        return
+    vehicles = await _relations.load_vehicles_for(db, [r.vehicle_id for r in reservations])
+    for reservation in reservations:
+        reservation.vehicle = vehicles.get(reservation.vehicle_id)
+    if with_user:
+        users = await _relations.load_users_for(db, [r.user_id for r in reservations])
+        for reservation in reservations:
+            reservation.user = users.get(reservation.user_id)
 
 
-async def get_by_id_for_update(db: AsyncSession, reservation_id: uuid.UUID) -> Reservation | None:
-    """Zablokuj wiersz rezerwacji, a następnie zwróć ją z eager-loadem pojazdu/użytkownika.
+async def get_by_id(db: Db, reservation_id: uuid.UUID) -> Reservation | None:
+    row = await db.fetchrow("SELECT * FROM reservations WHERE id = $1", reservation_id)
+    if row is None:
+        return None
+    reservation = Reservation.from_row(row)
+    await _attach(db, [reservation], with_user=True)
+    return reservation
 
-    Blokada i eager-load są celowo rozdzielone na dwa zapytania: połączenie
-    `FOR UPDATE` z `joinedload` (czyli LEFT OUTER JOIN) jest odrzucane przez
-    PostgreSQL — "FOR UPDATE cannot be applied to the nullable side of an outer join".
-    Najpierw więc blokujemy sam wiersz `reservations` (bez joinów), potem dociągamy
-    relacje przez `get_by_id`. Ten sam wzorzec stosuje `vehicle_repository`.
+
+async def get_by_id_for_update(db: Db, reservation_id: uuid.UUID) -> Reservation | None:
+    """Zablokuj wiersz rezerwacji (FOR UPDATE), potem zwróć z relacjami.
+
+    Blokadę i eager-load rozdzielamy — FOR UPDATE nie może działać na
+    nullowalnej stronie outer-joina (relacje ładujemy osobnymi zapytaniami).
     """
-    await db.execute(select(Reservation).where(Reservation.id == reservation_id).with_for_update())
+    await db.execute("SELECT id FROM reservations WHERE id = $1 FOR UPDATE", reservation_id)
     return await get_by_id(db, reservation_id)
 
 
 async def get_list_by_user(
-    db: AsyncSession,
+    db: Db,
     user_id: uuid.UUID,
     *,
     offset: int = 0,
     limit: int = 20,
     status: ReservationStatus | None = None,
 ) -> tuple[list[Reservation], int]:
-    count_stmt = select(func.count(Reservation.id)).where(Reservation.user_id == user_id)
-    data_stmt = (
-        select(Reservation)
-        .options(joinedload(Reservation.vehicle).selectinload(Vehicle.images))
-        .where(Reservation.user_id == user_id)
-    )
+    conditions = ["user_id = $1"]
+    args: list[Any] = [user_id]
     if status is not None:
-        count_stmt = count_stmt.where(Reservation.status == status)
-        data_stmt = data_stmt.where(Reservation.status == status)
+        args.append(status.value)
+        conditions.append(f"status = ${len(args)}")
+    where = " WHERE " + " AND ".join(conditions)
 
-    total = (await db.execute(count_stmt)).scalar_one()
+    total = await db.fetchval(f"SELECT count(*) FROM reservations{where}", *args)
 
-    data_stmt = data_stmt.order_by(Reservation.created_at.desc()).offset(offset).limit(limit)
-    result = await db.execute(data_stmt)
-    return list(result.scalars().unique()), total
+    rows = await db.fetch(
+        f"SELECT * FROM reservations{where} ORDER BY created_at DESC "
+        f"LIMIT ${len(args) + 1} OFFSET ${len(args) + 2}",
+        *args,
+        limit,
+        offset,
+    )
+    reservations = [Reservation.from_row(r) for r in rows]
+    await _attach(db, reservations, with_user=False)
+    return reservations, int(total or 0)
 
 
 async def get_admin_list(
-    db: AsyncSession,
+    db: Db,
     *,
     offset: int = 0,
     limit: int = 20,
@@ -87,40 +95,46 @@ async def get_admin_list(
     date_from: datetime | None = None,
     date_to: datetime | None = None,
 ) -> tuple[list[Reservation], int]:
-    base = select(Reservation)
+    conditions: list[str] = []
+    args: list[Any] = []
+
+    def add(template: str, value: Any) -> None:
+        args.append(value)
+        conditions.append(template.format(n=len(args)))
+
     if status is not None:
-        base = base.where(Reservation.status == status)
+        add("status = ${n}", status.value)
     if user_id is not None:
-        base = base.where(Reservation.user_id == user_id)
+        add("user_id = ${n}", user_id)
     if vehicle_id is not None:
-        base = base.where(Reservation.vehicle_id == vehicle_id)
-    # Overlap semantics: include reservations whose interval intersects [date_from, date_to].
+        add("vehicle_id = ${n}", vehicle_id)
+    # Semantyka nakładania: rezerwacje przecinające [date_from, date_to].
     if date_from is not None:
-        base = base.where(Reservation.end_date >= date_from)
+        add("end_date >= ${n}", date_from)
     if date_to is not None:
-        base = base.where(Reservation.start_date <= date_to)
+        add("start_date <= ${n}", date_to)
 
-    count_stmt = select(func.count()).select_from(base.subquery())
-    total = (await db.execute(count_stmt)).scalar_one()
+    where = (" WHERE " + " AND ".join(conditions)) if conditions else ""
 
-    sort_col = SORTABLE_COLUMNS.get(sort_by, Reservation.created_at)
-    order = sort_col.asc() if sort_order == "asc" else sort_col.desc()
+    total = await db.fetchval(f"SELECT count(*) FROM reservations{where}", *args)
 
-    stmt = (
-        base.options(
-            joinedload(Reservation.user),
-            joinedload(Reservation.vehicle).selectinload(Vehicle.images),
-        )
-        .order_by(order)
-        .offset(offset)
-        .limit(limit)
+    sort_col = SORTABLE_COLUMNS.get(sort_by, "created_at")
+    direction = "ASC" if sort_order == "asc" else "DESC"
+
+    rows = await db.fetch(
+        f"SELECT * FROM reservations{where} ORDER BY {sort_col} {direction} "
+        f"LIMIT ${len(args) + 1} OFFSET ${len(args) + 2}",
+        *args,
+        limit,
+        offset,
     )
-    result = await db.execute(stmt)
-    return list(result.scalars().unique()), total
+    reservations = [Reservation.from_row(r) for r in rows]
+    await _attach(db, reservations, with_user=True)
+    return reservations, int(total or 0)
 
 
 async def create(
-    db: AsyncSession,
+    db: Db,
     *,
     user_id: uuid.UUID,
     vehicle_id: uuid.UUID,
@@ -128,31 +142,32 @@ async def create(
     end_date: datetime,
     total_price: Decimal,
 ) -> Reservation:
-    reservation = Reservation(
-        user_id=user_id,
-        vehicle_id=vehicle_id,
-        start_date=start_date,
-        end_date=end_date,
-        total_price=total_price,
-        status=ReservationStatus.PENDING,
+    row = await db.fetchrow(
+        "INSERT INTO reservations (id, user_id, vehicle_id, start_date, end_date, status, "
+        "total_price) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
+        uuid.uuid4(),
+        user_id,
+        vehicle_id,
+        start_date,
+        end_date,
+        ReservationStatus.PENDING.value,
+        total_price,
     )
-    db.add(reservation)
-    await db.flush()
-    # Re-fetch with vehicle.images eager-loaded so callers building response DTOs
-    # don't trigger an implicit lazy load (which fails under async sessions).
-    stmt = (
-        select(Reservation)
-        .options(joinedload(Reservation.vehicle).selectinload(Vehicle.images))
-        .where(Reservation.id == reservation.id)
-    )
-    return (await db.execute(stmt)).scalar_one()
+    assert row is not None
+    reservation = Reservation.from_row(row)
+    await _attach(db, [reservation], with_user=False)
+    return reservation
 
 
 async def update_status(
-    db: AsyncSession,
+    db: Db,
     reservation: Reservation,
     new_status: ReservationStatus,
 ) -> Reservation:
+    await db.execute(
+        "UPDATE reservations SET status = $2, updated_at = now() WHERE id = $1",
+        reservation.id,
+        new_status.value,
+    )
     reservation.status = new_status
-    await db.flush()
     return reservation

@@ -17,15 +17,12 @@ import uuid
 from datetime import UTC, datetime
 from decimal import Decimal
 
-import sqlalchemy as sa
 from fastapi import HTTPException, status
 from redis.asyncio import Redis
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.user_cache import invalidate_user_cache
-from app.models.incident import Incident, IncidentSeverity
-from app.models.rental import Rental, Reservation
+from app.db.session import Db
+from app.models.incident import IncidentSeverity
 from app.repositories import user_repository
 
 SEVERITY_WEIGHT: dict[IncidentSeverity, Decimal] = {
@@ -72,7 +69,7 @@ def _recency_factor(age_days: int) -> Decimal:
 
 
 async def compute_user_risk_score(
-    db: AsyncSession,
+    db: Db,
     user_id: uuid.UUID,
     *,
     now: datetime | None = None,
@@ -87,38 +84,32 @@ async def compute_user_risk_score(
 
     # Completed rentals = rentals with a non-null return_date that belong to
     # a reservation owned by this user.
-    completed_rentals = (
-        await db.execute(
-            select(func.count(Rental.id))
-            .join(Reservation, Rental.reservation_id == Reservation.id)
-            .where(
-                Rental.return_date.is_not(None),
-                Reservation.user_id == user_id,
-            )
-        )
-    ).scalar_one()
+    completed_rentals = await db.fetchval(
+        "SELECT count(r.id) FROM rentals r "
+        "JOIN reservations res ON res.id = r.reservation_id "
+        "WHERE r.return_date IS NOT NULL AND res.user_id = $1",
+        user_id,
+    )
+    completed_rentals = int(completed_rentals or 0)
 
     # Only count incidents that (a) are not tied to a specific rental
     # (e.g. complaints) or (b) are tied to a rental that has actually been
     # completed. In-flight rentals are excluded from ``completed_rentals``
     # above, so counting their incidents here would inflate the rate.
-    incidents_result = await db.execute(
-        select(Incident)
-        .outerjoin(Rental, Incident.rental_id == Rental.id)
-        .where(
-            Incident.customer_id == user_id,
-            sa.or_(Incident.rental_id.is_(None), Rental.return_date.is_not(None)),
-        )
+    incident_rows = await db.fetch(
+        "SELECT i.severity, i.created_at FROM incidents i "
+        "LEFT JOIN rentals r ON r.id = i.rental_id "
+        "WHERE i.customer_id = $1 AND (i.rental_id IS NULL OR r.return_date IS NOT NULL)",
+        user_id,
     )
-    incidents = list(incidents_result.scalars())
 
-    if not incidents and completed_rentals == 0:
+    if not incident_rows and completed_rentals == 0:
         return NEUTRAL_BASELINE
 
     weighted = Decimal("0")
-    for incident in incidents:
-        age_days = (current_time - incident.created_at).days
-        weight = SEVERITY_WEIGHT[incident.severity]
+    for row in incident_rows:
+        age_days = (current_time - row["created_at"]).days
+        weight = SEVERITY_WEIGHT[IncidentSeverity(row["severity"])]
         weighted += weight * _recency_factor(age_days)
 
     divisor = Decimal(max(completed_rentals, 1))
@@ -141,29 +132,29 @@ async def compute_user_risk_score(
 
 
 async def recompute_and_persist(
-    db: AsyncSession,
+    db: Db,
     user_id: uuid.UUID,
     redis: Redis | None = None,
 ) -> Decimal:
-    """Recompute and write ``User.risk_score``. Returns the new score.
+    """Recompute and write ``users.risk_score``. Returns the new score.
 
-    Uses the ORM path (load → mutate → flush) rather than a Core UPDATE so
-    that any already-loaded ``User`` instance in the same session keeps a
-    consistent ``risk_score``. Raises 404 if the user does not exist —
-    important when this is invoked from event hooks where a bogus
-    ``user_id`` would otherwise silently no-op.
+    Raises 404 if the user does not exist — important when this is invoked
+    from event hooks where a bogus ``user_id`` would otherwise silently no-op.
 
-    When ``redis`` is supplied, the cached user entry is invalidated after
-    the flush so the next authenticated request sees the new score instead
-    of the stale value left in Redis (TTL up to ``USER_CACHE_TTL_SECONDS``).
+    When ``redis`` is supplied, the cached user entry is invalidated after the
+    write so the next authenticated request sees the new score instead of the
+    stale value left in Redis (TTL up to ``USER_CACHE_TTL_SECONDS``).
     """
     user = await user_repository.get_by_id(db, user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     new_score = await compute_user_risk_score(db, user_id)
-    user.risk_score = new_score
-    await db.flush()
+    await db.execute(
+        "UPDATE users SET risk_score = $2, updated_at = now() WHERE id = $1",
+        user_id,
+        new_score,
+    )
     if redis is not None:
         await invalidate_user_cache(redis, user_id)
     return new_score

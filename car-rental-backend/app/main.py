@@ -12,10 +12,10 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import text
 
 from app.config import settings
-from app.db.engine import async_engine
+from app.db.bootstrap import apply_schema
+from app.db.engine import close_db, connect_db
 from app.db.mongodb import close_mongo, connect_mongo
 from app.db.redis import close_redis, connect_redis
 from app.db.session import DbSession
@@ -39,14 +39,17 @@ from app.services.vehicle_service import VEHICLE_IMAGE_UPLOAD_DIR
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    # Połączenia do Mongo/Redisa/Postgresa otwieramy raz na start procesu
-    # i zwalniamy przy shutdownie — pula SQLAlchemy żyje tyle co aplikacja
+    # Połączenia do Postgresa/Mongo/Redisa otwieramy raz na start procesu
+    # i zwalniamy przy shutdownie — pula asyncpg żyje tyle co aplikacja.
+    # Schemat relacyjny (schema.sql) stosujemy idempotentnie po podłączeniu puli.
+    await connect_db()
+    await apply_schema()
     await connect_mongo()
     await connect_redis()
     yield
     await close_redis()
     await close_mongo()
-    await async_engine.dispose()
+    await close_db()
 
 
 # root_path="/api" bo nginx montuje backend pod tym prefiksem —
@@ -103,5 +106,5 @@ async def root() -> dict[str, str]:
 
 @app.get("/health")
 async def health_check(db: DbSession) -> dict[str, str]:
-    await db.execute(text("SELECT 1"))
+    await db.fetchval("SELECT 1")
     return {"status": "healthy"}

@@ -1,37 +1,23 @@
-"""Model pojazdu wraz z wyliczeniami typu silnika i statusu.
+"""Model pojazdu wraz z wyliczeniami typu silnika, koloru i statusu (dataclass).
 
 Unikalność VIN i tablicy rejestracyjnej jest wymuszana przez częściowy
-indeks `WHERE is_active = true` — soft-delete nie blokuje ponownego
-wprowadzenia tego samego pojazdu fizycznego.
+indeks ``WHERE is_active = true`` (soft-delete nie blokuje ponownego
+wprowadzenia). Pola ``category`` i ``images`` są dociągane przez
+repozytorium (osobne zapytania) i wypełniane po zmapowaniu wiersza.
 """
 
 from __future__ import annotations
 
 import enum
 import uuid
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from decimal import Decimal
-from typing import TYPE_CHECKING
+from typing import Any
 
-from sqlalchemy import (
-    Boolean,
-    CheckConstraint,
-    Enum,
-    ForeignKey,
-    Index,
-    Integer,
-    Numeric,
-    String,
-    Uuid,
-    text,
-)
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.db.base import Base
-
-if TYPE_CHECKING:
-    from app.models.category import Category
-    from app.models.rental import Reservation
-    from app.models.vehicle_image import VehicleImage
+from app.db.base import Entity
+from app.models.category import Category
+from app.models.vehicle_image import VehicleImage
 
 
 class EngineType(enum.StrEnum):
@@ -63,61 +49,51 @@ class VehicleColor(enum.StrEnum):
     OTHER = "other"
 
 
-class Vehicle(Base):
-    __tablename__ = "vehicles"
-    __table_args__ = (
-        CheckConstraint("horsepower > 0", name="ck_vehicle_horsepower_positive"),
-        CheckConstraint("seats > 0", name="ck_vehicle_seats_positive"),
-        CheckConstraint("trunk_capacity >= 0", name="ck_vehicle_trunk_capacity_non_negative"),
-        CheckConstraint("mileage >= 0", name="ck_vehicle_mileage_non_negative"),
-        CheckConstraint(
-            "avg_rating IS NULL OR (avg_rating >= 1 AND avg_rating <= 5)",
-            name="ck_vehicle_avg_rating_range",
-        ),
-        CheckConstraint("ratings_count >= 0", name="ck_vehicle_ratings_count_non_negative"),
-        Index(
-            "uq_vehicles_vin_active",
-            "vin",
-            unique=True,
-            postgresql_where=text("is_active = true"),
-        ),
-        Index(
-            "uq_vehicles_license_plate_active",
-            "license_plate",
-            unique=True,
-            postgresql_where=text("is_active = true"),
-        ),
-    )
+@dataclass(kw_only=True)
+class Vehicle(Entity):
+    brand: str
+    model: str
+    year: int
+    license_plate: str
+    vin: str
+    engine_type: EngineType
+    horsepower: int
+    seats: int
+    trunk_capacity: int
+    daily_base_price: Decimal
+    color: VehicleColor
+    category_id: uuid.UUID
+    mileage: int = 0
+    status: VehicleStatus = VehicleStatus.AVAILABLE
+    is_active: bool = True
+    avg_rating: Decimal | None = None
+    ratings_count: int = 0
 
-    brand: Mapped[str] = mapped_column(String(100), index=True)
-    model: Mapped[str] = mapped_column(String(100))
-    year: Mapped[int] = mapped_column(Integer)
-    license_plate: Mapped[str] = mapped_column(String(20))
-    vin: Mapped[str] = mapped_column(String(17))
-    engine_type: Mapped[EngineType] = mapped_column(Enum(EngineType, native_enum=False), index=True)
-    horsepower: Mapped[int] = mapped_column(Integer)
-    seats: Mapped[int] = mapped_column(Integer)
-    trunk_capacity: Mapped[int] = mapped_column(Integer)
-    daily_base_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), index=True)
-    color: Mapped[VehicleColor] = mapped_column(Enum(VehicleColor, native_enum=False), index=True)
-    mileage: Mapped[int] = mapped_column(Integer, default=0)
-    status: Mapped[VehicleStatus] = mapped_column(
-        Enum(VehicleStatus, native_enum=False), default=VehicleStatus.AVAILABLE, index=True
-    )
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    # Denormalized review aggregates maintained by review_service after each
-    # insert/delete in the MongoDB ``reviews`` collection. Stored here so the
-    # public catalog can sort/read them without hitting Mongo on every request.
-    avg_rating: Mapped[Decimal | None] = mapped_column(Numeric(3, 2), nullable=True)
-    ratings_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    # Relacje dociągane przez repozytorium (selectin-style):
+    category: Category | None = None
+    images: list[VehicleImage] = field(default_factory=list)
 
-    category_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("categories.id"), index=True)
-
-    category: Mapped[Category] = relationship(back_populates="vehicles")
-    reservations: Mapped[list[Reservation]] = relationship(back_populates="vehicle")
-    images: Mapped[list[VehicleImage]] = relationship(
-        back_populates="vehicle",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-        order_by="VehicleImage.position",
-    )
+    @classmethod
+    def from_row(cls, row: Mapping[str, Any]) -> Vehicle:
+        return cls(
+            id=row["id"],
+            brand=row["brand"],
+            model=row["model"],
+            year=row["year"],
+            license_plate=row["license_plate"],
+            vin=row["vin"],
+            engine_type=EngineType(row["engine_type"]),
+            horsepower=row["horsepower"],
+            seats=row["seats"],
+            trunk_capacity=row["trunk_capacity"],
+            daily_base_price=row["daily_base_price"],
+            color=VehicleColor(row["color"]),
+            category_id=row["category_id"],
+            mileage=row["mileage"],
+            status=VehicleStatus(row["status"]),
+            is_active=row["is_active"],
+            avg_rating=row["avg_rating"],
+            ratings_count=row["ratings_count"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
+        )
